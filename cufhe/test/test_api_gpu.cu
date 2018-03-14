@@ -22,10 +22,6 @@ int main() {
   PubKey pub_key;
   Ptxt* pt = new Ptxt[2 * kNumTests];
   Ctxt* ct = new Ctxt[2 * kNumTests];
-  pri_key.New<AllocatorCPU>();
-  pub_key.New<AllocatorCPU>();
-  for (int i = 0; i < 2 * kNumTests; i ++)
-    ct[i].New<AllocatorBoth>();
   cudaDeviceSynchronize();
 
   cout<< "------ Key Generation ------" <<endl;
@@ -35,7 +31,7 @@ int main() {
   cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < kNumTests; i ++) {
-    pt[i].message_ = rand() % Ptxt::kPtxtSpace;
+    pt[i] = rand() % Ptxt::kPtxtSpace;
     Encrypt(ct[i], pt[i], pri_key);
     Decrypt(pt[kNumTests + i], ct[i], pri_key);
     if (pt[kNumTests + i].message_ != pt[i].message_) {
@@ -76,6 +72,8 @@ int main() {
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&et, start, stop);
   cout<< et / kNumTests << " ms / gate" <<endl;
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
 
   for (int i = 0; i < kNumTests; i ++) {
     NandCheck(pt[i + kNumTests], pt[i], pt[i + kNumTests]);
@@ -91,10 +89,6 @@ int main() {
     cout<< "FAIL" <<endl;
 
   cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
-  pri_key.Delete();
-  pub_key.Delete();
-  for (int i = 0; i < 2 * kNumTests; i ++)
-    ct[i].Delete();
   delete [] ct;
   delete [] pt;
   CleanUp();

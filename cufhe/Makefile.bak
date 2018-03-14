@@ -2,7 +2,7 @@
 CC = g++
 CU = /usr/local/cuda/bin/nvcc
 ## Flags
-FLAGS = -std=c++11 -O3 -w
+FLAGS = -std=c++11 -O3
 CU_FLAGS = -Wno-deprecated-gpu-targets
 INC = -I./
 ##
@@ -23,53 +23,39 @@ CC_OBJ = $(patsubst $(DIR_SRC)/%,$(DIR_OBJ)/%,$(CC_SRC:.cc=.o))
 CC_DEP = $(CC_OBJ:.o=.d)
 
 ##
-targets: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/libcufhe_gpu.so \
-	$(DIR_BIN)/test_api_cpu $(DIR_BIN)/test_api_gpu
-
+targets: $(DIR_BIN)/test_api_cpu $(DIR_BIN)/test_api_gpu
 ##
 all: $(targets)
-cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/test_api_cpu
-gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu
+cpu: $(DIR_BIN)/test_api_cpu
+gpu: $(DIR_BIN)/test_api_gpu
 clean:
 	rm -r $(DIR_BIN) $(DIR_OBJ)
-
 ##
-$(DIR_BIN)/test_api_cpu: $(DIR_OBJ)/test/test_api_cpu.o
+$(DIR_BIN)/test_api_cpu: $(CC_OBJ) $(DIR_OBJ)/test/test_api_cpu.o
 	$(dir_guard)
-	$(CC) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_cpu.o -L$(DIR_BIN) -lcufhe_cpu
-
+	$(CC) $(FLAGS) -o $@ $(CC_OBJ) $(DIR_OBJ)/test/test_api_cpu.o
 $(DIR_OBJ)/test/test_api_cpu.o: test/test_api_cpu.cc
 	$(dir_guard)
 	$(CC) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CC) $(FLAGS) $(INC) -c -o $@ $<
 
-$(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o
+$(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o $(CU_OBJ) $(DIR_OBJ)/cufhe.o
 	$(dir_guard)
-	$(CU) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
-
+	$(CU) $(FLAGS) -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/test/test_api_gpu.o
 $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(dir_guard)
 	$(CU) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CU) $(FLAGS) $(INC) -c -o $@ $<
-
-$(DIR_BIN)/libcufhe_cpu.so: $(CC_OBJ)
-	$(dir_guard)
-	$(CU) $(FLAGS) -shared -o $@ $(CC_OBJ)
-
-$(DIR_BIN)/libcufhe_gpu.so: $(CU_OBJ) $(DIR_OBJ)/cufhe.o
-	$(dir_guard)
-	$(CU) $(FLAGS) -shared -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o
-
-$(CC_OBJ): $(CC_SRC)
-	$(dir_guard)
-	$(CC) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) \
-			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cc))
-	$(CC) $(FLAGS) $(INC) -fPIC -c -o $@ \
-			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cc))
 
 $(CU_OBJ): $(CU_SRC)
 	$(dir_guard)
 	$(CU) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) \
 			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu))
 	$(CU) $(FLAGS) $(INC) -c -o $@ \
-			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu)) -Xcompiler '-fPIC'
+			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu))
+$(CC_OBJ): $(CC_SRC)
+	$(dir_guard)
+	$(CC) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) \
+			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cc))
+	$(CC) $(FLAGS) $(INC) -c -o $@ \
+			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cc))

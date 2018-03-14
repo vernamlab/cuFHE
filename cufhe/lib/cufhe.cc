@@ -21,6 +21,7 @@
  */
 
 #include <include/cufhe.h>
+#include <include/details/allocator_cpu.h>
 
 #include <math.h>
 #include <random>
@@ -40,7 +41,7 @@ Param kParam = {
   9.e-9
 };
 
-Param* GetParam() { return &kParam; }
+Param* GetDefaultParam() { return &kParam; }
 
 ////////////////////////////////////////////////////////////////////////////////
 std::default_random_engine generator; // @todo Set Seed!
@@ -97,13 +98,13 @@ void PolyMulAddBinary(Torus *r, Torus *a, Binary *b, uint32_t n) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void LWEKeyGen(LWEKey* key, const Param* param = GetParam()) {
+void LWEKeyGen(LWEKey* key, const Param* param = GetDefaultParam()) {
   std::uniform_int_distribution<> dist(0, 1);
   for (int i = 0; i < key->n(); i ++)
     key->data()[i] = dist(generator);
 }
 
-void TLWEKeyGen(TLWEKey* key, const Param* param = GetParam()) {
+void TLWEKeyGen(TLWEKey* key, const Param* param = GetDefaultParam()) {
   std::uniform_int_distribution<> dist(0, 1);
   for (int i = 0; i < key->NumPolys(); i ++)
     for (int j = 0; j < key->n(); j ++)
@@ -111,7 +112,7 @@ void TLWEKeyGen(TLWEKey* key, const Param* param = GetParam()) {
 }
 
 void LWEEncrypt(LWESample* ct, const Torus pt, const LWEKey* key,
-                const double noise_bound = GetParam()->lwe_noise_) {
+                const double noise_bound = GetDefaultParam()->lwe_noise_) {
   std::normal_distribution<double> dist_b(0.0, SDFromBound(noise_bound));
   ct->b() = pt + TorusFromDouble(dist_b(generator));
   std::uniform_int_distribution<Torus> dist_a(
@@ -146,7 +147,7 @@ void LWEDecrypt(Torus& pt, const LWESample* ct, const LWEKey* key,
 void KeySwitchingKeyGen(KeySwitchingKey* key,
                         const LWEKey* lwe_key_to,
                         const LWEKey* lwe_key_from,
-                        const Param* param = GetParam()) {
+                        const Param* param = GetDefaultParam()) {
   Torus mu;
   uint32_t temp;
   LWESample* lwe_sample = new LWESample;
@@ -179,7 +180,7 @@ void KeySwitchingKeyGen(KeySwitchingKey* key,
 }
 
 void TLWEEncryptZero(TLWESample* ct, const TLWEKey* key,
-                     const double noise_bound = GetParam()->tlwe_noise_) {
+                     const double noise_bound = GetDefaultParam()->tlwe_noise_) {
   std::normal_distribution<double> dist_b(0.0, SDFromBound(noise_bound));
   for (int i = 0; i < key->n(); i ++)
     ct->b()[i] = TorusFromDouble(dist_b(generator));
@@ -193,7 +194,7 @@ void TLWEEncryptZero(TLWESample* ct, const TLWEKey* key,
 }
 
 void TGSWEncryptBinary(TGSWSample* ct, const Binary pt, const TGSWKey* key,
-                       const Param* param = GetParam()) {
+                       const Param* param = GetDefaultParam()) {
   uint32_t l = ct->l();
   uint32_t k = ct->k();
   uint32_t w = ct->w();
@@ -217,7 +218,7 @@ void TGSWEncryptBinary(TGSWSample* ct, const Binary pt, const TGSWKey* key,
 void BootstrappingKeyGen(BootstrappingKey* key,
                          const LWEKey* lwe_key,
                          const TGSWKey* tgsw_key,
-                         const Param* param = GetParam()) {
+                         const Param* param = GetDefaultParam()) {
   TGSWSample* tgsw_sample = new TGSWSample;
   for (int i = 0; i < lwe_key->n(); i ++) {
     key->ExtractTGSWSample(tgsw_sample, i);
@@ -229,25 +230,29 @@ void BootstrappingKeyGen(BootstrappingKey* key,
 ////////////////////////////////////////////////////////////////////////////////
 
 PriKey::PriKey(bool is_alias) {
-  Param* param = GetParam();
+  Param* param = GetDefaultParam();
   lwe_key_ = new LWEKey(param->lwe_n_);
   tlwe_key_ = new TLWEKey(param->tlwe_n_, param->tlwe_k_);
   lwe_key_deleter_ = nullptr;
   tlwe_key_deleter_ = nullptr;
+  std::pair<void*, MemoryDeleter> pair;
+  pair = AllocatorCPU::New(lwe_key_->SizeMalloc());
+  lwe_key_->set_data((LWEKey::PointerType)pair.first);
+  lwe_key_deleter_ = pair.second;
+  pair = AllocatorCPU::New(tlwe_key_->SizeMalloc());
+  tlwe_key_->set_data((TLWEKey::PointerType)pair.first);
+  tlwe_key_deleter_ = pair.second;
 }
 
 PriKey::~PriKey() {
+  lwe_key_deleter_(lwe_key_->data());
+  tlwe_key_deleter_(tlwe_key_->data());
   delete lwe_key_;
   delete tlwe_key_;
 }
 
-void PriKey::Delete() {
-  lwe_key_deleter_(lwe_key_->data());
-  tlwe_key_deleter_(tlwe_key_->data());
-}
-
 PubKey::PubKey(bool is_alias) {
-  Param* param = GetParam();
+  Param* param = GetDefaultParam();
   bk_ = new BootstrappingKey(param->tlwe_n_, param->tlwe_k_,
                              param->tgsw_decomp_size_,
                              param->tgsw_decomp_bits_, param->lwe_n_);
@@ -257,30 +262,25 @@ PubKey::PubKey(bool is_alias) {
                              param->tlwe_n_ * param->tlwe_k_);
   bk_deleter_ = nullptr;
   ksk_deleter_ = nullptr;
+  std::pair<void*, MemoryDeleter> pair;
+  pair = AllocatorCPU::New(bk_->SizeMalloc());
+  bk_->set_data((BootstrappingKey::PointerType)pair.first);
+  bk_deleter_ = pair.second;
+  pair = AllocatorCPU::New(ksk_->SizeMalloc());
+  ksk_->set_data((KeySwitchingKey::PointerType)pair.first);
+  ksk_deleter_ = pair.second;
 }
 
 PubKey::~PubKey() {
+  bk_deleter_(bk_->data());
+  ksk_deleter_(ksk_->data());
   delete bk_;
   delete ksk_;
 }
 
-void PubKey::Delete() {
-  bk_deleter_(bk_->data());
-  ksk_deleter_(ksk_->data());
-}
-
-Ctxt::Ctxt(bool is_alias) {
-  Param* param = GetParam();
-  lwe_sample_ = new LWESample(param->lwe_n_);
-  lwe_sample_deleter_ = nullptr;
-}
-
 Ctxt::~Ctxt() {
-  delete lwe_sample_;
-}
-
-void Ctxt::Delete() {
   lwe_sample_deleter_(lwe_sample_->data());
+  delete lwe_sample_;
 }
 
 void SetSeed(uint32_t seed) {

@@ -56,6 +56,8 @@ struct Param {
   double   tlwe_noise_;
 };
 
+Param* GetDefaultParam();
+
 /**
  * Private Key.
  * Necessary for encryption/decryption and public key generation.
@@ -63,20 +65,6 @@ struct Param {
 struct PriKey {
   PriKey(bool is_alias = false);
   ~PriKey();
-
-  template <typename AllocatorClass>
-  void New() {
-    std::pair<void*, MemoryDeleter> pair;
-    pair = AllocatorClass::New(lwe_key_->SizeMalloc());
-    lwe_key_->set_data((LWEKey::PointerType)pair.first);
-    lwe_key_deleter_ = pair.second;
-    pair = AllocatorClass::New(tlwe_key_->SizeMalloc());
-    tlwe_key_->set_data((TLWEKey::PointerType)pair.first);
-    tlwe_key_deleter_ = pair.second;
-  }
-
-  void Delete();
-
   LWEKey* lwe_key_;
   TLWEKey* tlwe_key_;
   MemoryDeleter lwe_key_deleter_;
@@ -90,20 +78,6 @@ struct PriKey {
 struct PubKey {
   PubKey(bool is_alias = false);
   ~PubKey();
-
-  template <typename AllocatorClass>
-  void New() {
-    std::pair<void*, MemoryDeleter> pair;
-    pair = AllocatorClass::New(bk_->SizeMalloc());
-    bk_->set_data((BootstrappingKey::PointerType)pair.first);
-    bk_deleter_ = pair.second;
-    pair = AllocatorClass::New(ksk_->SizeMalloc());
-    ksk_->set_data((KeySwitchingKey::PointerType)pair.first);
-    ksk_deleter_ = pair.second;
-  }
-
-  void Delete();
-
   BootstrappingKey* bk_;
   KeySwitchingKey* ksk_;
   MemoryDeleter bk_deleter_;
@@ -114,23 +88,13 @@ struct PubKey {
 struct Ctxt {
   Ctxt(bool is_alias = false);
   ~Ctxt();
-
-  template <typename AllocatorClass>
-  void New() {
-    std::pair<void*, MemoryDeleter> pair;
-    pair = AllocatorClass::New(lwe_sample_->SizeMalloc());
-    lwe_sample_->set_data((LWESample::PointerType)pair.first);
-    lwe_sample_deleter_ = pair.second;
-  }
-
-  void Delete();
-
   LWESample* lwe_sample_;
   MemoryDeleter lwe_sample_deleter_;
 };
 
 /** Plaintext is in {0, 1}. */
 struct Ptxt {
+  inline Ptxt& operator=(uint32_t message) { message = message_ % kPtxtSpace; }
   uint32_t message_;
   static const uint32_t kPtxtSpace = 2;
 };

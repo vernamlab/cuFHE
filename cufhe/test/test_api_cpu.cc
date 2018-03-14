@@ -17,18 +17,12 @@ int main() {
   PubKey pub_key_old;
   Ptxt* pt = new Ptxt[2];
   Ctxt* ct = new Ctxt[2];
-  pri_key_old.New<AllocatorCPU>();
-  pub_key_old.New<AllocatorCPU>();
-  ct[0].New<AllocatorCPU>();
-  ct[1].New<AllocatorCPU>();
 
   cout<< "------ Key Generation ------" <<endl;
   KeyGen(pub_key_old, pri_key_old);
 
   PriKey pri_key;
   PubKey pub_key;
-  pri_key.New<AllocatorCPU>();
-  pub_key.New<AllocatorCPU>();
   WritePriKeyToFile(pri_key, "data/pri_key.txt");
   WritePubKeyToFile(pub_key, "data/pub_key.txt");
   ReadPriKeyFromFile(pri_key, "data/pri_key.txt");
@@ -73,12 +67,7 @@ int main() {
   else
     cout<< "FAIL" <<endl;
 
-  cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
-  pri_key.Delete();
-  pub_key.Delete();
-  pri_key_old.Delete();
-  pub_key_old.Delete();
-  ct[0].Delete();
-  ct[1].Delete();
+  delete [] pt;
+  delete [] ct;
   return 0;
 }
