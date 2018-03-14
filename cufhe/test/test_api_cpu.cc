@@ -9,9 +9,8 @@ void NandCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = 1 - in0.message_ * in1.message_;
 }
 
-const uint32_t kNumTests = 4;
-
 int main() {
+  uint32_t kNumTests = 1024;
   SetSeed();
   bool correct;
   PriKey pri_key_old;
@@ -36,6 +35,7 @@ int main() {
   ReadPubKeyFromFile(pub_key, "pub_key.txt");
 
   cout<< "------ Test Encryption/Decryption ------" <<endl;
+  cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < kNumTests; i ++) {
     pt[0].message_ = rand() % Ptxt::kPtxtSpace;
@@ -51,10 +51,9 @@ int main() {
   else
     cout<< "FAIL" <<endl;
 
-  cout<< "------ Initilizating Data on GPU(s) ------" <<endl;
-  Initialize(pub_key);
-
   cout<< "------ Test NAND Gate ------" <<endl;
+  kNumTests = 4;
+  cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < kNumTests; i ++) {
     pt[0].message_ = rand() % Ptxt::kPtxtSpace;
@@ -81,8 +80,5 @@ int main() {
   pub_key_old.Delete();
   ct[0].Delete();
   ct[1].Delete();
-  CleanUp();
-
-
   return 0;
 }

@@ -37,7 +37,9 @@ namespace cufhe {
 /******************
  * Server Methods *
  ******************/
+/** Dummy function for consistence with GPU API. */
 void Initialize(const PubKey& pub_key);
+/** Dummy function for consistence with GPU API. */
 void CleanUp();
 
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);

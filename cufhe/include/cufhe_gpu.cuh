@@ -37,7 +37,16 @@ namespace cufhe {
 /******************
  * Server Methods *
  ******************/
+
+/**
+ * Call before running gates on server.
+ * 1. Generate necessary NTT data.
+ * 2. Convert BootstrappingKey to NTT form.
+ * 3. Copy KeySwitchingKey to GPU memory.
+ */
 void Initialize(const PubKey& pub_key);
+
+/** Remove everything created in Initialize(). */
 void CleanUp();
 
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);

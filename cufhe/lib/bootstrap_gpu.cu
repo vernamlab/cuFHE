@@ -113,8 +113,45 @@ void DeleteKeySwitchingKey() {
   ksk_dev = nullptr;
 }
 
+__device__ inline
+uint32_t ModSwitch2048(uint32_t a) {
+  return (((uint64_t)a << 32) + (0x1UL << 52)) >> 53;
+}
+
+template <uint32_t lwe_n = 500, uint32_t tlwe_n = 1024,
+          uint32_t decomp_bits = 2, uint32_t decomp_size = 8>
+__device__ inline
+void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk) {
+  static const Torus decomp_mask = (1u << decomp_bits) - 1;
+  static const Torus decomp_offset = 1u << (31 - decomp_size * decomp_bits);
+  uint32_t tid = ThisThreadRankInBlock();
+  uint32_t bdim = ThisBlockSize();
+  Torus tmp;
+  Torus res = 0;
+  Torus val = 0;
+  #pragma unroll 0
+  for (int i = tid; i <= lwe_n; i += bdim) {
+    if (i == lwe_n)
+      res = tlwe[tlwe_n];
+    #pragma unroll 0
+    for (int j = 0; j < tlwe_n; j ++) {
+      if (j == 0)
+        tmp = tlwe[0];
+      else
+        tmp = -tlwe[1024 - j];
+      tmp += decomp_offset;
+      for (int k = 0; k < decomp_size; k ++) {
+        val = (tmp >> (32 - (k + 1) * decomp_bits)) & decomp_mask;
+        if (val != 0)
+          res -= ksk[(j << 14) | (k << 11) | (val << 9) | i];
+      }
+    }
+    lwe[i] = res;
+  }
+}
+
 __device__
-void Accumulate(Torus* sh_acc[2],
+void Accumulate(Torus* tlwe,
                 FFP* sh_acc_ntt[4],
                 FFP* sh_res_ntt[4],
                 uint32_t a_bar,
@@ -132,7 +169,7 @@ void Accumulate(Torus* sh_acc[2],
   // sh_acc_ntt[0, 1] = Decomp(temp[0])
   // sh_acc_ntt[2, 3] = Decomp(temp[1])
   // This algorithm is tested in cpp.
-  register Torus temp;
+  Torus temp;
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
     uint32_t cmp = (uint32_t)(i < (a_bar & 1023));
@@ -140,9 +177,9 @@ void Accumulate(Torus* sh_acc[2],
     uint32_t pos = -((1 - cmp) ^ (a_bar >> 10));
     #pragma unroll
     for (int j = 0; j < 2; j ++) {
-      temp = sh_acc[j][(i - a_bar) & 1023];
+      temp = tlwe[(j << 10) | ((i - a_bar) & 1023)];
       temp = (temp & pos) + ((-temp) & neg);
-      temp -= sh_acc[j][i];
+      temp -= tlwe[(j << 10) | i];
       // decomp temp
       temp += decomp_offset;
       sh_acc_ntt[2 * j][i] = FFP(Torus( ((temp >> (32 - decomp_bits))
@@ -151,7 +188,7 @@ void Accumulate(Torus* sh_acc[2],
                                  & decomp_mask) - decomp_half ));
     }
   }
-  __syncthreads();
+  __syncthreads(); // must
 
   // 4 NTTs with 512 threads.
   // Input/output/buffer use the same shared memory location.
@@ -174,7 +211,7 @@ void Accumulate(Torus* sh_acc[2],
     for (int j = 0; j < 4; j ++)
       sh_res_ntt[1][i] += sh_acc_ntt[j][i] * tgsw_ntt[((2 * j + 1) << 10) + i];
   }
-  __syncthreads();
+
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
     FFP temp = 0;
@@ -183,92 +220,65 @@ void Accumulate(Torus* sh_acc[2],
       temp += sh_acc_ntt[j][i] * tgsw_ntt[((2 * j) << 10) + i];
     sh_res_ntt[0][i] = temp;
   }
-  __syncthreads();
+  __syncthreads(); // must
+
   // 2 NTTInvs and add acc with 256 threads.
   if (tid < 256) {
     FFP* src = sh_res_ntt[tid >> 7];
-    ntt.NTTInvAdd<Torus>(sh_acc[tid >> 7], src, src, tid >> 7 << 7);
+    ntt.NTTInvAdd<Torus>(&tlwe[tid >> 7 << 10], src, src, tid >> 7 << 7);
   }
   else { // must meet 3 sync made by NTTInv
     __syncthreads();
     __syncthreads();
     __syncthreads();
   }
-  __syncthreads();
-}
-
-__device__ inline
-uint32_t ModSwitch2048(uint32_t a) {
-  return (((uint64_t)a << 32) + (0x1UL << 52)) >> 53;
+  __syncthreads(); // must
 }
 
 __global__
-void __Bootstrap__(LWESample out, LWESample in, Torus mu,
-                   BootstrappingKeyNTT bk_ntt,
-                   KeySwitchingKey ksk,
+void __Bootstrap__(Torus* out, Torus* in, Torus mu,
+                   FFP* bk,
+                   Torus* ksk,
                    CuNTTHandler<> ntt) {
-  Assert(bk_ntt.k() == 1);
-  Assert(bk_ntt.l() == 2);
-  Assert(bk_ntt.n() == 1024);
+//  Assert(bk.k() == 1);
+//  Assert(bk.l() == 2);
+//  Assert(bk.n() == 1024);
   __shared__ FFP sh[6 * 1024];
   FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
   FFP* sh_res_ntt[2] = { sh, sh + 4096 };
-  Torus* sh_acc[2] = { (Torus*)&sh[5120], (Torus*)&sh[5632] };
+  Torus* tlwe = (Torus*)&sh[5120];
 
   // test vector
   // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-  Torus bar = 2048 - ModSwitch2048(in.b());
-  uint32_t tid = ThisThreadRankInBlock();
-  uint32_t bdim = ThisBlockSize();
+  register int32_t bar = 2048 - ModSwitch2048(in[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
-    sh_acc[0][i] = 0; // part a
-    uint32_t cmp = (uint32_t)(i < (bar & 1023));
-    uint32_t neg = -(cmp ^ (bar >> 10));
-    uint32_t pos = -((1 - cmp) ^ (bar >> 10));
-    sh_acc[1][i] = (mu & pos) + ((-mu) & neg); // part b
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
   }
   __syncthreads();
   // accumulate
-  TGSWSample_T<FFP>* tgsw = new TGSWSample_T<FFP>();
   #pragma unroll
-  for (int i = 0; i < in.n(); i ++) { // 500 iterations
-    bk_ntt.ExtractTGSWSample(tgsw, i);
-    bar = ModSwitch2048(in.a()[i]);
-    Accumulate(sh_acc, sh_acc_ntt, sh_res_ntt, bar, tgsw->data(), ntt);
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(in[i]);
+    Accumulate(tlwe, sh_acc_ntt, sh_res_ntt, bar, bk + (i << 13), ntt);
   }
-  __syncthreads();
 
-  // key switching
-  register Torus res = 0;
-  register Torus val = 0;
-  static const uint32_t decomp_bits = 2;
-  static const uint32_t decomp_size = 8;
-  static const Torus decomp_mask = (1u << decomp_bits) - 1;
-  static const Torus decomp_offset = 1u << (31 - decomp_size * decomp_bits);
-
-  LWESample* temp = new LWESample();
-  #pragma unroll
-  for (int i = tid; i <= 500; i += bdim) {
-    if (i == out.n())
-      res = sh_acc[1][0];
-    #pragma unroll
-    for (int j = 0; j < 1024; j ++) {
-      if (j == 0)
-        bar = sh_acc[0][j];
-      else
-        bar = -sh_acc[0][1024 - j];
-      bar += decomp_offset;
-      for (int k = 0; k < decomp_size; k ++) {
-        val = (bar >> (32 - (k + 1) * decomp_bits)) & decomp_mask;
-        if (val != 0) {
-          ksk.ExtractLWESample(temp, ksk.GetLWESampleIndex(j, k, val));
-          res -= temp->data()[i];
-        }
-      }
-    }
-    out.data()[i] = res;
-  }
+  static const uint32_t lwe_n = 500;
+  static const uint32_t tlwe_n = 1024;
+  static const uint32_t ks_bits = 2;
+  static const uint32_t ks_size = 8;
+  KeySwitch<lwe_n, tlwe_n, ks_bits, ks_size>(out, tlwe, ksk);
 }
 
 void Bootstrap(LWESample* out,
@@ -277,8 +287,8 @@ void Bootstrap(LWESample* out,
                cudaStream_t st) {
   dim3 grid(1);
   dim3 block(512);
-  __Bootstrap__<<<grid, block, 0, st>>>
-      (*out, *in, mu, *bk_ntt, *ksk_dev, *ntt_handler);
+  __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,
+      bk_ntt->data(), ksk_dev->data(), *ntt_handler);
   CuCheckError();
 }
 
