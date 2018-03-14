@@ -31,10 +31,10 @@ gpu: $(DIR_BIN)/test_api_gpu
 clean:
 	rm -r $(DIR_BIN) $(DIR_OBJ)
 ##
-$(DIR_BIN)/test_api_cpu: $(CC_OBJ) $(DIR_BIN)/test/test_api_cpu.o
+$(DIR_BIN)/test_api_cpu: $(CC_OBJ) $(DIR_OBJ)/test/test_api_cpu.o
 	$(dir_guard)
-	$(CC) $(FLAGS) -o $@ $(CC_OBJ) $(DIR_BIN)/test/test_api_cpu.o
-$(DIR_BIN)/test/test_api_cpu.o: test/test_api_cpu.o
+	$(CC) $(FLAGS) -o $@ $(CC_OBJ) $(DIR_OBJ)/test/test_api_cpu.o
+$(DIR_OBJ)/test/test_api_cpu.o: test/test_api_cpu.cc
 	$(dir_guard)
 	$(CC) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CC) $(FLAGS) $(INC) -c -o $@ $<
@@ -42,7 +42,7 @@ $(DIR_BIN)/test/test_api_cpu.o: test/test_api_cpu.o
 $(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o $(CU_OBJ) $(DIR_OBJ)/cufhe.o
 	$(dir_guard)
 	$(CU) $(FLAGS) -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/test/test_api_gpu.o
-$(DIR_BIN)/test/test_api_gpu.o: test/test_api_gpu.o
+$(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(dir_guard)
 	$(CU) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CU) $(FLAGS) $(INC) -c -o $@ $<
