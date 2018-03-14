@@ -1,3 +1,4 @@
 ## ignore
 build/**
 bin/**
+data/**

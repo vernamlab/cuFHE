@@ -29,10 +29,10 @@ int main() {
   PubKey pub_key;
   pri_key.New<AllocatorCPU>();
   pub_key.New<AllocatorCPU>();
-  WritePriKeyToFile(pri_key, "pri_key.txt");
-  WritePubKeyToFile(pub_key, "pub_key.txt");
-  ReadPriKeyFromFile(pri_key, "pri_key.txt");
-  ReadPubKeyFromFile(pub_key, "pub_key.txt");
+  WritePriKeyToFile(pri_key, "data/pri_key.txt");
+  WritePubKeyToFile(pub_key, "data/pub_key.txt");
+  ReadPriKeyFromFile(pri_key, "data/pri_key.txt");
+  ReadPubKeyFromFile(pub_key, "data/pub_key.txt");
 
   cout<< "------ Test Encryption/Decryption ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
