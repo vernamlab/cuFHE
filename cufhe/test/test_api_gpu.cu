@@ -14,7 +14,7 @@ int main() {
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
-  uint32_t kNumTests = kNumSMs * 64;
+  uint32_t kNumTests = kNumSMs * 32;
 
   SetSeed();
   bool correct;
@@ -31,7 +31,7 @@ int main() {
   cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < kNumTests; i ++) {
-    pt[i] = rand() % Ptxt::kPtxtSpace;
+    pt[i].message_ = rand() % Ptxt::kPtxtSpace;
     Encrypt(ct[i], pt[i], pri_key);
     Decrypt(pt[kNumTests + i], ct[i], pri_key);
     if (pt[kNumTests + i].message_ != pt[i].message_) {
@@ -55,7 +55,7 @@ int main() {
 
   correct = true;
   for (int i = 0; i < 2 * kNumTests; i ++) {
-    pt[i].message_ = rand() % Ptxt::kPtxtSpace;
+    pt[i] = rand() % Ptxt::kPtxtSpace;
     Encrypt(ct[i], pt[i], pri_key);
   }
   cudaDeviceSynchronize();

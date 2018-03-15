@@ -94,7 +94,10 @@ struct Ctxt {
 
 /** Plaintext is in {0, 1}. */
 struct Ptxt {
-  inline Ptxt& operator=(uint32_t message) { message = message_ % kPtxtSpace; }
+  inline Ptxt& operator=(uint32_t message) {
+    this->message_ = message % kPtxtSpace;
+    return *this;
+  }
   uint32_t message_;
   static const uint32_t kPtxtSpace = 2;
 };
