@@ -30,7 +30,6 @@
 #pragma once
 
 #include "cufhe.h"
-#include "details/allocator_cpu.h"
 
 namespace cufhe {
 

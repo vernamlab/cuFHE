@@ -1,7 +1,29 @@
+/**
+ * Copyright 2013-2017 Wei Dai <wdai3141@gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 
-#include <include/cufhe.h>
+// Include these two files for GPU computing.
 #include <include/cufhe_gpu.cuh>
 using namespace cufhe;
+
 #include <iostream>
 using namespace std;
 
@@ -16,16 +38,20 @@ int main() {
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;
 
-  SetSeed();
-  bool correct;
-  PriKey pri_key;
-  PubKey pub_key;
+  SetSeed(); // set random seed
+
+  PriKey pri_key; // private key
+  PubKey pub_key; // public key
   Ptxt* pt = new Ptxt[2 * kNumTests];
   Ctxt* ct = new Ctxt[2 * kNumTests];
   cudaDeviceSynchronize();
+  bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
   KeyGen(pub_key, pri_key);
+  // Alternatively ...
+  // PriKeyGen(pri_key);
+  // PubKeyGen(pub_key, pri_key);
 
   cout<< "------ Test Encryption/Decryption ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
@@ -45,10 +71,11 @@ int main() {
     cout<< "FAIL" <<endl;
 
   cout<< "------ Initilizating Data on GPU(s) ------" <<endl;
-  Initialize(pub_key);
+  Initialize(pub_key); // essential for GPU computing
 
   cout<< "------ Test NAND Gate ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
+  // Create CUDA streams for parallel gates.
   cudaStream_t* st = new cudaStream_t[kNumSMs];
   for (int i = 0; i < kNumSMs; i ++)
     cudaStreamCreateWithFlags(&st[i], cudaStreamDefault);//NonBlocking
@@ -65,9 +92,12 @@ int main() {
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start, 0);
+
+  // Here, pass streams to gates for parallel gates.
   for (int i = 0; i < kNumTests; i ++)
     Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   cudaDeviceSynchronize();
+
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&et, start, stop);
@@ -89,9 +119,9 @@ int main() {
     cout<< "FAIL" <<endl;
 
   cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
+  CleanUp(); // essential to clean and deallocate data
   delete [] ct;
   delete [] pt;
-  CleanUp();
   for (int i = 0; i < kNumSMs; i ++)
     cudaStreamDestroy(st[i]);
   delete [] st;
