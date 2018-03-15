@@ -45,12 +45,90 @@ void Nand(Ctxt& out,
           cudaStream_t st) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 8);
-
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i] - in1.lwe_sample_->data()[i];
+    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
+                                   - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-
   Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st);
+}
+
+void Or(Ctxt& out,
+        const Ctxt& in0,
+        const Ctxt& in1,
+        cudaStream_t st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(1, 8);
+  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
+                                   + in1.lwe_sample_->data()[i];
+  out.lwe_sample_->b() += fix;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st);
+}
+
+void And(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         cudaStream_t st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
+                                   + in1.lwe_sample_->data()[i];
+  out.lwe_sample_->b() += fix;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st);
+}
+
+void Nor(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         cudaStream_t st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
+                                   - in1.lwe_sample_->data()[i];
+  out.lwe_sample_->b() += fix;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st);
+}
+
+void Xor(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         cudaStream_t st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(1, 4);
+  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = 0 + 2 * in0.lwe_sample_->data()[i]
+                                   + 2 * in1.lwe_sample_->data()[i];
+  out.lwe_sample_->b() += fix;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st);
+}
+
+void Xnor(Ctxt& out,
+          const Ctxt& in0,
+          const Ctxt& in1,
+          cudaStream_t st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 4);
+  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = 0 - 2 * in0.lwe_sample_->data()[i]
+                                   - 2 * in1.lwe_sample_->data()[i];
+  out.lwe_sample_->b() += fix;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st);
+}
+
+void Not(Ctxt& out,
+         const Ctxt& in,
+         cudaStream_t st) {
+  for (int i = 0; i <= in.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = -in.lwe_sample_->data()[i];
+}
+
+void Copy(Ctxt& out,
+          const Ctxt& in,
+          cudaStream_t st) {
+  for (int i = 0; i <= in.lwe_sample_->n(); i ++)
+    out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
 }
 
 } // namespace cufhe

@@ -31,6 +31,18 @@ void NandCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = 1 - in0.message_ * in1.message_;
 }
 
+void OrCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = (in0.message_ + in1.message_) > 0;
+}
+
+void AndCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = in0.message_ * in1.message_;
+}
+
+void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = (in0.message_ + in1.message_) & 0x1;
+}
+
 int main() {
 
   cudaDeviceProp prop;

@@ -33,10 +33,6 @@
 
 namespace cufhe {
 
-/******************
- * Server Methods *
- ******************/
-
 /**
  * Call before running gates on server.
  * 1. Generate necessary NTT data.
@@ -48,11 +44,16 @@ void Initialize(const PubKey& pub_key);
 /** Remove everything created in Initialize(). */
 void CleanUp();
 
+void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
+void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-
-// not ready
-void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
+void Nor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
+void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
+void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
+void Not (Ctxt& out, const Ctxt& in, cudaStream_t st = 0);
+void Copy(Ctxt& out, const Ctxt& in, cudaStream_t st = 0);
+// Not Ready...
+// void Mux(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const Ctxt& in2,
+//          cudaStream_t st = 0);
 
 } // namespace cufhe

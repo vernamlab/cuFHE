@@ -14,6 +14,8 @@ The cuFHE library is an open-source library for Fully Homomorphic Encryption (FH
 ** The library has been tested on Ubuntu Desktop 16.04 only. **
 This "Makefile" is created for Linux systems. Please create your own Makefile for MacOS and Windows. We are working on cross-platform support.
 
+GPU support requires NVIDIA Driver, NVIDIA CUDA Toolkit and a GPU with Compute Capability no less than 3.0.
+
 ### Installation (Linux)
 - Run `make` from the directory `cufhe/` for default compilation. This will
   1. create directories `build` and `bin`,
@@ -21,11 +23,11 @@ This "Makefile" is created for Linux systems. Please create your own Makefile fo
   3. `libcufhe_gpu.so` (GPU support) in `bin` directory, and 3) create test and benchmarking executables `test_api_cpu` and `test_api_gpu` in `bin`.
 
 - Alternatively, run `make cpu` or `make gpu` for individual library and executable.
-- Copy the library files and `include` folder to any desirable location.
+- Copy the library files and `include` folder to any desirable location. Remember to export your library directory with `export LD_LIBRARY_PATH=directory`. Run `test_api_gpu` to see the latency per gate.
 
 ### User Manual
 Use files in `cufhe/test/` as examples. To summarize, follow the following function calling procedures.
-```
+```c++
 SetSeed(); // init random generator seed
 PriKey pri_key;
 PubKey pub_key;
@@ -49,10 +51,17 @@ Decrypt(pt[0], ct[0], pri_key);
 CleanUp(); // for GPU library
 ```
 
+Currently implemented gates are `And, Or, Nand, Nor, Xor, Xnor, Not, Copy`.
+
 ## Change Log
 - **version 1.0_beta** -- released on Mar/14/2018.
   - Supports single-bit unpacked encryption / decryption / gates.
   - C++ interface with CPU and GPU separate libraries.
+
+## Acknowledgement
+- We appreciate any bug reports or compiling issues.
+- Dai and Sunar’s work was in part provided by the US National Science Foundation CNS Award #1319130 and #1561536.
+- We gratefully acknowledge the support of NVIDIA Corporation with the donation of the Titan X Pascal GPU used for this research.
 
 ## Reference
 [CGGI16]: Chillotti, I., Gama, N., Georgieva, M., & Izabachene, M. (2016, December). Faster fully homomorphic encryption: Bootstrapping in less than 0.1 seconds. In International Conference on the Theory and Application of Cryptology and Information Security (pp. 3-33). Springer, Berlin, Heidelberg.
