@@ -52,8 +52,8 @@ int main() {
   // Same for Ctxt.
   PriKey pri_key;
   PubKey pub_key;
-  WritePriKeyToFile(pri_key, "data/pri_key.txt");
-  WritePubKeyToFile(pub_key, "data/pub_key.txt");
+  WritePriKeyToFile(pri_key_old, "data/pri_key.txt");
+  WritePubKeyToFile(pub_key_old, "data/pub_key.txt");
   ReadPriKeyFromFile(pri_key, "data/pri_key.txt");
   ReadPubKeyFromFile(pub_key, "data/pub_key.txt");
 
