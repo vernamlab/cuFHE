@@ -43,9 +43,9 @@ $(DIR_OBJ)/test/test_api_cpu.o: test/test_api_cpu.cc
 	$(CC) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CC) $(FLAGS) $(INC) -c -o $@ $<
 
-$(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o
+$(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o $(DIR_OBJ)/cufhe_io.o
 	$(dir_guard)
-	$(CU) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
+	$(CU) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o $(DIR_OBJ)/cufhe_io.o -L$(DIR_BIN) -lcufhe_gpu
 
 $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(dir_guard)

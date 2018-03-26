@@ -52,18 +52,24 @@ int main() {
 
   SetSeed(); // set random seed
 
-  PriKey pri_key; // private key
-  PubKey pub_key; // public key
+  PriKey pri_key_old; // private key
+  PubKey pub_key_old; // public key
   Ptxt* pt = new Ptxt[2 * kNumTests];
   Ctxt* ct = new Ctxt[2 * kNumTests];
   cudaDeviceSynchronize();
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
-  KeyGen(pub_key, pri_key);
+  KeyGen(pub_key_old, pri_key_old);
   // Alternatively ...
   // PriKeyGen(pri_key);
   // PubKeyGen(pub_key, pri_key);
+  WritePriKeyToFile(pri_key_old, "pri_key.txt");
+  WritePubKeyToFile(pub_key_old, "pub_key.txt");
+  PriKey pri_key; // private key
+  PubKey pub_key; // public key
+  ReadPriKeyFromFile(pri_key, "pri_key.txt");
+  ReadPubKeyFromFile(pub_key, "pub_key.txt");
 
   cout<< "------ Test Encryption/Decryption ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
