@@ -57,20 +57,6 @@ int main() {
   ReadPriKeyFromFile(pri_key, "pri_key.txt");
   ReadPubKeyFromFile(pub_key, "pub_key.txt");
 
-  for (int i = 0; i <= pub_key_old.bk_->SizeData() / 4; i ++) {
-    if (pub_key_old.bk_->data()[i] != pub_key.bk_->data()[i]) {
-      cout<< "Wrong Boot Key" <<endl;
-      break;
-    }
-  }
-
-  for (int i = 0; i < pub_key_old.ksk_->SizeData() / 4; i ++) {
-    if (pub_key_old.ksk_->data()[i] != pub_key.ksk_->data()[i]) {
-      cout<< "Wrong KeySwitch Key" <<endl;
-      break;
-    }
-  }
-
   cout<< "------ Test Encryption/Decryption ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;

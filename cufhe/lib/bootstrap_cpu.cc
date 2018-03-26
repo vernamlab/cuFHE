@@ -36,7 +36,11 @@ uint32_t ModSwitchFromTorus(Torus phase, uint32_t space){
 
 void PolyMulPowX(Torus* out, Torus* in, uint32_t exp, uint32_t n) {
   Torus* temp = new Torus[n];
-  if (exp < n) {
+  Assert(exp >= 0 && exp <= 2 * n);
+  if (exp == 2 * n)
+    for (int i = 0; i < n; i ++)
+      temp[i] = in[i];
+  else if (exp < n) {
     for (int i = 0; i < exp; i ++)
       temp[i] = -in[i - exp + n];
     for (int i = exp; i < n; i ++)

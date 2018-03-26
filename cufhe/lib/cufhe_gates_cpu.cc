@@ -35,15 +35,11 @@ void Nand(Ctxt& out,
           const PubKey& pub_key) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 8);
-  LWESample* temp = new LWESample(in0.lwe_sample_->n());
-  std::pair<void*, MemoryDeleter> pair = AllocatorCPU::New(temp->SizeMalloc());
-  temp->set_data((LWESample::PointerType)pair.first);
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i] - in1.lwe_sample_->data()[i];
+    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
+                                   - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, temp, mu, pub_key.bk_, pub_key.ksk_);
-  pair.second(temp->data());
-  delete temp;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
 void Or(Ctxt& out,
@@ -52,16 +48,11 @@ void Or(Ctxt& out,
         const PubKey& pub_key) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 8);
-  LWESample* temp = new LWESample(in0.lwe_sample_->n());
-  std::pair<void*, MemoryDeleter> pair = AllocatorCPU::New(temp->SizeMalloc());
-  temp->set_data((LWESample::PointerType)pair.first);
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
     out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
                                    + in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, temp, mu, pub_key.bk_, pub_key.ksk_);
-  pair.second(temp->data());
-  delete temp;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
 void And(Ctxt& out,
@@ -70,16 +61,11 @@ void And(Ctxt& out,
          const PubKey& pub_key) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(-1, 8);
-  LWESample* temp = new LWESample(in0.lwe_sample_->n());
-  std::pair<void*, MemoryDeleter> pair = AllocatorCPU::New(temp->SizeMalloc());
-  temp->set_data((LWESample::PointerType)pair.first);
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
     out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
                                    + in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, temp, mu, pub_key.bk_, pub_key.ksk_);
-  pair.second(temp->data());
-  delete temp;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
 void Nor(Ctxt& out,
@@ -88,16 +74,11 @@ void Nor(Ctxt& out,
          const PubKey& pub_key) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(-1, 8);
-  LWESample* temp = new LWESample(in0.lwe_sample_->n());
-  std::pair<void*, MemoryDeleter> pair = AllocatorCPU::New(temp->SizeMalloc());
-  temp->set_data((LWESample::PointerType)pair.first);
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
     out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
                                    - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, temp, mu, pub_key.bk_, pub_key.ksk_);
-  pair.second(temp->data());
-  delete temp;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
 void Xor(Ctxt& out,
@@ -106,16 +87,11 @@ void Xor(Ctxt& out,
          const PubKey& pub_key) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 4);
-  LWESample* temp = new LWESample(in0.lwe_sample_->n());
-  std::pair<void*, MemoryDeleter> pair = AllocatorCPU::New(temp->SizeMalloc());
-  temp->set_data((LWESample::PointerType)pair.first);
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
     out.lwe_sample_->data()[i] = 0 + 2 * in0.lwe_sample_->data()[i]
                                    + 2 * in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, temp, mu, pub_key.bk_, pub_key.ksk_);
-  pair.second(temp->data());
-  delete temp;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
 void Xnor(Ctxt& out,
@@ -124,16 +100,11 @@ void Xnor(Ctxt& out,
           const PubKey& pub_key) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(-1, 4);
-  LWESample* temp = new LWESample(in0.lwe_sample_->n());
-  std::pair<void*, MemoryDeleter> pair = AllocatorCPU::New(temp->SizeMalloc());
-  temp->set_data((LWESample::PointerType)pair.first);
   for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
     out.lwe_sample_->data()[i] = 0 - 2 * in0.lwe_sample_->data()[i]
                                    - 2 * in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, temp, mu, pub_key.bk_, pub_key.ksk_);
-  pair.second(temp->data());
-  delete temp;
+  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
 void Not(Ctxt& out,
