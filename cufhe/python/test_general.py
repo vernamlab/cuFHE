@@ -11,8 +11,8 @@ pyfhe.SetSeed(int(time.time()))
 # If you want to see the default FHE parameters,
 # you can use:
 params = pyfhe.Param()
-print(params.lwe_n_)
-print(params.tlwe_n_)
+print(params.lwe_n)
+print(params.tlwe_n)
 # ...
 
 # Keys
@@ -32,8 +32,8 @@ pyfhe.KeyGen(pubkey, prikey)
 # If you want to change it, you can use:
 # P.PtxtSpace = some_integer;
 P = pyfhe.Ptxt()
-P.message_ = random.randint(0,1)
-print("Plaintext message : " + str(P.message_))
+P.message = random.randint(0,1)
+print("Plaintext message : " + str(P.message))
 
 
 # Ciphertext
@@ -46,5 +46,5 @@ print("Writing computed ciphertext to file ./ctxt.txt")
 pyfhe.WriteCtxtToFile(C, "ctxt.txt")
 P_dec = pyfhe.Ptxt()
 pyfhe.Decrypt(P_dec, C, prikey)
-print("Decrypted message : " + str(P_dec.message_))
+print("Decrypted message : " + str(P_dec.message))
 

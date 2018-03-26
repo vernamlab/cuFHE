@@ -16,20 +16,20 @@ BOOST_PYTHON_MODULE(pyfhe)
 
 	class_<Param>("Param")
 		.def(init<uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, uint32_t, double, double>())
-		.def_readwrite("lwe_n_", &Param::lwe_n_)
-		.def_readwrite("tlwe_n_", &Param::tlwe_n_)
-		.def_readwrite("tlwe_k_", &Param::tlwe_k_)
-		.def_readwrite("tgsw_decomp_bits_", &Param::tgsw_decomp_bits_)
-		.def_readwrite("tgsw_decomp_size_", &Param::tgsw_decomp_size_)
-		.def_readwrite("keyswitching_decomp_bits_", &Param::keyswitching_decomp_bits_)
-		.def_readwrite("keyswitching_decomp_size_", &Param::keyswitching_decomp_size_)
-		.def_readwrite("lwe_noise_", &Param::lwe_noise_)
-		.def_readwrite("tlwe_noise_", &Param::tlwe_noise_);
+		.def_readwrite("lwe_n", &Param::lwe_n_)
+		.def_readwrite("tlwe_n", &Param::tlwe_n_)
+		.def_readwrite("tlwe_k", &Param::tlwe_k_)
+		.def_readwrite("tgsw_decomp_bits", &Param::tgsw_decomp_bits_)
+		.def_readwrite("tgsw_decomp_size", &Param::tgsw_decomp_size_)
+		.def_readwrite("keyswitching_decomp_bits", &Param::keyswitching_decomp_bits_)
+		.def_readwrite("keyswitching_decomp_size", &Param::keyswitching_decomp_size_)
+		.def_readwrite("lwe_noise", &Param::lwe_noise_)
+		.def_readwrite("tlwe_noise", &Param::tlwe_noise_);
 
 	//def("GetDefaultParam", GetDefaultParam, return_value_policy<manage_new_object>()); // Returning a pointer gives "free() invalid pointer" error in python
 
         object Ptxt_class = class_<Ptxt>("Ptxt")
-		.add_property("message_", &Ptxt::get, &Ptxt::set);
+		.add_property("message", &Ptxt::get, &Ptxt::set);
                 Ptxt_class.attr("PtxtSpace") = Ptxt::kPtxtSpace;
 
         class_<Ctxt>("Ctxt", init< optional<bool> >());
