@@ -5,6 +5,7 @@ CU = /usr/local/cuda/bin/nvcc
 FLAGS = -std=c++11 -O3 -w
 CU_FLAGS = -Wno-deprecated-gpu-targets
 INC = -I./
+PY_FLAGS = -I./include -I/usr/include/python2.7 -lpython2.7 -lboost_python
 ##
 dir_guard = @mkdir -p $(@D)
 
@@ -12,11 +13,15 @@ dir_guard = @mkdir -p $(@D)
 DIR_BIN = bin
 DIR_OBJ = build
 DIR_SRC = lib
+DIR_PY = python
 CU_SRC = $(wildcard $(DIR_SRC)/details/*.cu) \
 				 $(wildcard $(DIR_SRC)/ntt_gpu/*.cu) \
 				 $(wildcard $(DIR_SRC)/*.cu)
 CC_SRC = $(wildcard $(DIR_SRC)/details/*.cc) \
 				 $(wildcard $(DIR_SRC)/*.cc)
+PY_SRC = $(wildcard $(DIR_SRC)/details/*.cc) \
+                                 $(wildcard $(DIR_SRC)/*.cc) \
+                                 $(wildcard $(DIR_PY)/*.cpp)
 CU_OBJ = $(patsubst $(DIR_SRC)/%,$(DIR_OBJ)/%,$(CU_SRC:.cu=.o))
 CU_DEP = $(CU_OBJ:.o=.d)
 CC_OBJ = $(patsubst $(DIR_SRC)/%,$(DIR_OBJ)/%,$(CC_SRC:.cc=.o))
@@ -30,6 +35,7 @@ targets: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/libcufhe_gpu.so \
 all: $(targets)
 cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/test_api_cpu
 gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu
+python: $(DIR_PY)/pyfhe.so
 clean:
 	rm -r $(DIR_BIN) $(DIR_OBJ)
 
@@ -73,3 +79,7 @@ $(CU_OBJ): $(CU_SRC)
 			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu))
 	$(CU) $(FLAGS) $(INC) -c -o $@ \
 			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu)) -Xcompiler '-fPIC'
+
+$(DIR_PY)/pyfhe.so: $(PY_SRC)
+	$(CC) $(PY_SRC) $(FLAGS) $(PY_FLAGS) $(INC) -shared -fPIC -o $@
+
