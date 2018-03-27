@@ -56,18 +56,22 @@ struct Param {
   double   lwe_noise_;
   double   tlwe_noise_;
 
- Param() :	lwe_n_(500), tlwe_n_(1024), tlwe_k_(1),
-		tgsw_decomp_bits_(10), tgsw_decomp_size_(2),
-		keyswitching_decomp_bits_(2), keyswitching_decomp_size_(8),
-		lwe_noise_(pow(2.0, -15)), tlwe_noise_(9.e-9) {};
- Param(	uint32_t lwe_n, uint32_t tlwe_n, uint32_t tlwe_k,
-	uint32_t tgsw_decomp_bits, uint32_t tgsw_decomp_size,
-	uint32_t keyswitching_decomp_bits, uint32_t keyswitching_decomp_size,
-	double lwe_noise, double tlwe_noise) :
-	lwe_n_(lwe_n), tlwe_n_(tlwe_n), tlwe_k_(tlwe_k),
-	tgsw_decomp_bits_(tgsw_decomp_bits), tgsw_decomp_size_(tgsw_decomp_size),
-        keyswitching_decomp_bits_(keyswitching_decomp_bits), keyswitching_decomp_size_(keyswitching_decomp_size),
-        lwe_noise_(lwe_noise), tlwe_noise_(tlwe_noise) {};
+  Param() :
+      lwe_n_(500), tlwe_n_(1024), tlwe_k_(1), tgsw_decomp_bits_(10),
+      tgsw_decomp_size_(2), keyswitching_decomp_bits_(2),
+      keyswitching_decomp_size_(8), lwe_noise_(pow(2.0, -15)),
+      tlwe_noise_(9.e-9) {};
+
+  Param(uint32_t lwe_n, uint32_t tlwe_n, uint32_t tlwe_k,
+        uint32_t tgsw_decomp_bits, uint32_t tgsw_decomp_size,
+	      uint32_t keyswitching_decomp_bits, uint32_t keyswitching_decomp_size,
+	      double lwe_noise, double tlwe_noise) :
+      lwe_n_(lwe_n), tlwe_n_(tlwe_n), tlwe_k_(tlwe_k),
+	    tgsw_decomp_bits_(tgsw_decomp_bits),
+      tgsw_decomp_size_(tgsw_decomp_size),
+      keyswitching_decomp_bits_(keyswitching_decomp_bits),
+      keyswitching_decomp_size_(keyswitching_decomp_size),
+      lwe_noise_(lwe_noise), tlwe_noise_(tlwe_noise) {};
 };
 
 Param* GetDefaultParam();
