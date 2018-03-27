@@ -24,6 +24,12 @@ GPU support requires NVIDIA Driver, NVIDIA CUDA Toolkit and a GPU with Compute C
 
 - Alternatively, run `make cpu` or `make gpu` for individual library and executable.
 - Copy the library files and `include` folder to any desirable location. Remember to export your library directory with `export LD_LIBRARY_PATH=directory`. Run `test_api_gpu` to see the latency per gate.
+- We provide a Python wrapper which uses boost-python tool. To use the Python interface, you will need
+  1. A python interpreter, (you probably already have it in `/usr/bin/`)
+  2. Boost-python library, (Run `sudo apt-get install libboost-python-dev`, if you don't have it installed)
+  3. Change the Makefile if your python and boost include/lib paths are different than default,
+  4. Run `make python`,
+  5. Test the python scripts under `cufhe/python/`
 
 ### User Manual
 Use files in `cufhe/test/` as examples. To summarize, follow the following function calling procedures.
