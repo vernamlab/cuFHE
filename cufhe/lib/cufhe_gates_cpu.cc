@@ -21,6 +21,7 @@
  */
 
 #include <include/cufhe.h>
+#include <include/cufhe_cpu.h>
 #include <include/bootstrap_cpu.h>
 
 namespace cufhe {

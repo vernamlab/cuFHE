@@ -44,14 +44,30 @@ void Initialize(const PubKey& pub_key);
 /** Remove everything created in Initialize(). */
 void CleanUp();
 
-void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-void Nor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, cudaStream_t st = 0);
-void Not (Ctxt& out, const Ctxt& in, cudaStream_t st = 0);
-void Copy(Ctxt& out, const Ctxt& in, cudaStream_t st = 0);
+/**
+ * \class Stream
+ * \brief This is created for easier wrapping in python.
+ */
+class Stream {
+public:
+  inline Stream() {}
+  inline Stream(int id) { Assert(id == 0); st_ = 0; }
+  inline ~Stream() {}
+  inline void Create() { cudaStreamCreateWithFlags(&this->st_, cudaStreamDefault); }
+  inline void Destroy() { cudaStreamDestroy(this->st_); }
+  inline cudaStream_t st() { return st_; };
+private:
+  cudaStream_t st_;
+}; // class Stream
+
+void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void Nor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void Not (Ctxt& out, const Ctxt& in, Stream st = 0);
+void Copy(Ctxt& out, const Ctxt& in, Stream st = 0);
 // Not Ready...
 // void Mux(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const Ctxt& in2,
 //          cudaStream_t st = 0);

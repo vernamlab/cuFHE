@@ -94,9 +94,9 @@ int main() {
   cout<< "------ Test NAND Gate ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
   // Create CUDA streams for parallel gates.
-  cudaStream_t* st = new cudaStream_t[kNumSMs];
+  Stream* st = new Stream[kNumSMs];
   for (int i = 0; i < kNumSMs; i ++)
-    cudaStreamCreateWithFlags(&st[i], cudaStreamDefault);//NonBlocking
+    st[i].Create();
 
   correct = true;
   for (int i = 0; i < 2 * kNumTests; i ++) {
@@ -141,7 +141,7 @@ int main() {
   delete [] ct;
   delete [] pt;
   for (int i = 0; i < kNumSMs; i ++)
-    cudaStreamDestroy(st[i]);
+    st[i].Destroy();
   delete [] st;
   return 0;
 }
