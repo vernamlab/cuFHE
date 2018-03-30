@@ -12,7 +12,7 @@ PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
 BOOST_INCLUDE = /usr/include
 BOOST_LIB = /usr/lib
 ## Boost + Python
-PY_INC = -I./include -I$(PYTHON_INCLUDE) -I$(BOOST_INCLUDE) 
+PY_INC = -I./include -I$(PYTHON_INCLUDE) -I$(BOOST_INCLUDE)
 PY_LIB = -lpython$(PYTHON_VERSION) -lboost_python
 ##
 dir_guard = @mkdir -p $(@D)
@@ -55,9 +55,9 @@ $(DIR_OBJ)/test/test_api_cpu.o: test/test_api_cpu.cc
 	$(CC) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CC) $(FLAGS) $(INC) -c -o $@ $<
 
-$(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o $(DIR_OBJ)/cufhe_io.o
+$(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o
 	$(dir_guard)
-	$(CU) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o $(DIR_OBJ)/cufhe_io.o -L$(DIR_BIN) -lcufhe_gpu
+	$(CU) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
 
 $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(dir_guard)
@@ -68,9 +68,9 @@ $(DIR_BIN)/libcufhe_cpu.so: $(CC_OBJ)
 	$(dir_guard)
 	$(CU) $(FLAGS) -shared -o $@ $(CC_OBJ)
 
-$(DIR_BIN)/libcufhe_gpu.so: $(CU_OBJ) $(DIR_OBJ)/cufhe.o
+$(DIR_BIN)/libcufhe_gpu.so: $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/cufhe_io.o
 	$(dir_guard)
-	$(CU) $(FLAGS) -shared -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o
+	$(CU) $(FLAGS) -shared -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/cufhe_io.o
 
 $(CC_OBJ): $(CC_SRC)
 	$(dir_guard)
