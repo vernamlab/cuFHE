@@ -56,7 +56,7 @@ int main() {
   PubKey pub_key_old; // public key
   Ptxt* pt = new Ptxt[2 * kNumTests];
   Ctxt* ct = new Ctxt[2 * kNumTests];
-  cudaDeviceSynchronize();
+  Synchronize();
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
@@ -103,7 +103,7 @@ int main() {
     pt[i] = rand() % Ptxt::kPtxtSpace;
     Encrypt(ct[i], pt[i], pri_key);
   }
-  cudaDeviceSynchronize();
+  Synchronize();
 
   float et;
   cudaEvent_t start, stop;
@@ -114,7 +114,7 @@ int main() {
   // Here, pass streams to gates for parallel gates.
   for (int i = 0; i < kNumTests; i ++)
     Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  cudaDeviceSynchronize();
+  Synchronize();
 
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);

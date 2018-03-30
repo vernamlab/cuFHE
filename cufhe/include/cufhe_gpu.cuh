@@ -45,6 +45,12 @@ void Initialize(const PubKey& pub_key);
 void CleanUp();
 
 /**
+ * \brief Synchronize device.
+ * \details This makes it easy to wrap in python.
+ */
+inline void Synchronize() { cudaDeviceSynchronize(); };
+
+/**
  * \class Stream
  * \brief This is created for easier wrapping in python.
  */
