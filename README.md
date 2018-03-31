@@ -28,7 +28,7 @@ GPU support requires NVIDIA Driver, NVIDIA CUDA Toolkit and a GPU with Compute C
   1. a python interpreter, (probably in `/usr/bin/`)
   2. boost-python library, (Run `sudo apt-get install libboost-python-dev`, if you don't have it installed.)
   3. to change the Makefile if your python and boost include/lib paths are different than default,
-  4. to run `make python`, and finally
+  4. to run `make python_cpu` for CPU library and `make python_gpu` for GPU library, and finally
   5. to test the python scripts under `cufhe/python/`.
 
 ### User Manual

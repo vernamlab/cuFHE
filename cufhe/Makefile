@@ -27,7 +27,6 @@ CU_SRC = $(wildcard $(DIR_SRC)/details/*.cu) \
 				 $(wildcard $(DIR_SRC)/*.cu)
 CC_SRC = $(wildcard $(DIR_SRC)/details/*.cc) \
 				 $(wildcard $(DIR_SRC)/*.cc)
-PY_SRC = $(wildcard $(DIR_PY)/*.cpp)
 CU_OBJ = $(patsubst $(DIR_SRC)/%,$(DIR_OBJ)/%,$(CU_SRC:.cu=.o))
 CU_DEP = $(CU_OBJ:.o=.d)
 CC_OBJ = $(patsubst $(DIR_SRC)/%,$(DIR_OBJ)/%,$(CC_SRC:.cc=.o))
@@ -41,10 +40,13 @@ targets: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/libcufhe_gpu.so \
 all: $(targets)
 cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/test_api_cpu
 gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu
-python: $(DIR_BIN)/libcufhe_cpu.so $(DIR_PY)/pyfhe.so
+python_cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_PY)/pyfhe.so
 python_gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_PY)/pyfhe_gpu.so
 clean:
 	rm -r $(DIR_BIN) $(DIR_OBJ)
+python_clean:
+	rm $(DIR_PY)/*.o
+	rm $(DIR_PY)/*.so
 
 ##
 $(DIR_BIN)/test_api_cpu: $(DIR_OBJ)/test/test_api_cpu.o
@@ -90,8 +92,8 @@ $(CU_OBJ): $(CU_SRC)
 $(DIR_PY)/pyfhe.so: $(DIR_PY)/pyfhe.o
 	$(CC) -shared $(DIR_PY)/pyfhe.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_cpu -o $@
 
-$(DIR_PY)/pyfhe.o: $(PY_SRC)
-	$(CC) $(INC) $(PY_INC) -fPIC -c $(PY_SRC) $(FLAGS) -o $@
+$(DIR_PY)/pyfhe.o: $(DIR_PY)/pyfhe.cpp
+	$(CC) $(INC) $(PY_INC) -fPIC -c $(DIR_PY)/pyfhe.cpp $(FLAGS) -o $@
 
 $(DIR_PY)/pyfhe_gpu.so: $(DIR_PY)/pyfhe_gpu.o
 	$(CU) -shared $(DIR_PY)/pyfhe_gpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_gpu -o $@
