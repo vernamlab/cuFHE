@@ -42,6 +42,7 @@ all: $(targets)
 cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/test_api_cpu
 gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu
 python: $(DIR_BIN)/libcufhe_cpu.so $(DIR_PY)/pyfhe.so
+python_gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_PY)/pyfhe_gpu.so
 clean:
 	rm -r $(DIR_BIN) $(DIR_OBJ)
 
@@ -91,3 +92,10 @@ $(DIR_PY)/pyfhe.so: $(DIR_PY)/pyfhe.o
 
 $(DIR_PY)/pyfhe.o: $(PY_SRC)
 	$(CC) $(INC) $(PY_INC) -fPIC -c $(PY_SRC) $(FLAGS) -o $@
+
+$(DIR_PY)/pyfhe_gpu.so: $(DIR_PY)/pyfhe_gpu.o
+	$(CU) -shared $(DIR_PY)/pyfhe_gpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_gpu -o $@
+
+$(DIR_PY)/pyfhe_gpu.o: $(DIR_PY)/pyfhe.cu
+	$(CU) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/pyfhe.cu $(FLAGS) -o $@
+
