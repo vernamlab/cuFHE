@@ -14,3 +14,6 @@
   - [ ] Add alias, device transfer, assign methods to Ctxt class.
 - [ ] Isolate CUDA NTT library.
 - [ ] Use a fast CPU NTT library.
+
+## API Layers
+![API Layers](https://github.com/vernamlab/cuFHE/blob/master/doc/api_layers.png)
