@@ -20,7 +20,7 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-import pyfhe_gpu
+import fhepy
 import time
 import random
 import timeit

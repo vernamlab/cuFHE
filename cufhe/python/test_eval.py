@@ -20,52 +20,39 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-import pyfhe
-import time
+import lib.fhepy as fhe
 import random
+import operator
+
+def CheckResult(m, op, result):
+        return op(m[0], m[1]) == result
 
 
-# Rand Seeds
-random.seed()
-pyfhe.SetSeed(int(time.time()))
+pubkey, prikey = fhe.KeyGen()
+m = [random.randint(0,1), random.randint(0,1)]
+c0, c1 = fhe.Encrypt(m[0], prikey), fhe.Encrypt(m[1], prikey)
 
+# AND Gate
+c = c0 & c1
+result = c.Decrypt(prikey)
+print("AND gate : " + str(CheckResult(m, operator.__and__, result)))
 
-# If you want to see the default FHE parameters,
-# you can use:
-params = pyfhe.Param()
-print(params.lwe_n)
-print(params.tlwe_n)
-# ...
+# XOR Gate
+c = c0 ^ c1
+result = c.Decrypt(prikey)
+print("XOR gate : " + str(CheckResult(m, operator.__xor__, result)))
 
-# Keys
-pubkey = pyfhe.PubKey()
-prikey = pyfhe.PriKey()
-pyfhe.KeyGen(pubkey, prikey)
-# If you want to save the keys, you can store them
-# in a file:
-#pyfhe.WritePriKeyToFile(prikey, "prikey.txt")
-#pyfhe.WritePubKeyToFile(pubkey, "pubkey.txt")
-# You can also read them from a file
-#pyfhe.ReadPubKeyFromFile(pubkey, "pubkey.txt")
-#pyfhe.ReadPriKeyFromFile(prikey, "prikey.txt")
+# OR Gate
+c = c0 | c1
+result = c.Decrypt(prikey)
+print("OR gate : " + str(CheckResult(m, operator.__or__, result)))
 
+# NOT Complement
+c = ~c0
+result = c.Decrypt(prikey)
+print("NOT gate : " + str(result != m[0]))
 
-# Plaintext, default ptext space is 2
-# If you want to change it, you can use:
-# P.PtxtSpace = some_integer;
-P = pyfhe.Ptxt()
-P.message = random.randint(0,1)
-print("Plaintext message : " + str(P.message))
-
-
-# Ciphertext
-C = pyfhe.Ctxt()
-
-
-# Encrypt - Decrypt
-pyfhe.Encrypt(C, P, prikey)
-print("Writing computed ciphertext to file ./ctxt.txt")
-pyfhe.WriteCtxtToFile(C, "ctxt.txt")
-P_dec = pyfhe.Ptxt()
-pyfhe.Decrypt(P_dec, C, prikey)
-print("Decrypted message : " + str(P_dec.message))
+# NAND Gate
+c = ~(c0 & c1)
+result = c.Decrypt(prikey)
+print("NAND gate : " + str(not CheckResult(m, operator.__and__, result)))

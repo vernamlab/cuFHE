@@ -21,7 +21,7 @@ dir_guard = @mkdir -p $(@D)
 DIR_BIN = bin
 DIR_OBJ = build
 DIR_SRC = lib
-DIR_PY = python
+DIR_PY = python/lib
 CU_SRC = $(wildcard $(DIR_SRC)/details/*.cu) \
 				 $(wildcard $(DIR_SRC)/ntt_gpu/*.cu) \
 				 $(wildcard $(DIR_SRC)/*.cu)
@@ -40,8 +40,8 @@ targets: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/libcufhe_gpu.so \
 all: $(targets)
 cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/test_api_cpu
 gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu
-python_cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_PY)/pyfhe.so
-python_gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_PY)/pyfhe_gpu.so
+python_cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_PY)/fhepy_cpu.so
+python_gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_PY)/fhepy_gpu.so
 clean:
 	rm -r $(DIR_BIN) $(DIR_OBJ)
 python_clean:
@@ -89,15 +89,15 @@ $(CU_OBJ): $(CU_SRC)
 	$(CU) $(FLAGS) $(INC) -c -o $@ \
 			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu)) -Xcompiler '-fPIC'
 
-$(DIR_PY)/pyfhe.so: $(DIR_PY)/pyfhe.o
-	$(CC) -shared $(DIR_PY)/pyfhe.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_cpu -o $@
+$(DIR_PY)/fhepy_cpu.so: $(DIR_PY)/fhepy_cpu.o
+	$(CC) -shared $(DIR_PY)/fhepy_cpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_cpu -o $@
 
-$(DIR_PY)/pyfhe.o: $(DIR_PY)/pyfhe.cpp
-	$(CC) $(INC) $(PY_INC) -fPIC -c $(DIR_PY)/pyfhe.cpp $(FLAGS) -o $@
+$(DIR_PY)/fhepy_cpu.o: $(DIR_PY)/fhepy.cpp
+	$(CC) $(INC) $(PY_INC) -fPIC -c $(DIR_PY)/fhepy.cpp $(FLAGS) -o $@
 
-$(DIR_PY)/pyfhe_gpu.so: $(DIR_PY)/pyfhe_gpu.o
-	$(CU) -shared $(DIR_PY)/pyfhe_gpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_gpu -o $@
+$(DIR_PY)/fhepy_gpu.so: $(DIR_PY)/fhepy_gpu.o
+	$(CU) -shared $(DIR_PY)/fhepy_gpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_gpu -o $@
 
-$(DIR_PY)/pyfhe_gpu.o: $(DIR_PY)/pyfhe.cu
-	$(CU) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/pyfhe.cu $(FLAGS) -o $@
+$(DIR_PY)/fhepy_gpu.o: $(DIR_PY)/fhepy.cu
+	$(CU) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/fhepy.cu $(FLAGS) -o $@
 

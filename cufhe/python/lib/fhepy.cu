@@ -30,7 +30,7 @@
 using namespace cufhe;
 
 
-BOOST_PYTHON_MODULE(pyfhe_gpu)
+BOOST_PYTHON_MODULE(fhepy_gpu)
 {
         using namespace boost::python;
 

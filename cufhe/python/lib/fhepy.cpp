@@ -30,7 +30,7 @@
 using namespace cufhe;
 
 
-BOOST_PYTHON_MODULE(pyfhe)
+BOOST_PYTHON_MODULE(fhepy_cpu)
 {
         using namespace boost::python;
 
@@ -48,7 +48,6 @@ BOOST_PYTHON_MODULE(pyfhe)
 		.def_readwrite("lwe_noise", &Param::lwe_noise_)
 		.def_readwrite("tlwe_noise", &Param::tlwe_noise_);
 
-	//def("GetDefaultParam", GetDefaultParam, return_value_policy<manage_new_object>()); // Returning a pointer gives "free() invalid pointer" error in python
 
         object Ptxt_class = class_<Ptxt>("Ptxt")
 		.add_property("message", &Ptxt::get, &Ptxt::set);
