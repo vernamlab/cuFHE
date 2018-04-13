@@ -20,21 +20,21 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-import fhepy
+import lib.fhepy_gpu as fhe
 import time
 import random
 import timeit
 
 # Rand Seeds
 random.seed()
-pyfhe_gpu.SetSeed(int(time.time()))
-kNumTests = 30;
+fhe.SetSeed(int(time.time()))
+kNumTests = 3000;
 
 # Keys
-pubkey = pyfhe_gpu.PubKey()
-prikey = pyfhe_gpu.PriKey()
-pyfhe_gpu.KeyGen(pubkey, prikey)
-pyfhe_gpu.Initialize(pubkey)
+pubkey = fhe.PubKey()
+prikey = fhe.PriKey()
+fhe.KeyGen(pubkey, prikey)
+fhe.Initialize(pubkey)
 
 # Plaintexts & Ciphertexts & Cuda Stream
 ptxts1 = []
@@ -43,34 +43,33 @@ ctxts1 = []
 ctxts2 = []
 st = []
 for i in range(kNumTests):
-	ptxts1.append(pyfhe_gpu.Ptxt())
-	ptxts2.append(pyfhe_gpu.Ptxt())
+	ptxts1.append(fhe.Ptxt())
+	ptxts2.append(fhe.Ptxt())
 	ptxts1[i].message = random.randint(0,1)
 	ptxts2[i].message = random.randint(0,1)
 
-	ctxts1.append(pyfhe_gpu.Ctxt())
-	ctxts2.append(pyfhe_gpu.Ctxt())
-	pyfhe_gpu.Encrypt(ctxts1[i], ptxts1[i], prikey)
-	pyfhe_gpu.Encrypt(ctxts2[i], ptxts2[i], prikey)
+	ctxts1.append(fhe.Ctxt())
+	ctxts2.append(fhe.Ctxt())
+	fhe.Encrypt(ctxts1[i], ptxts1[i], prikey)
+	fhe.Encrypt(ctxts2[i], ptxts2[i], prikey)
 
-	st.append(pyfhe_gpu.Stream())
+	st.append(fhe.Stream())
 	st[i].Create()
 
-pyfhe_gpu.Synchronize()
+fhe.Synchronize()
 start_time = timeit.default_timer()
 for i in range(kNumTests):
-	pyfhe_gpu.NAND(ctxts1[i], ctxts1[i], ctxts2[i], st[i])
-pyfhe_gpu.Synchronize()
+	fhe.NAND(ctxts1[i], ctxts1[i], ctxts2[i], st[i])
+fhe.Synchronize()
 elapsed = timeit.default_timer() - start_time
 
 passed = True
 for i in range(kNumTests):
-	ptxt = pyfhe_gpu.Ptxt()
-	pyfhe_gpu.Decrypt(ptxt, ctxts1[i], prikey)
+	ptxt = fhe.Ptxt()
+	fhe.Decrypt(ptxt, ctxts1[i], prikey)
 	if ptxt.message != (1 - ptxts1[i].message * ptxts2[i].message):
 		passed = False
 		break
-	#print(str(ptxts1[i].message) + " NAND " + str(ptxts2[i].message) +  " : " + str(ptxt.message))
 
 if passed:
 	print("\nPASS\n")
@@ -78,6 +77,6 @@ else:
 	print("\nFAIL\n")
 print(str(elapsed/kNumTests) + " sec / gate\n")
 
-pyfhe_gpu.CleanUp()
+fhe.CleanUp()
 for i in range(kNumTests):
 	st[i].Destroy()
