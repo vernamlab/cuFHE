@@ -281,6 +281,10 @@ PubKey::~PubKey() {
 Ctxt::~Ctxt() {
   lwe_sample_deleter_(lwe_sample_->data());
   delete lwe_sample_;
+  lwe_sample_deleter_ = nullptr;
+  lwe_sample_device_deleter_(lwe_sample_device_->data());
+  delete lwe_sample_device_;
+  lwe_sample_device_deleter_ = nullptr;
 }
 
 void SetSeed(uint32_t seed) {
