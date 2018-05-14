@@ -14,7 +14,8 @@ The cuFHE library is an open-source library for Fully Homomorphic Encryption (FH
 **The library has been tested on Ubuntu Desktop 16.04 only.**
 This "Makefile" is created for Linux systems. Please create your own Makefile for MacOS and Windows. We are working on cross-platform support.
 
-GPU support requires NVIDIA Driver, NVIDIA CUDA Toolkit and a GPU with Compute Capability no less than 3.0.
+GPU support requires NVIDIA Driver, NVIDIA CUDA Toolkit and a GPU with **Compute Capability no less than 6.0**.
+For devices with Compute Capability less than 6.0, there is [an issue](https://github.com/vernamlab/cuFHE/issues/2) that have not been solved yet. Any fix or suggestion is welcomed.
 
 ### Installation (Linux)
 - Run `make` from the directory `cufhe/` for default compilation. This will
