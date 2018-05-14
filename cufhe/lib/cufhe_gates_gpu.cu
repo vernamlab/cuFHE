@@ -69,7 +69,7 @@ void Nand(Ctxt& out,
   out.lwe_sample_->b() += fix;
 
   CopyCtxtH2D(out, st);
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
   CopyCtxtD2H(out, st);
 }
 
