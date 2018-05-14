@@ -122,19 +122,19 @@ int main() {
   cout<< et / kNumTests << " ms / gate" <<endl;
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
-
+  int num_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
     NandCheck(pt[i + kNumTests], pt[i], pt[i + kNumTests]);
     Decrypt(pt[i], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;
-      break;
+      num_failures ++;//break;
     }
   }
   if (correct)
     cout<< "PASS" <<endl;
   else
-    cout<< "FAIL" <<endl;
+    cout<< "FAIL\t" << num_failures <<endl;
 
   cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
   CleanUp(); // essential to clean and deallocate data
