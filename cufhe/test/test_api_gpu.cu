@@ -44,7 +44,7 @@ void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 }
 
 int main() {
-//  cudaSetDevice(1);
+  cudaSetDevice(1);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
@@ -125,6 +125,10 @@ int main() {
   int num_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
     NandCheck(pt[i + kNumTests], pt[i], pt[i + kNumTests]);
+/*    cudaMemcpy(ct[i].lwe_sample_->data(),
+               ct[i].lwe_sample_device_->data(),
+               ct[i].lwe_sample_->SizeData(),
+               cudaMemcpyDeviceToHost);*/
     Decrypt(pt[i], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;

@@ -71,6 +71,7 @@ void Nand(Ctxt& out,
   CopyCtxtH2D(out, st);
   Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
   CopyCtxtD2H(out, st);
+  cudaStreamSynchronize(st.st());
 }
 
 void Or(Ctxt& out,

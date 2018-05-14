@@ -285,21 +285,6 @@ void Bootstrap(LWESample* out,
                LWESample* in,
                Torus mu,
                cudaStream_t st) {
-/*
-  LWESample::PointerType d_out;
-  LWESample::PointerType d_in;
-  CuSafeCall(cudaHostGetDevicePointer(&d_out, out->data(), 0));
-  CuSafeCall(cudaHostGetDevicePointer(&d_in, in->data(), 0));
-  CuSafeCall(cudaMemcpyAsync(d_out, out->data(), out->SizeData(), cudaMemcpyHostToDevice, 0));
-  CuSafeCall(cudaMemcpyAsync(d_in, in->data(), in->SizeData(), cudaMemcpyHostToDevice, 0));
-  dim3 grid(1);
-  dim3 block(512);
-  __Bootstrap__<<<grid, block, 0, st>>>(d_out, d_in, mu,
-      bk_ntt->data(), ksk_dev->data(), *ntt_handler);
-  CuCheckError();
-  cudaMemcpyAsync(out->data(), d_out, out->SizeData(), cudaMemcpyDeviceToHost, 0);
-  cudaMemcpyAsync(in->data(), d_in, in->SizeData(), cudaMemcpyDeviceToHost, 0);
-*/
   dim3 grid(1);
   dim3 block(512);
   __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,

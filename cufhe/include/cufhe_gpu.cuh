@@ -59,7 +59,7 @@ public:
   inline Stream() {}
   inline Stream(int id) { Assert(id == 0); st_ = 0; }
   inline ~Stream() {}
-  inline void Create() { cudaStreamCreateWithFlags(&this->st_, cudaStreamDefault); }
+  inline void Create() { cudaStreamCreateWithFlags(&this->st_, cudaStreamNonBlocking); }
   inline void Destroy() { cudaStreamDestroy(this->st_); }
   inline cudaStream_t st() { return st_; };
 private:
