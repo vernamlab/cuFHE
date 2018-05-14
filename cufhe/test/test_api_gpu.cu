@@ -44,7 +44,7 @@ void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 }
 
 int main() {
-
+  cudaSetDevice(1);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
