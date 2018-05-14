@@ -44,6 +44,7 @@ void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 }
 
 int main() {
+  cudaSetDevice(1);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
@@ -111,9 +112,10 @@ int main() {
   cudaEventRecord(start, 0);
 
   // Here, pass streams to gates for parallel gates.
-  for (int i = 0; i < kNumTests; i ++)
+  for (int i = 0; i < kNumTests; i ++) {
     Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  Synchronize();
+    Synchronize();
+  }
 
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
