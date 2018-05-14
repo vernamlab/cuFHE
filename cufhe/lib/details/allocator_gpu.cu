@@ -28,6 +28,7 @@ namespace cufhe {
 std::pair<void*, MemoryDeleter> AllocatorCPU::New(size_t nbytes) {
   void* ptr = nullptr;
   CuSafeCall(cudaMallocHost(&ptr, nbytes));
+  //CuSafeCall(cudaHostAlloc(&ptr, nbytes, cudaHostAllocMapped));
   return {ptr, Delete};
 }
 
