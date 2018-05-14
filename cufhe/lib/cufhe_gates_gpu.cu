@@ -23,6 +23,7 @@
 #include <include/cufhe.h>
 #include <include/cufhe_gpu.cuh>
 #include <include/bootstrap_gpu.cuh>
+#include <include/details/error_gpu.cuh>
 
 namespace cufhe {
 
@@ -34,6 +35,22 @@ void Initialize(const PubKey& pub_key) {
 void CleanUp() {
   DeleteBootstrappingKeyNTT();
   DeleteKeySwitchingKey();
+}
+
+inline void CopyCtxtH2D(const Ctxt& c, Stream st) {
+  CuSafeCall(cudaMemcpyAsync(c.lwe_sample_device_->data(),
+                             c.lwe_sample_->data(),
+                             c.lwe_sample_->SizeMalloc(),
+                             cudaMemcpyHostToDevice,
+                             st.st()));
+}
+
+inline void CopyCtxtD2H(const Ctxt& c, Stream st) {
+  CuSafeCall(cudaMemcpyAsync(c.lwe_sample_->data(),
+                             c.lwe_sample_device_->data(),
+                             c.lwe_sample_->SizeMalloc(),
+                             cudaMemcpyDeviceToHost,
+                             st.st()));
 }
 
 //void Initialize(PubKey pub_key);
@@ -50,7 +67,10 @@ void Nand(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
                                    - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
+
+  CopyCtxtH2D(out, st);
   Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  CopyCtxtD2H(out, st);
 }
 
 void Or(Ctxt& out,

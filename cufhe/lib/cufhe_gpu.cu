@@ -31,10 +31,15 @@ Ctxt::Ctxt(bool is_alias) {
   Param* param = GetDefaultParam();
   lwe_sample_ = new LWESample(param->lwe_n_);
   lwe_sample_deleter_ = nullptr;
+  lwe_sample_device_ = new LWESample(param->lwe_n_);
+  lwe_sample_device_deleter_ = nullptr;
   std::pair<void*, MemoryDeleter> pair;
-  pair = AllocatorBoth::New(lwe_sample_->SizeMalloc());
+  pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
   lwe_sample_->set_data((LWESample::PointerType)pair.first);
   lwe_sample_deleter_ = pair.second;
+  pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
+  lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
+  lwe_sample_device_deleter_ = pair.second;
 }
 
 } // namespace cufhe
