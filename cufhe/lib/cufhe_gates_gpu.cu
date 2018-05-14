@@ -83,7 +83,10 @@ void Or(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
                                    + in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+//  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  CopyCtxtH2D(out, st);
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  CopyCtxtD2H(out, st);
 }
 
 void And(Ctxt& out,
@@ -96,7 +99,10 @@ void And(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
                                    + in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+//  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  CopyCtxtH2D(out, st);
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  CopyCtxtD2H(out, st);
 }
 
 void Nor(Ctxt& out,
@@ -109,7 +115,10 @@ void Nor(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
                                    - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+//  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  CopyCtxtH2D(out, st);
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  CopyCtxtD2H(out, st);
 }
 
 void Xor(Ctxt& out,
@@ -122,7 +131,10 @@ void Xor(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 + 2 * in0.lwe_sample_->data()[i]
                                    + 2 * in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+//  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  CopyCtxtH2D(out, st);
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  CopyCtxtD2H(out, st);
 }
 
 void Xnor(Ctxt& out,
@@ -135,7 +147,10 @@ void Xnor(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 - 2 * in0.lwe_sample_->data()[i]
                                    - 2 * in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+//  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  CopyCtxtH2D(out, st);
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  CopyCtxtD2H(out, st);
 }
 
 void Not(Ctxt& out,
