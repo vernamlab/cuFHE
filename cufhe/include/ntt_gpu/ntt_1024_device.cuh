@@ -37,6 +37,7 @@ void NTT1024Core(FFP* r,
                  const uint32_t& t1d,
                  const uint3& t3d) {
   FFP *ptr = nullptr;
+  __syncthreads();
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] *= twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
@@ -88,6 +89,7 @@ void NTTInv1024Core(FFP* r,
                     const uint3& t3d) {
 
   FFP *ptr = nullptr;
+  __syncthreads();
   NTTInv8(r);
   NTTInv8x2Lsh(r, t3d.z); // if (t1d >= 64) NTT8x2<1>(r);
   ptr = &s[(t3d.y << 7) | (t3d.z << 6) | (t3d.x << 2)];

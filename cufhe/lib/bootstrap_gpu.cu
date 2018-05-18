@@ -196,7 +196,8 @@ void Accumulate(Torus* tlwe,
     FFP* tar = sh_acc_ntt[tid >> 7];
     ntt.NTT<FFP>(tar, tar, tar, tid >> 7 << 7);
   }
-  else { // must meet 3 sync made by NTTInv
+  else { // must meet 4 sync made by NTTInv
+    __syncthreads();
     __syncthreads();
     __syncthreads();
     __syncthreads();
@@ -227,7 +228,8 @@ void Accumulate(Torus* tlwe,
     FFP* src = sh_res_ntt[tid >> 7];
     ntt.NTTInvAdd<Torus>(&tlwe[tid >> 7 << 10], src, src, tid >> 7 << 7);
   }
-  else { // must meet 3 sync made by NTTInv
+  else { // must meet 4 sync made by NTTInv
+    __syncthreads();
     __syncthreads();
     __syncthreads();
     __syncthreads();
