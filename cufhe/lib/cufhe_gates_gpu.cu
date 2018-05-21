@@ -50,7 +50,23 @@ void Nand(Ctxt& out,
     out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
                                    - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  cudaMemcpyAsync(out.lwe_sample_device_->data(),
+                  out.lwe_sample_->data(),
+                  out.lwe_sample_->SizeData(),
+                  cudaMemcpyHostToDevice,
+                  st.st());
+  //Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  cudaMemcpyAsync(out.lwe_sample_->data(),
+                  out.lwe_sample_device_->data(),
+                  out.lwe_sample_->SizeData(),
+                  cudaMemcpyDeviceToHost,
+                  st.st());
+  cudaEvent_t end_of_gate;
+  cudaEventCreate(&end_of_gate);
+  cudaEventRecord(end_of_gate, st.st());
+  cudaStreamWaitEvent(0, end_of_gate, 0);
+  //Synchronize();
 }
 
 void Or(Ctxt& out,

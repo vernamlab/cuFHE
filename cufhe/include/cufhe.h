@@ -108,6 +108,8 @@ struct Ctxt {
   ~Ctxt();
   LWESample* lwe_sample_;
   MemoryDeleter lwe_sample_deleter_;
+  LWESample* lwe_sample_device_;
+  MemoryDeleter lwe_sample_device_deleter_;
 };
 
 /** Plaintext is in {0, 1}. */
