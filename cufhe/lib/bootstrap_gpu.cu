@@ -283,6 +283,53 @@ void __Bootstrap__(Torus* out, Torus* in, Torus mu,
   KeySwitch<lwe_n, tlwe_n, ks_bits, ks_size>(out, tlwe, ksk);
 }
 
+__global__
+void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                   FFP* bk,
+                   Torus* ksk,
+                   CuNTTHandler<> ntt) {
+//  Assert(bk.k() == 1);
+//  Assert(bk.l() == 2);
+//  Assert(bk.n() == 1024);
+  __shared__ FFP sh[6 * 1024];
+  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
+  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
+  Torus* tlwe = (Torus*)&sh[5120];
+
+  // test vector
+  // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  //register int32_t bar = 2048 - ModSwitch2048(in[500]);
+  register int32_t bar = 2048 - ModSwitch2048(fix - in0[500] - in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 - in0[i] - in1[i]);
+    Accumulate(tlwe, sh_acc_ntt, sh_res_ntt, bar, bk + (i << 13), ntt);
+  }
+
+  static const uint32_t lwe_n = 500;
+  static const uint32_t tlwe_n = 1024;
+  static const uint32_t ks_bits = 2;
+  static const uint32_t ks_size = 8;
+  KeySwitch<lwe_n, tlwe_n, ks_bits, ks_size>(out, tlwe, ksk);
+}
+
 void Bootstrap(LWESample* out,
                LWESample* in,
                Torus mu,
@@ -291,6 +338,19 @@ void Bootstrap(LWESample* out,
   dim3 block(512);
   __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,
       bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void NandBootstrap(LWESample* out,
+               LWESample* in0,
+               LWESample* in1,
+               Torus mu,
+               Torus fix,
+               cudaStream_t st) {
+  dim3 grid(1);
+  dim3 block(512);
+  __NandBootstrap__<<<grid, block, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
   CuCheckError();
 }
 

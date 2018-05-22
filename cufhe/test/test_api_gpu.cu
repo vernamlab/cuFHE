@@ -49,7 +49,7 @@ int main() {
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 8;
-  uint32_t kNumLevels = 8;
+  uint32_t kNumLevels = 2;
 
   SetSeed(); // set random seed
 
@@ -107,8 +107,8 @@ int main() {
   cudaEventRecord(start, 0);
 
   // Here, pass streams to gates for parallel gates.
-  for (int i = 0; i < kNumTests; i ++)
-    for (int j = 0; j < kNumLevels; j ++)
+  for (int j = 0; j < kNumLevels; j ++)
+    for (int i = 0; i < kNumTests; i ++)
       Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   Synchronize();
 
