@@ -212,7 +212,7 @@ void Accumulate(Torus* tlwe,
     for (int j = 0; j < 4; j ++)
       sh_res_ntt[1][i] += sh_acc_ntt[j][i] * tgsw_ntt[((2 * j + 1) << 10) + i];
   }
-
+  __syncthreads(); // new
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
     FFP temp = 0;

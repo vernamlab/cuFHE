@@ -37,7 +37,6 @@ void NTT1024Core(FFP* r,
                  const uint32_t& t1d,
                  const uint3& t3d) {
   FFP *ptr = nullptr;
-  __syncthreads();
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] *= twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
@@ -89,7 +88,6 @@ void NTTInv1024Core(FFP* r,
                     const uint3& t3d) {
 
   FFP *ptr = nullptr;
-  __syncthreads();
   NTTInv8(r);
   NTTInv8x2Lsh(r, t3d.z); // if (t1d >= 64) NTT8x2<1>(r);
   ptr = &s[(t3d.y << 7) | (t3d.z << 6) | (t3d.x << 2)];
@@ -147,6 +145,7 @@ void NTT1024(FFP* out,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = FFP((T)in[(i << 7) | t1d]);
+  __syncthreads();
   NTT1024Core(r, temp_shared, twd, twd_sqrt, t1d, t3d);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -171,6 +170,7 @@ void NTT1024Decomp(FFP* out,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = FFP(((in[(i << 7) | t1d] >> rsh_bits) & mask) - offset);
+  __syncthreads();
   NTT1024Core(r, temp_shared, twd, twd_sqrt, t1d, t3d);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -192,6 +192,7 @@ void NTTInv1024(T* out,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = in[(i << 7) | t1d];
+  __syncthreads();
   NTTInv1024Core(r, temp_shared, twd_inv, twd_sqrt_inv, t1d, t3d);
   // mod 2^32 specifically
   uint64_t med = FFP::kModulus() / 2;
@@ -215,6 +216,7 @@ void NTTInv1024Add(T* out,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = in[(i << 7) | t1d];
+  __syncthreads();
   NTTInv1024Core(r, temp_shared, twd_inv, twd_sqrt_inv, t1d, t3d);
   // mod 2^32 specifically
   uint64_t med = FFP::kModulus() / 2;
