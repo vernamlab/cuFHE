@@ -29,6 +29,11 @@
 
 namespace cufhe {
 
+__constant__ FFP con_twd[1024];
+__constant__ FFP con_twd_inv[1024];
+__constant__ FFP con_twd_sqrt[1024];
+__constant__ FFP con_twd_sqrt_inv[1024];
+
 __device__ inline
 void NTT1024Core(FFP* r,
                  FFP* s,
@@ -39,7 +44,8 @@ void NTT1024Core(FFP* r,
   FFP *ptr = nullptr;
   #pragma unroll
   for (int i = 0; i < 8; i ++)
-    r[i] *= twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
+    //r[i] *= twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
+    r[i] *= con_twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
   NTT8(r);
   NTT8x2Lsh(r, t3d.z); // if (t1d >= 64) NTT8x2<1>(r);
   ptr = &s[(t3d.y << 7) | (t3d.z << 6) | (t3d.x << 2)];
@@ -64,7 +70,8 @@ void NTT1024Core(FFP* r,
   ptr = &s[t1d];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
-    r[i] = ptr[i << 7] * twd[(i << 7) | t1d]; // mult twiddle
+    //r[i] = ptr[i << 7] * twd[(i << 7) | t1d]; // mult twiddle
+    r[i] = ptr[i << 7] * con_twd[(i << 7) | t1d]; // mult twiddle
   NTT8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -112,7 +119,8 @@ void NTTInv1024Core(FFP* r,
   ptr = &s[t1d];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
-    r[i] = ptr[i << 7] * twd_inv[(i << 7) | t1d]; // mult twiddle
+    //r[i] = ptr[i << 7] * twd_inv[(i << 7) | t1d]; // mult twiddle
+    r[i] = ptr[i << 7] * con_twd_inv[(i << 7) | t1d]; // mult twiddle
   NTTInv8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -127,7 +135,8 @@ void NTTInv1024Core(FFP* r,
   NTTInv8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
-    r[i] *= twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
+    //r[i] *= twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
+    r[i] *= con_twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
 }
 
 template <typename T>

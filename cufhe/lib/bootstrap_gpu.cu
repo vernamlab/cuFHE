@@ -74,6 +74,7 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk) {
   Assert(ntt_handler == nullptr);
   ntt_handler = new CuNTTHandler<>();
   ntt_handler->Create();
+  ntt_handler->CreateConstant();
   cudaDeviceSynchronize();
   CuCheckError();
 

@@ -27,6 +27,7 @@
 #include "ntt_1024_device.cuh"
 #include "ntt_1024_twiddle.cuh"
 #include <include/details/math.h>
+#include <include/details/error_gpu.cuh>
 
 namespace cufhe {
 
@@ -40,6 +41,18 @@ public:
 
   __host__ __device__ inline
   ~CuNTTHandler() {};
+
+  inline
+  void CreateConstant() {
+    CuSafeCall(cudaMemcpyToSymbol(con_twd, this->twd_,
+        sizeof(FFP) * 1024, 0,  cudaMemcpyDeviceToDevice));
+    CuSafeCall(cudaMemcpyToSymbol(con_twd_inv, this->twd_inv_,
+        sizeof(FFP) * 1024, 0, cudaMemcpyDeviceToDevice));
+    CuSafeCall(cudaMemcpyToSymbol(con_twd_sqrt, this->twd_sqrt_,
+        sizeof(FFP) * 1024, 0,  cudaMemcpyDeviceToDevice));
+    CuSafeCall(cudaMemcpyToSymbol(con_twd_sqrt_inv, this->twd_sqrt_inv_,
+        sizeof(FFP) * 1024, 0, cudaMemcpyDeviceToDevice));
+  }
 
   template <typename T>
   __device__ inline
