@@ -36,21 +36,40 @@ void CleanUp() {
   DeleteKeySwitchingKey();
 }
 
-//void Initialize(PubKey pub_key);
-//void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-//void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-//void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
+inline void CtxtCopyH2D(const Ctxt& c, Stream st) {
+  cudaMemcpyAsync(c.lwe_sample_device_->data(),
+                  c.lwe_sample_->data(),
+                  c.lwe_sample_->SizeData(),
+                  cudaMemcpyHostToDevice,
+                  st.st());
+}
+
+inline void CtxtCopyD2H(const Ctxt& c, Stream st) {
+  cudaMemcpyAsync(c.lwe_sample_->data(),
+                  c.lwe_sample_device_->data(),
+                  c.lwe_sample_->SizeData(),
+                  cudaMemcpyDeviceToHost,
+                  st.st());
+}
+
 void Nand(Ctxt& out,
           const Ctxt& in0,
           const Ctxt& in1,
           Stream st) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 8);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
+/*  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
     out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
                                    - in1.lwe_sample_->data()[i];
   out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+*/
+  CtxtCopyH2D(in0, st);
+  CtxtCopyH2D(in1, st);
+  //Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, st.st());
+  //CtxtCopyH2D(out, st);
+  //Bootstrap(out.lwe_sample_device_, out.lwe_sample_device_, mu, st.st());
+  NandBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_, in1.lwe_sample_device_, mu, fix, st.st());
+  CtxtCopyD2H(out, st);
 }
 
 void Or(Ctxt& out,

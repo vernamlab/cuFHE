@@ -44,31 +44,27 @@ void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 }
 
 int main() {
+  cudaSetDevice(0);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
-  uint32_t kNumTests = kNumSMs * 32;
+  uint32_t kNumTests = kNumSMs * 32 * 8;
+  uint32_t kNumLevels = 8;
 
   SetSeed(); // set random seed
 
-  PriKey pri_key_old; // private key
-  PubKey pub_key_old; // public key
+  PriKey pri_key; // private key
+  PubKey pub_key; // public key
   Ptxt* pt = new Ptxt[2 * kNumTests];
   Ctxt* ct = new Ctxt[2 * kNumTests];
   Synchronize();
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
-  KeyGen(pub_key_old, pri_key_old);
+  KeyGen(pub_key, pri_key);
   // Alternatively ...
   // PriKeyGen(pri_key);
   // PubKeyGen(pub_key, pri_key);
-  WritePriKeyToFile(pri_key_old, "pri_key.txt");
-  WritePubKeyToFile(pub_key_old, "pub_key.txt");
-  PriKey pri_key; // private key
-  PubKey pub_key; // public key
-  ReadPriKeyFromFile(pri_key, "pri_key.txt");
-  ReadPubKeyFromFile(pub_key, "pub_key.txt");
 
   cout<< "------ Test Encryption/Decryption ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
@@ -111,37 +107,40 @@ int main() {
   cudaEventRecord(start, 0);
 
   // Here, pass streams to gates for parallel gates.
-  for (int i = 0; i < kNumTests; i ++)
-    Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int j = 0; j < kNumLevels; j ++)
+    for (int i = 0; i < kNumTests; i ++)
+      Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   Synchronize();
 
   cudaEventRecord(stop, 0);
   cudaEventSynchronize(stop);
   cudaEventElapsedTime(&et, start, stop);
-  cout<< et / kNumTests << " ms / gate" <<endl;
+  cout<< et / kNumTests / kNumLevels << " ms / gate" <<endl;
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    NandCheck(pt[i + kNumTests], pt[i], pt[i + kNumTests]);
-    Decrypt(pt[i], ct[i], pri_key);
+    for (int j = 0; j < kNumLevels; j ++)
+      NandCheck(pt[i], pt[i], pt[i + kNumTests]);
+    Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;
       cnt_failures += 1;
+      //std::cout<< "Fail at iteration: " << i <<std::endl;
     }
   }
   if (correct)
     cout<< "PASS" <<endl;
   else
     cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
+  for (int i = 0; i < kNumSMs; i ++)
+    st[i].Destroy();
+  delete [] st;
 
   cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
   CleanUp(); // essential to clean and deallocate data
   delete [] ct;
   delete [] pt;
-  for (int i = 0; i < kNumSMs; i ++)
-    st[i].Destroy();
-  delete [] st;
   return 0;
 }

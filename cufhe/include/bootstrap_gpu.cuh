@@ -37,4 +37,11 @@ void Bootstrap(LWESample* out,
                Torus mu,
                cudaStream_t st = 0);
 
+void NandBootstrap(LWESample* out,
+               LWESample* in0,
+               LWESample* in1,
+               Torus mu,
+               Torus fix,
+               cudaStream_t st);
+
 } // namespace cufhe
