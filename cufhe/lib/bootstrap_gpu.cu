@@ -154,8 +154,7 @@ void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk) {
 __device__
 void Accumulate(Torus* tlwe,
                 FFP* sh_acc_ntt,
-                FFP* sh_res_ntt_0,
-                FFP* sh_res_ntt_1,
+                FFP* sh_res_ntt,
                 uint32_t a_bar,
                 FFP* tgsw_ntt,
                 CuNTTHandler<> ntt) {
@@ -195,7 +194,7 @@ void Accumulate(Torus* tlwe,
   // 4 NTTs with 512 threads.
   // Input/output/buffer use the same shared memory location.
   if (tid < 512) {
-    FFP* tar = &sh_acc_ntt[tid >> 7 << 1024];
+    FFP* tar = &sh_acc_ntt[tid >> 7 << 10];
     ntt.NTT<FFP>(tar, tar, tar, tid >> 7 << 7);
   }
   else { // must meet 4 sync made by NTTInv
@@ -209,10 +208,10 @@ void Accumulate(Torus* tlwe,
   // Multiply with bootstrapping key in global memory.
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
-    sh_res_ntt_1[i] = 0;
+    sh_res_ntt[4096+i] = 0;
     #pragma unroll
     for (int j = 0; j < 4; j ++)
-      sh_res_ntt_1[i] += sh_acc_ntt[j*1024+i] * tgsw_ntt[((2 * j + 1) << 10) + i];
+      sh_res_ntt[4096+i] += sh_acc_ntt[j*1024+i] * tgsw_ntt[((2 * j + 1) << 10) + i];
   }
   __syncthreads(); // new
   #pragma unroll
@@ -221,15 +220,14 @@ void Accumulate(Torus* tlwe,
     #pragma unroll
     for (int j = 0; j < 4; j ++)
       temp += sh_acc_ntt[j*1024+i] * tgsw_ntt[((2 * j) << 10) + i];
-    sh_res_ntt_0[i] = temp;
+    sh_res_ntt[i] = temp;
   }
   __syncthreads(); // must
 
   // 2 NTTInvs and add acc with 256 threads.
   if (tid < 256) {
-    int off = tid >> 7;
-    ntt.NTTInvAdd<Torus>(tlwe+off*1024, sh_res_ntt_0+4096*off, sh_res_ntt_0+4096*off, off*128);
-//    ntt.NTTInvAdd<Torus>(tlwe+1024, sh_res_ntt_1, sh_res_ntt_1, 128);
+    FFP* src = &sh_res_ntt[tid >> 7 << 12];
+    ntt.NTTInvAdd<Torus>(&tlwe[tid >> 7 << 10], src, src, tid >> 7 << 7);
   }
   else { // must meet 4 sync made by NTTInv
     __syncthreads();
@@ -249,9 +247,8 @@ void __Bootstrap__(Torus* out, Torus* in, Torus mu,
 //  Assert(bk.l() == 2);
 //  Assert(bk.n() == 1024);
   __shared__ FFP sh[6 * 1024];
-  FFP* sh_acc_ntt = sh;
-  FFP* sh_res_ntt_0 = sh;
-  FFP* sh_res_ntt_1 = sh + 4096;
+//  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
+//  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
   Torus* tlwe = (Torus*)&sh[5120];
 
   // test vector
@@ -277,7 +274,7 @@ void __Bootstrap__(Torus* out, Torus* in, Torus mu,
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
     bar = ModSwitch2048(in[i]);
-    Accumulate(tlwe, sh_acc_ntt, sh_res_ntt_0, sh_res_ntt_1, bar, bk + (i << 13), ntt);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
   }
 
   static const uint32_t lwe_n = 500;
@@ -296,9 +293,8 @@ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
 //  Assert(bk.l() == 2);
 //  Assert(bk.n() == 1024);
   __shared__ FFP sh[6 * 1024];
-  FFP* sh_acc_ntt = sh;
-  FFP* sh_res_ntt_0 = sh;
-  FFP* sh_res_ntt_1 = sh + 4096;
+//  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
+//  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
   Torus* tlwe = (Torus*)&sh[5120];
 
   // test vector
@@ -325,7 +321,7 @@ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
     bar = ModSwitch2048(0 - in0[i] - in1[i]);
-    Accumulate(tlwe, sh_acc_ntt, sh_res_ntt_0, sh_res_ntt_1, bar, bk + (i << 13), ntt);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
   }
 
   static const uint32_t lwe_n = 500;
@@ -356,7 +352,7 @@ void NandBootstrap(LWESample* out,
                cudaStream_t st) {
   dim3 grid(1);
   dim3 block(512);
-  if (count == 0) {
+/*  if (count == 0) {
     cudaFuncAttributes attr;
     cudaFuncGetAttributes(&attr, __Bootstrap__);
     std::cout<< attr.numRegs << " regs\t" << attr.localSizeBytes << " Bytes\t";
@@ -364,7 +360,7 @@ void NandBootstrap(LWESample* out,
     std::cout<< attr.numRegs << " regs\t" << attr.localSizeBytes << " Bytes\t";
     std::cout<< std::endl;
     count ++;
-  }
+  }*/
   __NandBootstrap__<<<grid, block, 0, st>>>(out->data(), in0->data(),
       in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
   CuCheckError();

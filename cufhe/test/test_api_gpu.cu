@@ -48,7 +48,7 @@ int main() {
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
-  uint32_t kNumTests = kNumSMs * 32;// * 8;
+  uint32_t kNumTests = kNumSMs * 32 * 8;
   uint32_t kNumLevels = 8;
 
   SetSeed(); // set random seed
