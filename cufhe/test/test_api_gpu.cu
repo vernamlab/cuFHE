@@ -107,13 +107,14 @@ int main() {
   cudaEventRecord(start, 0);
 
   // Here, pass streams to gates for parallel gates.
-  for (int i = 0; i < kNumTests; i ++) {
-    for (int j = 0; j < kNumLevels; j ++)
-      Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-    /*Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
     And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-    Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);*/
-  }
+  for (int i = 0; i < kNumTests; i ++)
+    Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   Synchronize();
 
   cudaEventRecord(stop, 0);
@@ -125,11 +126,10 @@ int main() {
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    for (int j = 0; j < kNumLevels; j ++)
-      NandCheck(pt[i], pt[i], pt[i + kNumTests]);
-    /*OrCheck(pt[i], pt[i], pt[i + kNumTests]);
+    NandCheck(pt[i], pt[i], pt[i + kNumTests]);
+    OrCheck(pt[i], pt[i], pt[i + kNumTests]);
     AndCheck(pt[i], pt[i], pt[i + kNumTests]);
-    XorCheck(pt[i], pt[i], pt[i + kNumTests]);*/
+    XorCheck(pt[i], pt[i], pt[i + kNumTests]);
     Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;
