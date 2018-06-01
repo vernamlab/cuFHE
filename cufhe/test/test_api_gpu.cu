@@ -49,7 +49,7 @@ int main() {
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 4;
+  uint32_t kNumLevels = 1;
 
   SetSeed(); // set random seed
 
@@ -109,9 +109,9 @@ int main() {
   // Here, pass streams to gates for parallel gates.
   for (int i = 0; i < kNumTests; i ++) {
     Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-    Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+    /*Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
     And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-    Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+    Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);*/
   }
   Synchronize();
 
@@ -125,9 +125,9 @@ int main() {
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
     NandCheck(pt[i], pt[i], pt[i + kNumTests]);
-    OrCheck(pt[i], pt[i], pt[i + kNumTests]);
+    /*OrCheck(pt[i], pt[i], pt[i + kNumTests]);
     AndCheck(pt[i], pt[i], pt[i + kNumTests]);
-    XorCheck(pt[i], pt[i], pt[i + kNumTests]);
+    XorCheck(pt[i], pt[i], pt[i + kNumTests]);*/
     Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;
