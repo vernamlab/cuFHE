@@ -31,17 +31,45 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk);
 void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk);
 void DeleteBootstrappingKeyNTT();
 void DeleteKeySwitchingKey();
-
 void Bootstrap(LWESample* out,
                LWESample* in,
                Torus mu,
                cudaStream_t st = 0);
-
 void NandBootstrap(LWESample* out,
-               LWESample* in0,
-               LWESample* in1,
-               Torus mu,
-               Torus fix,
-               cudaStream_t st);
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void OrBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void AndBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void NorBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void XorBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void XnorBootstrap(LWESample* out,
+                  LWESample* in0,
+                  LWESample* in1,
+                  Torus mu,
+                  Torus fix,
+                  cudaStream_t st);
 
 } // namespace cufhe
