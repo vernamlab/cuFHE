@@ -158,6 +158,7 @@ void Bootstrap(LWESample* out,
     }
   }
 
+  delete ksk_entry;
   for (int i = 0; i < kpl; i ++)
     delete [] decomp[i];
   delete [] decomp;
