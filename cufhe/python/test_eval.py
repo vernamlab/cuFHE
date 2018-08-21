@@ -20,7 +20,7 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
-import lib.fhepy as fhe
+import lib.fhe_cpu as fhe
 import random
 import operator
 
@@ -33,26 +33,27 @@ m = [random.randint(0,1), random.randint(0,1)]
 c0, c1 = fhe.Encrypt(m[0], prikey), fhe.Encrypt(m[1], prikey)
 
 # AND Gate
-c = c0 & c1
-result = c.Decrypt(prikey)
+c2 = c0 & c1
+result = c2.Decrypt(prikey)
 print("AND gate : " + str(CheckResult(m, operator.__and__, result)))
 
 # XOR Gate
-c = c0 ^ c1
-result = c.Decrypt(prikey)
+c3 = c0 ^ c1
+result = c3.Decrypt(prikey)
 print("XOR gate : " + str(CheckResult(m, operator.__xor__, result)))
 
 # OR Gate
-c = c0 | c1
-result = c.Decrypt(prikey)
+c4 = c0 | c1
+result = c4.Decrypt(prikey)
 print("OR gate : " + str(CheckResult(m, operator.__or__, result)))
 
 # NOT Complement
-c = ~c0
-result = c.Decrypt(prikey)
+c5 = ~c0
+result = c5.Decrypt(prikey)
 print("NOT gate : " + str(result != m[0]))
 
 # NAND Gate
-c = ~(c0 & c1)
-result = c.Decrypt(prikey)
+c6 = c0 & c1
+c7 = ~c6
+result = c7.Decrypt(prikey)
 print("NAND gate : " + str(not CheckResult(m, operator.__and__, result)))
