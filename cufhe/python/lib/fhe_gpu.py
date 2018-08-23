@@ -124,7 +124,7 @@ class Ctxt:
         fhe.Synchronize()
         return result
 
-    def __invert__(self, other):
+    def __invert__(self):
         result = Ctxt(self.pubkey_)
         st = fhe.Stream()
         st.Create()
@@ -154,5 +154,41 @@ class CtxtList:
         fhe.Synchronize()
         for i in range(len(self.ctxts_)):
             fhe.AND(result.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, other.ctxts_[i].ctxt_, st[i])
+        fhe.Synchronize()
+        return result
+
+    def __xor__(self, other):
+        result = CtxtList(len(self.ctxts_), self.pubkey_)
+        st = []
+        for i in range(len(self.ctxts_)):
+            st.append(fhe.Stream())
+            st[i].Create()
+        fhe.Synchronize()
+        for i in range(len(self.ctxts_)):
+            fhe.XOR(result.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, other.ctxts_[i].ctxt_, st[i])
+        fhe.Synchronize()
+        return result
+
+    def __or__(self, other):
+        result = CtxtList(len(self.ctxts_), self.pubkey_)
+        st = []
+        for i in range(len(self.ctxts_)):
+            st.append(fhe.Stream())
+            st[i].Create()
+        fhe.Synchronize()
+        for i in range(len(self.ctxts_)):
+            fhe.OR(result.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, other.ctxts_[i].ctxt_, st[i])
+        fhe.Synchronize()
+        return result
+
+    def __invert__(self):
+        result = CtxtList(len(self.ctxts_), self.pubkey_)
+        st = []
+        for i in range(len(self.ctxts_)):
+            st.append(fhe.Stream())
+            st[i].Create()
+        fhe.Synchronize()
+        for i in range(len(self.ctxts_)):
+            fhe.AND(result.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, st[i])
         fhe.Synchronize()
         return result
