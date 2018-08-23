@@ -1,7 +1,4 @@
-try:
-    import fhepy_cpu as fhe
-except ImportError:
-    pass
+import fhepy_cpu as fhe
 
 def LoadPubKey(pubfile="pubkey.txt"):
     pubkey = fhe.PubKey()

@@ -35,15 +35,51 @@ pubkey, prikey = fhe.KeyGen()
 #fhe.StoreKeys(pubkey, prikey)
 fhe.Init(pubkey)
 
-# Encryption
+# Encryption & Decryption
 msg = random.randint(0,1)
 ctxt = fhe.Encrypt(msg, prikey)
-print("Encrypted message : ")
-print(msg)
-
-# Decryption
+print "Encrypted message : ", msg
 msg = fhe.Decrypt(ctxt, prikey)
-print("Decrypted message : ")
-print(msg)
+print "Decrypted message : ", msg
 
 # Homomorphic Evaulations
+# AND
+m1, m2 = random.randint(0,1), random.randint(0,1)
+c1 = fhe.Encrypt(m1, prikey)
+c2 = fhe.Encrypt(m2, prikey)
+start_time = timeit.default_timer()
+c = c1 & c2
+elapsed = timeit.default_timer() - start_time
+result = c.Decrypt(prikey)
+print m1, " & " , m2, " = ", result
+print elapsed, " sec"
+
+# XOR
+m1, m2 = random.randint(0,1), random.randint(0,1)
+c1 = fhe.Encrypt(m1, prikey)
+c2 = fhe.Encrypt(m2, prikey)
+c = c1 ^  c2
+result = c.Decrypt(prikey)
+print m1, " ^ " , m2, " = ", result
+
+# OR
+m1, m2 = random.randint(0,1), random.randint(0,1)
+c1 = fhe.Encrypt(m1, prikey)
+c2 = fhe.Encrypt(m2, prikey)
+c = c1 | c2
+result = c.Decrypt(prikey)
+print m1, " | " , m2, " = ", result
+
+# Multibit Evaluations
+
+# Bitwise AND
+length = 30
+m1, m2 = random.getrandbits(length), random.getrandbits(length)
+c1 = fhe.Encrypt(m1, prikey, length)
+c2 = fhe.Encrypt(m2, prikey, length)
+start_time = timeit.default_timer()
+c = c1 & c2
+elapsed = timeit.default_timer() - start_time
+result = c.Decrypt(prikey)
+print m1, " & " , m2, " = ", result
+print elapsed, " sec"
