@@ -3,6 +3,9 @@ try:
 except ImportError:
     pass
 
+import time
+import timeit
+
 def LoadPubKey(pubfile="pubkey.txt"):
     pubkey = fhe.PubKey()
     fhe.ReadPubKeyFromFile(pubkey, pubfile)
@@ -36,11 +39,15 @@ def PriKeyGen():
 def PubKeyGen(prikey):
     pubkey = fhe.PubKey()
     fhe.PubKeyGen(pubkey, prikey)
+    #fhe.Initialize(pubkey)
     return pubkey
 
 def KeyGen():
     prikey = PriKeyGen()
     return PubKeyGen(prikey), prikey
+
+def Init(pubkey):
+    fhe.Initialize(pubkey)
 
 def PtxtMod():
     return fhe.Ptxt().PtxtSpace
@@ -60,6 +67,9 @@ def Decrypt(ctxt, prikey):
     ptxt = fhe.Ptxt()
     fhe.Decrypt(ptxt, ctxt.ctxt_, prikey)
     return ptxt.message
+
+def SetSeed():
+    fhe.SetSeed(int(time.time()))
 
 
 class Ctxt:
