@@ -60,12 +60,11 @@ def Encrypt(ptxt, prikey, count=1, pubkey=None):
             return ctxt
 
         msg_bin = bin(msg)[2:].zfill(count)
-        #print "Encrypting ", msg, " as ", msg_bin
         msg_list = []
         ct = CtxtList(count, pubkey)
         for i in range(count):
             ptxt.message = int(msg_bin[i], 2)
-            fhe.Encrypt(ct.ctxts_[i].ctxt_, ptxt, prikey)
+            fhe.Encrypt(ct.ctxts_[count - i - 1].ctxt_, ptxt, prikey)
         return ct
 
 def Decrypt(ctxt, prikey):
@@ -76,7 +75,7 @@ def Decrypt(ctxt, prikey):
 
     if isinstance(ctxt, CtxtList):
         ptxt_list = ""
-        for c in ctxt.ctxts_:
+        for c in reversed(ctxt.ctxts_):
             fhe.Decrypt(ptxt, c.ctxt_, prikey)
             ptxt_list += str(ptxt.message)
         return int(ptxt_list, 2)
@@ -192,3 +191,45 @@ class CtxtList:
             fhe.AND(result.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, st[i])
         fhe.Synchronize()
         return result
+
+
+    def __add__(self, other):
+        k = len(self.ctxts_)
+        st = []
+        for i in range(3*k):
+            st.append(fhe.Stream())
+            st[i].Create()
+        fhe.Synchronize()
+
+        ksa_p = CtxtList(k, self.pubkey_)
+        ksa_g = CtxtList(k, self.pubkey_)
+	ksa_c = CtxtList(k, self.pubkey_)
+	ksa_s = CtxtList(k, self.pubkey_)
+
+        for i in range(k):
+            fhe.AND(ksa_g.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, other.ctxts_[i].ctxt_, st[3*i])
+            fhe.XOR(ksa_p.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, other.ctxts_[i].ctxt_, st[3*i+1])
+            fhe.XOR(ksa_s.ctxts_[i].ctxt_, self.ctxts_[i].ctxt_, other.ctxts_[i].ctxt_, st[3*i+2])
+	fhe.Synchronize()
+
+        begin = 0
+        step = 1
+	while begin+step < k:
+	    for i in range(begin+step, k):
+                id = i - begin - step
+                ctxt = ksa_p.ctxts_[i].ctxt_
+	        fhe.AND(ksa_p.ctxts_[i].ctxt_, ctxt, ksa_p.ctxts_[i-step].ctxt_, st[2*id])
+	        fhe.AND(ksa_c.ctxts_[i].ctxt_, ctxt, ksa_g.ctxts_[i-step].ctxt_, st[2*id+1])
+            fhe.Synchronize()
+
+	    for i in range(begin+step, k):
+                id = i - begin - step
+	        fhe.OR(ksa_g.ctxts_[i].ctxt_, ksa_c.ctxts_[i].ctxt_, ksa_g.ctxts_[i].ctxt_, st[id])
+            fhe.Synchronize()
+            step += 1
+            begin += 1
+
+        for i in range(1,k):
+             fhe.XOR(ksa_s.ctxts_[i].ctxt_, ksa_s.ctxts_[i].ctxt_, ksa_g.ctxts_[i-1].ctxt_, st[i])
+        fhe.Synchronize()
+        return ksa_s
