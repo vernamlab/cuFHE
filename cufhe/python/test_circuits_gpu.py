@@ -93,6 +93,5 @@ start_time = timeit.default_timer()
 c = c1 + c2
 elapsed = timeit.default_timer() - start_time
 result = c.Decrypt(prikey)
-print m1, " & " , m2, " = ", result
+print m1, " + " , m2, " = ", result
 print elapsed, " sec"
-
