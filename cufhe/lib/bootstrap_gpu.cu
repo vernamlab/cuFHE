@@ -74,6 +74,7 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk) {
   Assert(ntt_handler == nullptr);
   ntt_handler = new CuNTTHandler<>();
   ntt_handler->Create();
+  ntt_handler->CreateConstant();
   cudaDeviceSynchronize();
   CuCheckError();
 
@@ -152,8 +153,8 @@ void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk) {
 
 __device__
 void Accumulate(Torus* tlwe,
-                FFP* sh_acc_ntt[4],
-                FFP* sh_res_ntt[4],
+                FFP* sh_acc_ntt,
+                FFP* sh_res_ntt,
                 uint32_t a_bar,
                 FFP* tgsw_ntt,
                 CuNTTHandler<> ntt) {
@@ -182,9 +183,9 @@ void Accumulate(Torus* tlwe,
       temp -= tlwe[(j << 10) | i];
       // decomp temp
       temp += decomp_offset;
-      sh_acc_ntt[2 * j][i] = FFP(Torus( ((temp >> (32 - decomp_bits))
+      sh_acc_ntt[(2*j)*1024+i] = FFP(Torus( ((temp >> (32 - decomp_bits))
                              & decomp_mask) - decomp_half ));
-      sh_acc_ntt[2 * j + 1][i] = FFP(Torus( ((temp >> (32 - 2 * decomp_bits))
+      sh_acc_ntt[(2*j+1)*1024+i] = FFP(Torus( ((temp >> (32 - 2 * decomp_bits))
                                  & decomp_mask) - decomp_half ));
     }
   }
@@ -193,7 +194,7 @@ void Accumulate(Torus* tlwe,
   // 4 NTTs with 512 threads.
   // Input/output/buffer use the same shared memory location.
   if (tid < 512) {
-    FFP* tar = sh_acc_ntt[tid >> 7];
+    FFP* tar = &sh_acc_ntt[tid >> 7 << 10];
     ntt.NTT<FFP>(tar, tar, tar, tid >> 7 << 7);
   }
   else { // must meet 4 sync made by NTTInv
@@ -207,25 +208,25 @@ void Accumulate(Torus* tlwe,
   // Multiply with bootstrapping key in global memory.
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
-    sh_res_ntt[1][i] = 0;
+    sh_res_ntt[4096+i] = 0;
     #pragma unroll
     for (int j = 0; j < 4; j ++)
-      sh_res_ntt[1][i] += sh_acc_ntt[j][i] * tgsw_ntt[((2 * j + 1) << 10) + i];
+      sh_res_ntt[4096+i] += sh_acc_ntt[j*1024+i] * tgsw_ntt[((2 * j + 1) << 10) + i];
   }
-
+  __syncthreads(); // new
   #pragma unroll
   for (int i = tid; i < 1024; i += bdim) {
     FFP temp = 0;
     #pragma unroll
     for (int j = 0; j < 4; j ++)
-      temp += sh_acc_ntt[j][i] * tgsw_ntt[((2 * j) << 10) + i];
-    sh_res_ntt[0][i] = temp;
+      temp += sh_acc_ntt[j*1024+i] * tgsw_ntt[((2 * j) << 10) + i];
+    sh_res_ntt[i] = temp;
   }
   __syncthreads(); // must
 
   // 2 NTTInvs and add acc with 256 threads.
   if (tid < 256) {
-    FFP* src = sh_res_ntt[tid >> 7];
+    FFP* src = &sh_res_ntt[tid >> 7 << 12];
     ntt.NTTInvAdd<Torus>(&tlwe[tid >> 7 << 10], src, src, tid >> 7 << 7);
   }
   else { // must meet 4 sync made by NTTInv
@@ -246,8 +247,8 @@ void __Bootstrap__(Torus* out, Torus* in, Torus mu,
 //  Assert(bk.l() == 2);
 //  Assert(bk.n() == 1024);
   __shared__ FFP sh[6 * 1024];
-  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
-  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
+//  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
+//  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
   Torus* tlwe = (Torus*)&sh[5120];
 
   // test vector
@@ -273,7 +274,7 @@ void __Bootstrap__(Torus* out, Torus* in, Torus mu,
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
     bar = ModSwitch2048(in[i]);
-    Accumulate(tlwe, sh_acc_ntt, sh_res_ntt, bar, bk + (i << 13), ntt);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
   }
 
   static const uint32_t lwe_n = 500;
@@ -281,6 +282,198 @@ void __Bootstrap__(Torus* out, Torus* in, Torus mu,
   static const uint32_t ks_bits = 2;
   static const uint32_t ks_size = 8;
   KeySwitch<lwe_n, tlwe_n, ks_bits, ks_size>(out, tlwe, ksk);
+}
+
+__global__
+void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                       FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
+  __shared__ FFP sh[6 * 1024];
+  Torus* tlwe = (Torus*)&sh[5120];
+  // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  register int32_t bar = 2048 - ModSwitch2048(fix - in0[500] - in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 - in0[i] - in1[i]);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+  }
+  KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+}
+
+__global__
+void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                       FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
+  __shared__ FFP sh[6 * 1024];
+  Torus* tlwe = (Torus*)&sh[5120];
+  // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  register int32_t bar = 2048 - ModSwitch2048(fix + in0[500] + in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 + in0[i] + in1[i]);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+  }
+  KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+}
+
+__global__
+void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                       FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
+  __shared__ FFP sh[6 * 1024];
+  Torus* tlwe = (Torus*)&sh[5120];
+  // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  register int32_t bar = 2048 - ModSwitch2048(fix + in0[500] + in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 + in0[i] + in1[i]);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+  }
+  KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+}
+
+__global__
+void __NorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                       FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
+  __shared__ FFP sh[6 * 1024];
+  Torus* tlwe = (Torus*)&sh[5120];
+  // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  register int32_t bar = 2048 - ModSwitch2048(fix - in0[500] - in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 - in0[i] - in1[i]);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+  }
+  KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+}
+
+__global__
+void __XorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                       FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
+  __shared__ FFP sh[6 * 1024];
+  Torus* tlwe = (Torus*)&sh[5120];
+  // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  register int32_t bar = 2048 - ModSwitch2048(fix + 2*in0[500] + 2*in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 + 2*in0[i] + 2*in1[i]);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+  }
+  KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+}
+
+__global__
+void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
+                       FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
+  __shared__ FFP sh[6 * 1024];
+  Torus* tlwe = (Torus*)&sh[5120];
+  // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+  register int32_t bar = 2048 - ModSwitch2048(fix - 2*in0[500] - 2*in1[500]);
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < 1024; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2048)
+      tlwe[i + 1024] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> 10));
+      pos = -((1 - cmp) ^ (bar >> 10));
+      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+  // accumulate
+  #pragma unroll
+  for (int i = 0; i < 500; i ++) { // 500 iterations
+    bar = ModSwitch2048(0 - 2*in0[i] - 2*in1[i]);
+    Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+  }
+  KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
 }
 
 void Bootstrap(LWESample* out,
@@ -291,6 +484,48 @@ void Bootstrap(LWESample* out,
   dim3 block(512);
   __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,
       bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+    Torus mu, Torus fix, cudaStream_t st) {
+  __NandBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+    Torus mu, Torus fix, cudaStream_t st) {
+  __OrBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+    Torus mu, Torus fix, cudaStream_t st) {
+  __AndBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+    Torus mu, Torus fix, cudaStream_t st) {
+  __NorBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+    Torus mu, Torus fix, cudaStream_t st) {
+  __XorBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+    Torus mu, Torus fix, cudaStream_t st) {
+  __XnorBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
+      in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
   CuCheckError();
 }
 

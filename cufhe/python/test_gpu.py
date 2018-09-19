@@ -20,6 +20,13 @@
 # DEALINGS IN THE SOFTWARE.
 ################################################################################
 
+
+# This test file uses "fhepy_gpu.so" library directly.
+# All the function prototypes are exactly as in Cuda library.
+# This gives more flexibility to the designer, if they want full
+# control over Cuda streams.
+# If you want a simple Python interface, check "test_circuits_gpu.py" out.
+
 import lib.fhepy_gpu as fhe
 import time
 import random

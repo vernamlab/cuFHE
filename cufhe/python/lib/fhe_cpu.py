@@ -1,11 +1,4 @@
-try:
-    import fhepy_gpu as fhe
-except ImportError:
-    try:
-        import fhepy_cpu as fhe
-    except ImportError:
-        pass
-    pass
+import fhepy_cpu as fhe
 
 def LoadPubKey(pubfile="pubkey.txt"):
     pubkey = fhe.PubKey()
@@ -98,22 +91,22 @@ class Ctxt:
 
     def __and__(self, other):
          result = Ctxt(self.pubkey_)
-         result.ctxt_ = AND(self.ctxt_, other.ctxt_, self.pubkey_)
+         fhe.AND(result.ctxt_, self.ctxt_, other.ctxt_, self.pubkey_)
          return result
 
     def __or__(self, other):
          result = Ctxt(self.pubkey_)
-         result.ctxt_ = OR(self.ctxt_, other.ctxt_, self.pubkey_)
+         fhe.OR(result.ctxt_, self.ctxt_, other.ctxt_, self.pubkey_)
          return result
 
     def __xor__(self, other):
          result = Ctxt(self.pubkey_)
-         result.ctxt_ = XOR(self.ctxt_, other.ctxt_, self.pubkey_)
+         fhe.XOR(result.ctxt_, self.ctxt_, other.ctxt_, self.pubkey_)
          return result
 
     def __invert__(self):
          result = Ctxt(self.pubkey_)
-         result.ctxt_ = NOT(self.ctxt_)
+         fhe.NOT(result.ctxt_, self.ctxt_)
          return result
 
     def Decrypt(self, prikey):

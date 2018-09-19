@@ -8,7 +8,7 @@ The cuFHE library is an open-source library for Fully Homomorphic Encryption (FH
 
 | [TFHE lib](https://github.com/tfhe/tfhe) | cuFHE | Speedup |
 |---|---|---|
-| 13 ms | 0.6 ms | 22 times |
+| 13 ms | **0.5 ms** | 26 times |
 
 ### System Requirements
 **The library has been tested on Ubuntu Desktop 16.04 only.**

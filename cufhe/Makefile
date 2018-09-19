@@ -1,9 +1,10 @@
 ## Compilers
 CC = g++
-CU = /usr/local/cuda/bin/nvcc
+CU = nvcc
 ## Flags
 FLAGS = -std=c++11 -O3 -w
-CU_FLAGS = -Wno-deprecated-gpu-targets
+CU_FLAGS = #-gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
+##-Wno-deprecated-gpu-targets
 INC = -I./
 ## Python header files
 PYTHON_VERSION = 2.7
@@ -60,20 +61,20 @@ $(DIR_OBJ)/test/test_api_cpu.o: test/test_api_cpu.cc
 
 $(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o
 	$(dir_guard)
-	$(CU) $(FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
+	$(CU) $(FLAGS) $(CU_FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
 
 $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(dir_guard)
-	$(CU) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
-	$(CU) $(FLAGS) $(INC) -c -o $@ $<
+	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
+	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ $<
 
 $(DIR_BIN)/libcufhe_cpu.so: $(CC_OBJ)
 	$(dir_guard)
-	$(CU) $(FLAGS) -shared -o $@ $(CC_OBJ)
+	$(CU) $(FLAGS) $(CU_FLAGS) -shared -o $@ $(CC_OBJ)
 
 $(DIR_BIN)/libcufhe_gpu.so: $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/cufhe_io.o
 	$(dir_guard)
-	$(CU) $(FLAGS) -shared -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/cufhe_io.o
+	$(CU) $(FLAGS) $(CU_FLAGS) -shared -o $@ $(CU_OBJ) $(DIR_OBJ)/cufhe.o $(DIR_OBJ)/cufhe_io.o
 
 $(CC_OBJ): $(CC_SRC)
 	$(dir_guard)
@@ -84,9 +85,9 @@ $(CC_OBJ): $(CC_SRC)
 
 $(CU_OBJ): $(CU_SRC)
 	$(dir_guard)
-	$(CU) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) \
+	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) \
 			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu))
-	$(CU) $(FLAGS) $(INC) -c -o $@ \
+	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ \
 			$(patsubst $(DIR_OBJ)/%,$(DIR_SRC)/%,$(@:%.o=%.cu)) -Xcompiler '-fPIC'
 
 $(DIR_PY)/fhepy_cpu.so: $(DIR_PY)/fhepy_cpu.o
@@ -96,8 +97,7 @@ $(DIR_PY)/fhepy_cpu.o: $(DIR_PY)/fhepy.cpp
 	$(CC) $(INC) $(PY_INC) -fPIC -c $(DIR_PY)/fhepy.cpp $(FLAGS) -o $@
 
 $(DIR_PY)/fhepy_gpu.so: $(DIR_PY)/fhepy_gpu.o
-	$(CU) -shared $(DIR_PY)/fhepy_gpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_gpu -o $@
+	$(CU) $(CU_FLAGS) -shared $(DIR_PY)/fhepy_gpu.o $(PY_LIB) -L$(DIR_BIN) -lcufhe_gpu -o $@
 
 $(DIR_PY)/fhepy_gpu.o: $(DIR_PY)/fhepy.cu
-	$(CU) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/fhepy.cu $(FLAGS) -o $@
-
+	$(CU) $(CU_FLAGS) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/fhepy.cu $(FLAGS) -o $@
