@@ -106,6 +106,9 @@ struct PubKey {
 struct Ctxt {
   Ctxt(bool is_alias = false);
   ~Ctxt();
+  Ctxt(const Ctxt& that) = delete;
+  Ctxt& operator=(const Ctxt& that) = delete;
+  void assign(void* host_ptr, void* device_ptr);
   LWESample* lwe_sample_;
   MemoryDeleter lwe_sample_deleter_;
   LWESample* lwe_sample_device_;
