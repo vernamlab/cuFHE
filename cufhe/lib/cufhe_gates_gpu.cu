@@ -133,8 +133,9 @@ void Xnor(Ctxt& out,
 void Not(Ctxt& out,
          const Ctxt& in,
          Stream st) {
-  for (int i = 0; i <= in.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = -in.lwe_sample_->data()[i];
+  CtxtCopyH2D(in, st);
+  NotBootstrap(out.lwe_sample_device_, in.lwe_sample_device_, in.lwe_sample_->n(), st.st());
+  CtxtCopyD2H(out, st);
 }
 
 void Copy(Ctxt& out,

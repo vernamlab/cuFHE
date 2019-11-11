@@ -476,6 +476,15 @@ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
   KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
 }
 
+__global__
+void __NotBootstrap__(Torus* out, Torus* in, int n){
+  #pragma unroll
+  for(int i=0;i<=n;i++){
+    out[i] = -in[i];
+  }
+  __syncthreads();
+}
+
 void Bootstrap(LWESample* out,
                LWESample* in,
                Torus mu,
@@ -526,6 +535,11 @@ void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
     Torus mu, Torus fix, cudaStream_t st) {
   __XnorBootstrap__<<<1, 512, 0, st>>>(out->data(), in0->data(),
       in1->data(), mu, fix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+  CuCheckError();
+}
+
+void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st) {
+  __NotBootstrap__<<<1, 512, 0, st>>>(out->data(), in->data(), n);
   CuCheckError();
 }
 
