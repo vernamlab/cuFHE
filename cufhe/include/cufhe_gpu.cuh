@@ -28,7 +28,9 @@
  */
 
 #pragma once
-
+#include <cuda_device_runtime_api.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 #include "cufhe.h"
 
 namespace cufhe {
