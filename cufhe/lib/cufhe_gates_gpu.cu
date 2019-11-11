@@ -211,6 +211,16 @@ void Copy(Ctxt& out,
     out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
 }
 
+void gCopy(Ctxt& out,
+          const Ctxt& in,
+          Stream st) {
+  cudaMemcpyAsync(out.lwe_sample_device_->data(),
+                  in.lwe_sample_device_->data(),
+                  in.lwe_sample_->n(),
+                  cudaMemcpyDeviceToDevice,
+                  st.st());
+}
+
 void SetToGPU(const Ctxt& in, Stream st){
   CtxtCopyH2D(in, st);
 }
