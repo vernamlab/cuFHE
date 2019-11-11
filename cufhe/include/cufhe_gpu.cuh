@@ -75,6 +75,14 @@ void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
 void Not (Ctxt& out, const Ctxt& in, Stream st = 0);
 void Copy(Ctxt& out, const Ctxt& in, Stream st = 0);
 
+void gAnd (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void gOr  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void gNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void gNor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void gXor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void gXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
+void gNot (Ctxt& out, const Ctxt& in, Stream st = 0);
+void gCopy(Ctxt& out, const Ctxt& in, Stream st = 0);
 
 void SetToGPU (const Ctxt& in, Stream st = 0);
 void GetFromGPU (Ctxt& out, Stream st = 0);
