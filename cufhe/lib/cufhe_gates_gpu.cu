@@ -221,12 +221,18 @@ void gCopy(Ctxt& out,
                   st.st());
 }
 
-void SetToGPU(const Ctxt& in, Stream st){
-  CtxtCopyH2D(in, st);
+void SetToGPU(const Ctxt& in){
+  cudaMemcpy(in.lwe_sample_device_->data(),
+                  in.lwe_sample_->data(),
+                  in.lwe_sample_->SizeData(),
+                  cudaMemcpyHostToDevice);
 }
 
-void GetFromGPU(Ctxt& out, Stream st){
-  CtxtCopyD2H(out, st);
+void GetFromGPU(Ctxt& out){
+  cudaMemcpy(out.lwe_sample_->data(),
+                  out.lwe_sample_device_->data(),
+                  out.lwe_sample_->SizeData(),
+                  cudaMemcpyDeviceToHost);
 }
 
 } // namespace cufhe
