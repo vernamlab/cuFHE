@@ -145,4 +145,12 @@ void Copy(Ctxt& out,
     out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
 }
 
+void SetToGPU(const Ctxt& in, Stream st){
+  CtxtCopyH2D(in, st);
+}
+
+void GetFromGPU(Ctxt& out, Stream st){
+  CtxtCopyD2H(out, st);
+}
+
 } // namespace cufhe

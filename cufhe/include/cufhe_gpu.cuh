@@ -74,6 +74,10 @@ void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
 void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
 void Not (Ctxt& out, const Ctxt& in, Stream st = 0);
 void Copy(Ctxt& out, const Ctxt& in, Stream st = 0);
+
+
+void SetToGPU (const Ctxt& in, Stream st = 0);
+void GetFromGPU (Ctxt& out, Stream st = 0);
 // Not Ready...
 // void Mux(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const Ctxt& in2,
 //          cudaStream_t st = 0);
