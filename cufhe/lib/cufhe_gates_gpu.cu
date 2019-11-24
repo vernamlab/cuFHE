@@ -221,6 +221,32 @@ void gCopy(Ctxt& out,
                   st.st());
 }
 
+void Mux(Ctxt& out,
+         const Ctxt& inc,
+         const Ctxt& in1,
+         const Ctxt& in0,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  CtxtCopyH2D(inc, st);
+  CtxtCopyH2D(in1, st);
+  CtxtCopyH2D(in0, st);
+  MuxBootstrap(out.lwe_sample_device_, inc.lwe_sample_device_, in1.lwe_sample_device_,
+      in0.lwe_sample_device_, mu, fix, st.st());
+  CtxtCopyD2H(out, st);
+}
+
+void gMux(Ctxt& out,
+         const Ctxt& inc,
+         const Ctxt& in1,
+         const Ctxt& in0,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  MuxBootstrap(out.lwe_sample_device_, inc.lwe_sample_device_, in1.lwe_sample_device_,
+      in0.lwe_sample_device_, mu, fix, st.st());
+}
+
 void SetToGPU(const Ctxt& in){
   cudaMemcpy(in.lwe_sample_device_->data(),
                   in.lwe_sample_->data(),
