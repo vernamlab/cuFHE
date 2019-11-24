@@ -35,6 +35,19 @@
 #include <math.h>
 #include <time.h>
 
+// Default Prameter Macro
+
+#define DEF_n 500
+#define DEF_N 1024
+#define DEF_Nbit 10
+#define DEF_k 1
+#define DEF_Bgbit 2
+#define DEF_l 2
+#define DEF_basebit 2
+#define DEF_t 8
+#define DEF_alpha 2.44e-5
+#define DEF_bkalpha 3.73e-9
+
 namespace cufhe {
 
 /*****************************
