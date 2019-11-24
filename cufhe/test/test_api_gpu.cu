@@ -43,18 +43,23 @@ void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = (in0.message_ + in1.message_) & 0x1;
 }
 
+void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
+  out.message_ = inc.message_?in1.message_:in0.message_;
+}
+
 int main() {
   cudaSetDevice(0);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 4;
+  uint32_t kNumLevels = 4; //Gate Types, Mux is counted as 2.
 
   SetSeed(); // set random seed
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key
+  //MUX Need 3 input
   Ptxt* pt = new Ptxt[2 * kNumTests];
   Ctxt* ct = new Ctxt[2 * kNumTests];
   Synchronize();
@@ -115,6 +120,8 @@ int main() {
     And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
     Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  // for (int i = 0; i < kNumTests; i ++)
+  //   Mux(ct[i], ct[i], ct[i + kNumTests], ct[i +2*kNumTests] ,st[i % kNumSMs]);
   Synchronize();
 
   cudaEventRecord(stop, 0);
@@ -130,6 +137,7 @@ int main() {
     OrCheck(pt[i], pt[i], pt[i + kNumTests]);
     AndCheck(pt[i], pt[i], pt[i + kNumTests]);
     XorCheck(pt[i], pt[i], pt[i + kNumTests]);
+    // MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i+ 2*kNumTests]);
     Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;
