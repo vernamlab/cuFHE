@@ -153,6 +153,27 @@ void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk) {
   }
 }
 
+template <uint32_t lwe_n = 500, uint32_t tlwe_n = 1024, uint32_t tlwe_nbit = 10>
+__device__ inline
+void RotatedTestVector(Torus* tlwe,int32_t bar, uint32_t mu){
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  register uint32_t cmp, neg, pos;
+  #pragma unroll
+  for (int i = tid; i < tlwe_n; i += bdim) {
+    tlwe[i] = 0; // part a
+    if (bar == 2*tlwe_n)
+      tlwe[i + tlwe_n] = mu;
+    else {
+      cmp = (uint32_t)(i < (bar & 1023));
+      neg = -(cmp ^ (bar >> tlwe_nbit));
+      pos = -((1 - cmp) ^ (bar >> tlwe_nbit));
+      tlwe[i + tlwe_n] = (mu & pos) + ((-mu) & neg); // part b
+    }
+  }
+  __syncthreads();
+}
+
 __device__
 void Accumulate(Torus* tlwe,
                 FFP* sh_acc_ntt,
@@ -292,24 +313,11 @@ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
   __shared__ FFP sh[(2*DEF_l + 2) * DEF_N]; // This is V100's MAX
   // Use Last section to hold tlwe. This may to make these data in serial
   Torus* tlwe = (Torus*)&sh[(2*DEF_l + 1)*DEF_N];
+
   // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
   register int32_t bar = 2*DEF_N - ModSwitch2048(fix - in0[DEF_n] - in1[DEF_n]);
-  register uint32_t tid = ThisThreadRankInBlock();
-  register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < DEF_N; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2*DEF_N)
-      tlwe[i + DEF_N] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & (DEF_N-1)));
-      neg = -(cmp ^ (bar >> DEF_Nbit));
-      pos = -((1 - cmp) ^ (bar >> DEF_Nbit));
-      tlwe[i + DEF_N] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
-  __syncthreads();
+  RotatedTestVector<DEF_n,DEF_Nbit>(tlwe,bar,mu);
+
   // accumulate
   #pragma unroll
   for (int i = 0; i < DEF_n; i ++) { // 500 iterations
@@ -324,24 +332,11 @@ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
                        FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
   __shared__ FFP sh[6 * 1024];
   Torus* tlwe = (Torus*)&sh[5120];
+
   // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-  register int32_t bar = 2048 - ModSwitch2048(fix + in0[500] + in1[500]);
-  register uint32_t tid = ThisThreadRankInBlock();
-  register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < 1024; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2048)
-      tlwe[i + 1024] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & 1023));
-      neg = -(cmp ^ (bar >> 10));
-      pos = -((1 - cmp) ^ (bar >> 10));
-      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
-  __syncthreads();
+  register int32_t bar = 2*DEF_N - ModSwitch2048(fix + in0[DEF_n] + in1[DEF_n]);
+  RotatedTestVector<DEF_n,DEF_N,DEF_Nbit>(tlwe,bar,mu);
+
   // accumulate
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
@@ -354,28 +349,13 @@ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
 __global__
 void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
                        FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
-  __shared__ FFP sh[6 * 1024];
-  // Torus* tlwe = (Torus*)&sh[(2*DEF_l + 1)*DEF_N];
-  // Torus* tlwe = (Torus*)&sh[5120];
-  Torus* tlwe = (Torus*)&sh[5*DEF_N];
+  __shared__ FFP sh[(2*DEF_l + 2) * DEF_N]; // This is V100's MAX
+  Torus* tlwe = (Torus*)&sh[(2*DEF_l + 1)*DEF_N];
+
   // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-  register int32_t bar = 2048 - ModSwitch2048(fix + in0[500] + in1[500]);
-  register uint32_t tid = ThisThreadRankInBlock();
-  register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < 1024; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2048)
-      tlwe[i + 1024] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & 1023));
-      neg = -(cmp ^ (bar >> 10));
-      pos = -((1 - cmp) ^ (bar >> 10));
-      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
-  __syncthreads();
+  register int32_t bar = 2*DEF_N - ModSwitch2048(fix + in0[DEF_n] + in1[DEF_n]);
+  RotatedTestVector<DEF_n,DEF_N,DEF_Nbit>(tlwe,bar,mu);
+
   // accumulate
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
@@ -390,24 +370,11 @@ void __NorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
                        FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
   __shared__ FFP sh[6 * 1024];
   Torus* tlwe = (Torus*)&sh[5120];
+
   // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
   register int32_t bar = 2048 - ModSwitch2048(fix - in0[500] - in1[500]);
-  register uint32_t tid = ThisThreadRankInBlock();
-  register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < 1024; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2048)
-      tlwe[i + 1024] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & 1023));
-      neg = -(cmp ^ (bar >> 10));
-      pos = -((1 - cmp) ^ (bar >> 10));
-      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
-  __syncthreads();
+  RotatedTestVector<DEF_n,DEF_N>(tlwe,bar,mu);
+
   // accumulate
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
@@ -422,24 +389,11 @@ void __XorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
                        FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
   __shared__ FFP sh[6 * 1024];
   Torus* tlwe = (Torus*)&sh[5120];
+
   // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
   register int32_t bar = 2048 - ModSwitch2048(fix + 2*in0[500] + 2*in1[500]);
-  register uint32_t tid = ThisThreadRankInBlock();
-  register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < 1024; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2048)
-      tlwe[i + 1024] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & 1023));
-      neg = -(cmp ^ (bar >> 10));
-      pos = -((1 - cmp) ^ (bar >> 10));
-      tlwe[i + 1024] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
-  __syncthreads();
+  RotatedTestVector<DEF_n,DEF_N>(tlwe,bar,mu);
+
   // accumulate
   #pragma unroll
   for (int i = 0; i < 500; i ++) { // 500 iterations
@@ -454,24 +408,11 @@ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu, Torus fix,
                        FFP* bk, Torus* ksk, CuNTTHandler<> ntt) {
   __shared__ FFP sh[6 * 1024];
   Torus* tlwe = (Torus*)&sh[5120];
+
   // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
   register int32_t bar = 2048 - ModSwitch2048(fix - 2*in0[500] - 2*in1[500]);
-  register uint32_t tid = ThisThreadRankInBlock();
-  register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < DEF_N; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2*DEF_N)
-      tlwe[i + DEF_N] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & (DEF_N - 1)));
-      neg = -(cmp ^ (bar >> DEF_Nbit));
-      pos = -((1 - cmp) ^ (bar >> DEF_Nbit));
-      tlwe[i + DEF_N] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
-  __syncthreads();
+  RotatedTestVector<DEF_n,DEF_N>(tlwe,bar,mu);
+
   // accumulate
   #pragma unroll
   for (int i = 0; i < DEF_n; i ++) { // 500 iterations
@@ -502,21 +443,8 @@ void __MuxBootstrap__(Torus* out, Torus* inc,Torus* in1, Torus* in0, Torus mu, T
   register int32_t bar = 2*DEF_N - ModSwitch2048(fix + inc[DEF_n] + in1[DEF_n]);
   register uint32_t tid = ThisThreadRankInBlock();
   register uint32_t bdim = ThisBlockSize();
-  register uint32_t cmp, neg, pos;
-  #pragma unroll
-  for (int i = tid; i < DEF_N; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2*DEF_N)
-      tlwe[i + DEF_N] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & (DEF_N - 1)));
-      neg = -(cmp ^ (bar >> DEF_Nbit));
-      pos = -((1 - cmp) ^ (bar >> DEF_Nbit));
-      tlwe[i + DEF_N] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
+  RotatedTestVector<DEF_n,DEF_N>(tlwe,bar,mu);
 
-  __syncthreads();
   // accumulate
   #pragma unroll
   for (int i = 0; i < DEF_n; i ++) { // 500 iterations
@@ -533,20 +461,8 @@ void __MuxBootstrap__(Torus* out, Torus* inc,Torus* in1, Torus* in0, Torus mu, T
 
   bar = 2*DEF_N - ModSwitch2048(fix - inc[DEF_n] + in0[DEF_n]);
   
-  #pragma unroll
-  for (int i = tid; i < DEF_N; i += bdim) {
-    tlwe[i] = 0; // part a
-    if (bar == 2*DEF_N)
-      tlwe[i + DEF_N] = mu;
-    else {
-      cmp = (uint32_t)(i < (bar & (DEF_N - 1)));
-      neg = -(cmp ^ (bar >> DEF_Nbit));
-      pos = -((1 - cmp) ^ (bar >> DEF_Nbit));
-      tlwe[i + DEF_N] = (mu & pos) + ((-mu) & neg); // part b
-    }
-  }
+  RotatedTestVector<DEF_n,DEF_N>(tlwe,bar,mu);
 
-  __syncthreads();
   #pragma unroll
   for (int i = 0; i < DEF_n; i ++) { // 500 iterations
     bar = ModSwitch2048(0 - inc[i] + in0[i]);

@@ -36,6 +36,14 @@ void OrCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 }
 
 void AndCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = in0.message_ * in1.message_;
+}
+
+void AndYNCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = in0.message_ * (1-in1.message_);
+}
+
+void AndNYCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = (1-in0.message_) * in1.message_;
 }
 
@@ -53,7 +61,7 @@ int main() {
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 2; //Gate Types, Mux is counted as 2.
+  uint32_t kNumLevels = 1; //Gate Types, Mux is counted as 2.
 
   SetSeed(); // set random seed
 
@@ -115,11 +123,11 @@ int main() {
   // for (int i = 0; i < kNumTests; i ++)
   //   Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   // for (int i = 0; i < kNumTests; i ++)
-  //   Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+    // Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   // for (int i = 0; i < kNumTests; i ++)
   //   And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   // for (int i = 0; i < kNumTests; i ++)
-  //   Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+    // Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
     Mux(ct[i], ct[i], ct[i + kNumTests], ct[i + 2*kNumTests] ,st[i % kNumSMs]);
   Synchronize();
