@@ -106,7 +106,7 @@ void OrYN(Ctxt& out,
   static const Torus fix = ModSwitchToTorus(1, 8);
   CtxtCopyH2D(in0, st);
   CtxtCopyH2D(in1, st);
-  OrBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  OrYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
   CtxtCopyD2H(out, st);
 }
@@ -117,7 +117,7 @@ void gOrYN(Ctxt& out,
         Stream st) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 8);
-  OrBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  OrYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
 }
 
@@ -129,7 +129,7 @@ void OrNY(Ctxt& out,
   static const Torus fix = ModSwitchToTorus(1, 8);
   CtxtCopyH2D(in0, st);
   CtxtCopyH2D(in1, st);
-  OrBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  OrNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
   CtxtCopyD2H(out, st);
 }
@@ -140,7 +140,7 @@ void gOrNY(Ctxt& out,
         Stream st) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(1, 8);
-  OrBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  OrNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
 }
 
@@ -175,7 +175,7 @@ void AndYN(Ctxt& out,
   static const Torus fix = ModSwitchToTorus(-1, 8);
   CtxtCopyH2D(in0, st);
   CtxtCopyH2D(in1, st);
-  AndBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  AndYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
   CtxtCopyD2H(out, st);
 }
@@ -186,7 +186,7 @@ void gAndYN(Ctxt& out,
          Stream st) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(-1, 8);
-  AndBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  AndYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
 }
 
@@ -198,7 +198,7 @@ void AndNY(Ctxt& out,
   static const Torus fix = ModSwitchToTorus(-1, 8);
   CtxtCopyH2D(in0, st);
   CtxtCopyH2D(in1, st);
-  AndBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  AndNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
   CtxtCopyD2H(out, st);
 }
@@ -209,7 +209,7 @@ void gAndNY(Ctxt& out,
          Stream st) {
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(-1, 8);
-  AndBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+  AndNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
 }
 
@@ -313,6 +313,7 @@ void gCopy(Ctxt& out,
                   st.st());
 }
 
+//Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
 void Mux(Ctxt& out,
          const Ctxt& inc,
          const Ctxt& in1,
