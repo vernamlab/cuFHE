@@ -30,15 +30,15 @@
 namespace cufhe {
 
 Param kParam = {
-  500,
-  1024,
-  1,
-  10,
-  2,
-  2,
-  8,
-  pow(2.0, -15),
-  9.e-9
+  DEF_n, //n
+  DEF_N, //N
+  DEF_k, //k
+  DEF_Bgbit, //Bgbit
+  DEF_l, //l
+  DEF_basebit, //basebit
+  DEF_t, //t
+  DEF_alpha, //alpha
+  DEF_bkalpha //bkalpha
 };
 
 Param* GetDefaultParam() { return &kParam; }

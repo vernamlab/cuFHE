@@ -98,6 +98,52 @@ void gOr(Ctxt& out,
       in1.lwe_sample_device_, mu, fix, st.st());
 }
 
+void OrYN(Ctxt& out,
+        const Ctxt& in0,
+        const Ctxt& in1,
+        Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(1, 8);
+  CtxtCopyH2D(in0, st);
+  CtxtCopyH2D(in1, st);
+  OrYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+  CtxtCopyD2H(out, st);
+}
+
+void gOrYN(Ctxt& out,
+        const Ctxt& in0,
+        const Ctxt& in1,
+        Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(1, 8);
+  OrYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+}
+
+void OrNY(Ctxt& out,
+        const Ctxt& in0,
+        const Ctxt& in1,
+        Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(1, 8);
+  CtxtCopyH2D(in0, st);
+  CtxtCopyH2D(in1, st);
+  OrNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+  CtxtCopyD2H(out, st);
+}
+
+void gOrNY(Ctxt& out,
+        const Ctxt& in0,
+        const Ctxt& in1,
+        Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(1, 8);
+  OrNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+}
+
 void And(Ctxt& out,
          const Ctxt& in0,
          const Ctxt& in1,
@@ -118,6 +164,52 @@ void gAnd(Ctxt& out,
   static const Torus mu = ModSwitchToTorus(1, 8);
   static const Torus fix = ModSwitchToTorus(-1, 8);
   AndBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+}
+
+void AndYN(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  CtxtCopyH2D(in0, st);
+  CtxtCopyH2D(in1, st);
+  AndYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+  CtxtCopyD2H(out, st);
+}
+
+void gAndYN(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  AndYNBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+}
+
+void AndNY(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  CtxtCopyH2D(in0, st);
+  CtxtCopyH2D(in1, st);
+  AndNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
+      in1.lwe_sample_device_, mu, fix, st.st());
+  CtxtCopyD2H(out, st);
+}
+
+void gAndNY(Ctxt& out,
+         const Ctxt& in0,
+         const Ctxt& in1,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  AndNYBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
       in1.lwe_sample_device_, mu, fix, st.st());
 }
 
@@ -219,6 +311,35 @@ void gCopy(Ctxt& out,
                   in.lwe_sample_->n(),
                   cudaMemcpyDeviceToDevice,
                   st.st());
+}
+
+//Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
+void Mux(Ctxt& out,
+         const Ctxt& inc,
+         const Ctxt& in1,
+         const Ctxt& in0,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  static const Torus muxfix = ModSwitchToTorus(1, 8);
+  CtxtCopyH2D(inc, st);
+  CtxtCopyH2D(in1, st);
+  CtxtCopyH2D(in0, st);
+  MuxBootstrap(out.lwe_sample_device_, inc.lwe_sample_device_, in1.lwe_sample_device_,
+      in0.lwe_sample_device_, mu, fix, muxfix, st.st());
+  CtxtCopyD2H(out, st);
+}
+
+void gMux(Ctxt& out,
+         const Ctxt& inc,
+         const Ctxt& in1,
+         const Ctxt& in0,
+         Stream st) {
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  static const Torus fix = ModSwitchToTorus(-1, 8);
+  static const Torus muxfix = ModSwitchToTorus(1, 8);
+  MuxBootstrap(out.lwe_sample_device_, inc.lwe_sample_device_, in1.lwe_sample_device_,
+      in0.lwe_sample_device_, mu, fix, muxfix, st.st());
 }
 
 void SetToGPU(const Ctxt& in){

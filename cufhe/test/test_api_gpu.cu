@@ -35,12 +35,32 @@ void OrCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = (in0.message_ + in1.message_) > 0;
 }
 
+void OrYNCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = (in0.message_ + (1-in1.message_)) > 0;
+}
+
+void OrNYCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = ((1-in0.message_) + in1.message_) > 0;
+}
+
 void AndCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = in0.message_ * in1.message_;
 }
 
+void AndYNCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = in0.message_ * (1-in1.message_);
+}
+
+void AndNYCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = (1-in0.message_) * in1.message_;
+}
+
 void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = (in0.message_ + in1.message_) & 0x1;
+}
+
+void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
+  out.message_ = inc.message_?in1.message_:in0.message_;
 }
 
 int main() {
@@ -49,14 +69,15 @@ int main() {
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 4;
+  uint32_t kNumLevels = 10; //Gate Types, Mux is counted as 2.
 
   SetSeed(); // set random seed
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key
-  Ptxt* pt = new Ptxt[2 * kNumTests];
-  Ctxt* ct = new Ctxt[2 * kNumTests];
+  //MUX Need 3 input
+  Ptxt* pt = new Ptxt[3 * kNumTests];
+  Ctxt* ct = new Ctxt[3 * kNumTests];
   Synchronize();
   bool correct;
 
@@ -94,7 +115,7 @@ int main() {
     st[i].Create();
 
   correct = true;
-  for (int i = 0; i < 2 * kNumTests; i ++) {
+  for (int i = 0; i < 3* kNumTests; i ++) {
     pt[i] = rand() % Ptxt::kPtxtSpace;
     Encrypt(ct[i], pt[i], pri_key);
   }
@@ -112,9 +133,19 @@ int main() {
   for (int i = 0; i < kNumTests; i ++)
     Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
+    OrYN(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    OrNY(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
     And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
+    AndYN(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    AndNY(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
     Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Mux(ct[i], ct[i], ct[i + kNumTests], ct[i + 2*kNumTests] ,st[i % kNumSMs]);
   Synchronize();
 
   cudaEventRecord(stop, 0);
@@ -128,8 +159,13 @@ int main() {
   for (int i = 0; i < kNumTests; i ++) {
     NandCheck(pt[i], pt[i], pt[i + kNumTests]);
     OrCheck(pt[i], pt[i], pt[i + kNumTests]);
+    OrYNCheck(pt[i], pt[i], pt[i + kNumTests]);
+    OrNYCheck(pt[i], pt[i], pt[i + kNumTests]);
     AndCheck(pt[i], pt[i], pt[i + kNumTests]);
+    AndYNCheck(pt[i], pt[i], pt[i + kNumTests]);
+    AndNYCheck(pt[i], pt[i], pt[i + kNumTests]);
     XorCheck(pt[i], pt[i], pt[i + kNumTests]);
+    MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i + 2*kNumTests]);
     Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;

@@ -47,7 +47,31 @@ void OrBootstrap(LWESample* out,
                    Torus mu,
                    Torus fix,
                    cudaStream_t st);
+void OrYNBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void OrNYBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
 void AndBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void AndYNBootstrap(LWESample* out,
+                   LWESample* in0,
+                   LWESample* in1,
+                   Torus mu,
+                   Torus fix,
+                   cudaStream_t st);
+void AndNYBootstrap(LWESample* out,
                    LWESample* in0,
                    LWESample* in1,
                    Torus mu,
@@ -75,6 +99,13 @@ void NotBootstrap(LWESample* out,
                   LWESample* in, 
                   int n, 
                   cudaStream_t st);
-
+void MuxBootstrap(LWESample* out,
+                  LWESample* inc,
+                  LWESample* in1,
+                  LWESample* in0,
+                  Torus mu,
+                  Torus fix,
+                  Torus muxfix,
+                  cudaStream_t st);
 
 } // namespace cufhe
