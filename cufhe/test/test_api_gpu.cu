@@ -36,7 +36,7 @@ void OrCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 }
 
 void AndCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
-  out.message_ = in0.message_ * in1.message_;
+  out.message_ = (1-in0.message_) * in1.message_;
 }
 
 void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
@@ -53,15 +53,15 @@ int main() {
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 4; //Gate Types, Mux is counted as 2.
+  uint32_t kNumLevels = 2; //Gate Types, Mux is counted as 2.
 
   SetSeed(); // set random seed
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key
   //MUX Need 3 input
-  Ptxt* pt = new Ptxt[2 * kNumTests];
-  Ctxt* ct = new Ctxt[2 * kNumTests];
+  Ptxt* pt = new Ptxt[3 * kNumTests];
+  Ctxt* ct = new Ctxt[3 * kNumTests];
   Synchronize();
   bool correct;
 
@@ -99,7 +99,7 @@ int main() {
     st[i].Create();
 
   correct = true;
-  for (int i = 0; i < 2 * kNumTests; i ++) {
+  for (int i = 0; i < 3* kNumTests; i ++) {
     pt[i] = rand() % Ptxt::kPtxtSpace;
     Encrypt(ct[i], pt[i], pri_key);
   }
@@ -112,16 +112,16 @@ int main() {
   cudaEventRecord(start, 0);
 
   // Here, pass streams to gates for parallel gates.
-  for (int i = 0; i < kNumTests; i ++)
-    Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   // for (int i = 0; i < kNumTests; i ++)
-  //   Mux(ct[i], ct[i], ct[i + kNumTests], ct[i +2*kNumTests] ,st[i % kNumSMs]);
+  //   Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  // for (int i = 0; i < kNumTests; i ++)
+  //   Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  // for (int i = 0; i < kNumTests; i ++)
+  //   And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  // for (int i = 0; i < kNumTests; i ++)
+  //   Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Mux(ct[i], ct[i], ct[i + kNumTests], ct[i + 2*kNumTests] ,st[i % kNumSMs]);
   Synchronize();
 
   cudaEventRecord(stop, 0);
@@ -133,11 +133,11 @@ int main() {
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    NandCheck(pt[i], pt[i], pt[i + kNumTests]);
-    OrCheck(pt[i], pt[i], pt[i + kNumTests]);
-    AndCheck(pt[i], pt[i], pt[i + kNumTests]);
-    XorCheck(pt[i], pt[i], pt[i + kNumTests]);
-    // MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i+ 2*kNumTests]);
+    // NandCheck(pt[i], pt[i], pt[i + kNumTests]);
+    // OrCheck(pt[i], pt[i], pt[i + kNumTests]);
+    // AndCheck(pt[i], pt[i], pt[i + kNumTests]);
+    // XorCheck(pt[i], pt[i], pt[i + kNumTests]);
+    MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i + 2*kNumTests]);
     Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;

@@ -81,6 +81,7 @@ void MuxBootstrap(LWESample* out,
                   LWESample* in0,
                   Torus mu,
                   Torus fix,
+                  Torus muxfix,
                   cudaStream_t st);
 
 } // namespace cufhe
