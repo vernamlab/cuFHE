@@ -69,7 +69,7 @@ int main() {
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
   uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 4; //Gate Types, Mux is counted as 2.
+  uint32_t kNumLevels = 10; //Gate Types, Mux is counted as 2.
 
   SetSeed(); // set random seed
 
@@ -128,24 +128,24 @@ int main() {
   cudaEventRecord(start, 0);
 
   // Here, pass streams to gates for parallel gates.
-  // for (int i = 0; i < kNumTests; i ++)
-  //   Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  // for (int i = 0; i < kNumTests; i ++)
-    // Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Nand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Or(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
     OrYN(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
     OrNY(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  // for (int i = 0; i < kNumTests; i ++)
-  //   And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    And(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
     AndYN(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
   for (int i = 0; i < kNumTests; i ++)
     AndNY(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  // for (int i = 0; i < kNumTests; i ++)
-    // Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  // for (int i = 0; i < kNumTests; i ++)
-  //   Mux(ct[i], ct[i], ct[i + kNumTests], ct[i + 2*kNumTests] ,st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Xor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+  for (int i = 0; i < kNumTests; i ++)
+    Mux(ct[i], ct[i], ct[i + kNumTests], ct[i + 2*kNumTests] ,st[i % kNumSMs]);
   Synchronize();
 
   cudaEventRecord(stop, 0);
@@ -157,15 +157,15 @@ int main() {
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    // NandCheck(pt[i], pt[i], pt[i + kNumTests]);
-    // OrCheck(pt[i], pt[i], pt[i + kNumTests]);
+    NandCheck(pt[i], pt[i], pt[i + kNumTests]);
+    OrCheck(pt[i], pt[i], pt[i + kNumTests]);
     OrYNCheck(pt[i], pt[i], pt[i + kNumTests]);
     OrNYCheck(pt[i], pt[i], pt[i + kNumTests]);
-    // AndCheck(pt[i], pt[i], pt[i + kNumTests]);
+    AndCheck(pt[i], pt[i], pt[i + kNumTests]);
     AndYNCheck(pt[i], pt[i], pt[i + kNumTests]);
     AndNYCheck(pt[i], pt[i], pt[i + kNumTests]);
-    // XorCheck(pt[i], pt[i], pt[i + kNumTests]);
-    // MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i + 2*kNumTests]);
+    XorCheck(pt[i], pt[i], pt[i + kNumTests]);
+    MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i + 2*kNumTests]);
     Decrypt(pt[i + kNumTests], ct[i], pri_key);
     if (pt[i + kNumTests].message_ != pt[i].message_) {
       correct = false;
