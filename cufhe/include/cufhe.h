@@ -47,6 +47,13 @@
 #define DEF_t 8
 #define DEF_alpha 2.44e-5
 #define DEF_bkalpha 3.73e-9
+#define DEF_nbar 2048
+#define DEF_lbar 4
+#define DEF_Bgbitbar 9
+#define DEF_bklvl02alpha 2.0e-44
+#define DEF_tbar 10
+#define DEF_basebitlvl2 3
+#define DEF_privksakpha 2.0e-31
 
 namespace cufhe {
 
