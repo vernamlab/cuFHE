@@ -559,6 +559,17 @@ void __MuxBootstrap__(Torus* out, Torus* inc,Torus* in1, Torus* in0, Torus mu, T
 
 }
 
+__global__
+void __NoiselessTrivial__(Torus* out, Torus pmu){
+  register uint32_t tid = ThisThreadRankInBlock();
+  register uint32_t bdim = ThisBlockSize();
+  #pragma unroll
+  for (int i = tid; i <= DEF_n; i += bdim){
+    if (i == DEF_n) out[DEF_n] = pmu;
+    else out[i] = 0;
+  }
+}
+
 void Bootstrap(LWESample* out,
                LWESample* in,
                Torus mu,
@@ -649,5 +660,9 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1, LWESample* in0
     Torus mu, Torus fix, Torus muxfix, cudaStream_t st) {
   __MuxBootstrap__<<<1, DEF_N/2, 0, st>>>(out->data(), inc->data(), in1->data(), in0->data(), mu, fix, muxfix, bk_ntt->data(), ksk_dev->data(), *ntt_handler);
   CuCheckError();
+  }
+
+void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st){
+    __NoiselessTrivial__<<<1,DEF_n+1, 0, st>>>(out->data(), p?mu:-mu);
   }
 } // namespace cufhe

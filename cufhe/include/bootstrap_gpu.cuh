@@ -107,5 +107,8 @@ void MuxBootstrap(LWESample* out,
                   Torus fix,
                   Torus muxfix,
                   cudaStream_t st);
-
+void NoiselessTrivial(LWESample* out,
+                  int p, 
+                  Torus mu,
+                  cudaStream_t st);
 } // namespace cufhe

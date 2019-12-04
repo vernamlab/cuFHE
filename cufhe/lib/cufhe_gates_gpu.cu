@@ -342,6 +342,32 @@ void gMux(Ctxt& out,
       in0.lwe_sample_device_, mu, fix, muxfix, st.st());
 }
 
+void ConstantZero(Ctxt& out, Stream st){
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  for(int i = 0; i<out.lwe_sample_->n(); i++){
+    out.lwe_sample_->data()[i] = 0;
+  }
+  out.lwe_sample_->data()[out.lwe_sample_->n()] = -mu;
+}
+
+void gConstantZero(Ctxt& out, Stream st){
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  NoiselessTrivial(out.lwe_sample_device_, 0, mu, st.st());
+}
+
+void ConstantOne(Ctxt& out, Stream st){
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  for(int i = 0; i<out.lwe_sample_->n(); i++){
+    out.lwe_sample_->data()[i] = 0;
+  }
+  out.lwe_sample_->data()[out.lwe_sample_->n()] = mu;
+}
+
+void gConstantOne(Ctxt& out, Stream st){
+  static const Torus mu = ModSwitchToTorus(1, 8);
+  NoiselessTrivial(out.lwe_sample_device_, 1, mu, st.st());
+}
+
 void SetToGPU(const Ctxt& in){
   cudaMemcpy(in.lwe_sample_device_->data(),
                   in.lwe_sample_->data(),
