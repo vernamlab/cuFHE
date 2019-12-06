@@ -25,16 +25,17 @@
 
 namespace cufhe {
 
-Ctxt::Ctxt(bool is_alias) {
-  Param* param = GetDefaultParam();
-  lwe_sample_ = new LWESample(param->lwe_n_);
-  lwe_sample_deleter_ = nullptr;
-  std::pair<void*, MemoryDeleter> pair;
-  pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
-  lwe_sample_->set_data((LWESample::PointerType)pair.first);
-  lwe_sample_deleter_ = pair.second;
-  lwe_sample_device_ = nullptr;
-  lwe_sample_device_deleter_ = nullptr;
+Ctxt::Ctxt(bool is_alias)
+{
+    Param* param = GetDefaultParam();
+    lwe_sample_ = new LWESample(param->lwe_n_);
+    lwe_sample_deleter_ = nullptr;
+    std::pair<void*, MemoryDeleter> pair;
+    pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
+    lwe_sample_->set_data((LWESample::PointerType)pair.first);
+    lwe_sample_deleter_ = pair.second;
+    lwe_sample_device_ = nullptr;
+    lwe_sample_device_deleter_ = nullptr;
 }
 
-} // namespace cufhe
+}  // namespace cufhe

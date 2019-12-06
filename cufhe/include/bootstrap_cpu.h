@@ -22,15 +22,12 @@
 
 #pragma once
 
-#include "cufhe_core.h"
 #include <include/details/allocator_cpu.h>
+#include "cufhe_core.h"
 
 namespace cufhe {
 
-void Bootstrap(LWESample* out,
-               LWESample* in,
-               Torus mu,
-               BootstrappingKey* bk,
+void Bootstrap(LWESample* out, LWESample* in, Torus mu, BootstrappingKey* bk,
                KeySwitchingKey* ksk);
 
-} // namespace cufhe
+}  // namespace cufhe

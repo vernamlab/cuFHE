@@ -101,3 +101,9 @@ $(DIR_PY)/fhepy_gpu.so: $(DIR_PY)/fhepy_gpu.o
 
 $(DIR_PY)/fhepy_gpu.o: $(DIR_PY)/fhepy.cu
 	$(CU) $(CU_FLAGS) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/fhepy.cu $(FLAGS) -o $@
+
+format:
+	clang-format -style=file -i lib/*.cu
+	clang-format -style=file -i lib/*.cc
+	clang-format -style=file -i include/*.cuh
+	clang-format -style=file -i include/*.h

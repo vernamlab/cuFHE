@@ -20,104 +20,93 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <include/bootstrap_cpu.h>
 #include <include/cufhe.h>
 #include <include/cufhe_cpu.h>
-#include <include/bootstrap_cpu.h>
 
 namespace cufhe {
 
-//void Initialize(PubKey pub_key);
-//void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-//void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-//void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key);
-void Nand(Ctxt& out,
-          const Ctxt& in0,
-          const Ctxt& in1,
-          const PubKey& pub_key) {
-  static const Torus mu = ModSwitchToTorus(1, 8);
-  static const Torus fix = ModSwitchToTorus(1, 8);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
-                                   - in1.lwe_sample_->data()[i];
-  out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
+// void Initialize(PubKey pub_key);
+// void And (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey&
+// pub_key); void Or  (Ctxt& out, const Ctxt& in0, const Ctxt& in1, const
+// PubKey& pub_key); void Xor (Ctxt& out, const Ctxt& in0, const Ctxt& in1,
+// const PubKey& pub_key);
+void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key)
+{
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(1, 8);
+    for (int i = 0; i <= in0.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] =
+            0 - in0.lwe_sample_->data()[i] - in1.lwe_sample_->data()[i];
+    out.lwe_sample_->b() += fix;
+    Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
-void Or(Ctxt& out,
-        const Ctxt& in0,
-        const Ctxt& in1,
-        const PubKey& pub_key) {
-  static const Torus mu = ModSwitchToTorus(1, 8);
-  static const Torus fix = ModSwitchToTorus(1, 8);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
-                                   + in1.lwe_sample_->data()[i];
-  out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
+void Or(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key)
+{
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(1, 8);
+    for (int i = 0; i <= in0.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] =
+            0 + in0.lwe_sample_->data()[i] + in1.lwe_sample_->data()[i];
+    out.lwe_sample_->b() += fix;
+    Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
-void And(Ctxt& out,
-         const Ctxt& in0,
-         const Ctxt& in1,
-         const PubKey& pub_key) {
-  static const Torus mu = ModSwitchToTorus(1, 8);
-  static const Torus fix = ModSwitchToTorus(-1, 8);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 + in0.lwe_sample_->data()[i]
-                                   + in1.lwe_sample_->data()[i];
-  out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
+void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key)
+{
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(-1, 8);
+    for (int i = 0; i <= in0.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] =
+            0 + in0.lwe_sample_->data()[i] + in1.lwe_sample_->data()[i];
+    out.lwe_sample_->b() += fix;
+    Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
-void Nor(Ctxt& out,
-         const Ctxt& in0,
-         const Ctxt& in1,
-         const PubKey& pub_key) {
-  static const Torus mu = ModSwitchToTorus(1, 8);
-  static const Torus fix = ModSwitchToTorus(-1, 8);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 - in0.lwe_sample_->data()[i]
-                                   - in1.lwe_sample_->data()[i];
-  out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
+void Nor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key)
+{
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(-1, 8);
+    for (int i = 0; i <= in0.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] =
+            0 - in0.lwe_sample_->data()[i] - in1.lwe_sample_->data()[i];
+    out.lwe_sample_->b() += fix;
+    Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
-void Xor(Ctxt& out,
-         const Ctxt& in0,
-         const Ctxt& in1,
-         const PubKey& pub_key) {
-  static const Torus mu = ModSwitchToTorus(1, 8);
-  static const Torus fix = ModSwitchToTorus(1, 4);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 + 2 * in0.lwe_sample_->data()[i]
-                                   + 2 * in1.lwe_sample_->data()[i];
-  out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
+void Xor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key)
+{
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(1, 4);
+    for (int i = 0; i <= in0.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] =
+            0 + 2 * in0.lwe_sample_->data()[i] + 2 * in1.lwe_sample_->data()[i];
+    out.lwe_sample_->b() += fix;
+    Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
-void Xnor(Ctxt& out,
-          const Ctxt& in0,
-          const Ctxt& in1,
-          const PubKey& pub_key) {
-  static const Torus mu = ModSwitchToTorus(1, 8);
-  static const Torus fix = ModSwitchToTorus(-1, 4);
-  for (int i = 0; i <= in0.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = 0 - 2 * in0.lwe_sample_->data()[i]
-                                   - 2 * in1.lwe_sample_->data()[i];
-  out.lwe_sample_->b() += fix;
-  Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
+void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const PubKey& pub_key)
+{
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(-1, 4);
+    for (int i = 0; i <= in0.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] =
+            0 - 2 * in0.lwe_sample_->data()[i] - 2 * in1.lwe_sample_->data()[i];
+    out.lwe_sample_->b() += fix;
+    Bootstrap(out.lwe_sample_, out.lwe_sample_, mu, pub_key.bk_, pub_key.ksk_);
 }
 
-void Not(Ctxt& out,
-         const Ctxt& in) {
-  for (int i = 0; i <= in.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = -in.lwe_sample_->data()[i];
+void Not(Ctxt& out, const Ctxt& in)
+{
+    for (int i = 0; i <= in.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] = -in.lwe_sample_->data()[i];
 }
 
-void Copy(Ctxt& out,
-          const Ctxt& in) {
-  for (int i = 0; i <= in.lwe_sample_->n(); i ++)
-    out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
+void Copy(Ctxt& out, const Ctxt& in)
+{
+    for (int i = 0; i <= in.lwe_sample_->n(); i++)
+        out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
 }
 
-} // namespace cufhe
+}  // namespace cufhe
