@@ -20,70 +20,75 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <fstream>
 #include "../include/cufhe.h"
 #include "../include/cufhe_core.h"
-#include <fstream>
 
 namespace cufhe {
 
 template <typename T>
-void WriteStream(std::ofstream& out, const DataTemplate<T>& data) {
-  if (out.is_open())
-    for (int i = 0; i < data.SizeData() / sizeof(T); i ++)
-      out << std::to_string(data.data()[i]) << "\n";
+void WriteStream(std::ofstream& out, const DataTemplate<T>& data)
+{
+    if (out.is_open())
+        for (int i = 0; i < data.SizeData() / sizeof(T); i++)
+            out << std::to_string(data.data()[i]) << "\n";
 }
 
 template <typename T>
-void ReadStream(const DataTemplate<T>& data, std::ifstream& in) {
-  std::string value;
-  if (in.is_open())
-    for (int i = 0; i < data.SizeData() / sizeof(T); i ++)
-      if (std::getline(in, value))
-        data.data()[i] = stoi(value);
+void ReadStream(const DataTemplate<T>& data, std::ifstream& in)
+{
+    std::string value;
+    if (in.is_open())
+        for (int i = 0; i < data.SizeData() / sizeof(T); i++)
+            if (std::getline(in, value)) data.data()[i] = stoi(value);
 }
 
-void WritePriKeyToFile(const PriKey& pri_key, FileName file) {
-  std::ofstream stream(file);
-  WriteStream<Binary>(stream, *pri_key.lwe_key_);
-  WriteStream<Binary>(stream, *pri_key.tlwe_key_);
-  stream.close();
+void WritePriKeyToFile(const PriKey& pri_key, FileName file)
+{
+    std::ofstream stream(file);
+    WriteStream<Binary>(stream, *pri_key.lwe_key_);
+    WriteStream<Binary>(stream, *pri_key.tlwe_key_);
+    stream.close();
 }
 
-void ReadPriKeyFromFile(PriKey& pri_key, FileName file) {
-  std::ifstream stream(file);
-  ReadStream<Binary>(*pri_key.lwe_key_, stream);
-  ReadStream<Binary>(*pri_key.tlwe_key_, stream);
-  stream.close();
+void ReadPriKeyFromFile(PriKey& pri_key, FileName file)
+{
+    std::ifstream stream(file);
+    ReadStream<Binary>(*pri_key.lwe_key_, stream);
+    ReadStream<Binary>(*pri_key.tlwe_key_, stream);
+    stream.close();
 }
 
-void WritePubKeyToFile(const PubKey& pub_key, FileName file) {
-  std::ofstream stream(file);
-  WriteStream<Torus>(stream, *pub_key.bk_);
-  for (int i = 0; i < pub_key.ksk_->NumLWESamples(); i ++)
-    WriteStream<Torus>(stream, pub_key.ksk_->ExtractLWESample(i));
-  stream.close();
+void WritePubKeyToFile(const PubKey& pub_key, FileName file)
+{
+    std::ofstream stream(file);
+    WriteStream<Torus>(stream, *pub_key.bk_);
+    for (int i = 0; i < pub_key.ksk_->NumLWESamples(); i++)
+        WriteStream<Torus>(stream, pub_key.ksk_->ExtractLWESample(i));
+    stream.close();
 }
 
-void ReadPubKeyFromFile(PubKey& pub_key, FileName file) {
-  std::ifstream stream(file);
-  ReadStream<Torus>(*pub_key.bk_, stream);
-  for (int i = 0; i < pub_key.ksk_->NumLWESamples(); i ++)
-    ReadStream<Torus>(pub_key.ksk_->ExtractLWESample(i), stream);
-  stream.close();
+void ReadPubKeyFromFile(PubKey& pub_key, FileName file)
+{
+    std::ifstream stream(file);
+    ReadStream<Torus>(*pub_key.bk_, stream);
+    for (int i = 0; i < pub_key.ksk_->NumLWESamples(); i++)
+        ReadStream<Torus>(pub_key.ksk_->ExtractLWESample(i), stream);
+    stream.close();
 }
 
-void WriteCtxtToFile(const Ctxt& ct, FileName file) {
-  std::ofstream stream(file);
-  WriteStream<Torus>(stream, *ct.lwe_sample_);
-  stream.close();
+void WriteCtxtToFile(const Ctxt& ct, FileName file)
+{
+    std::ofstream stream(file);
+    WriteStream<Torus>(stream, *ct.lwe_sample_);
+    stream.close();
 }
 
-void ReadCtxtFromFile(Ctxt& ct, FileName file) {
-  std::ifstream stream(file);
-  ReadStream<Torus>(*ct.lwe_sample_, stream);
-  stream.close();
+void ReadCtxtFromFile(Ctxt& ct, FileName file)
+{
+    std::ifstream stream(file);
+    ReadStream<Torus>(*ct.lwe_sample_, stream);
+    stream.close();
 }
 
-
-
-} // cufhe
+}  // namespace cufhe

@@ -27,28 +27,30 @@ namespace cufhe {
 
 uint32_t cnt = 0;
 
-Ctxt::Ctxt(bool is_alias) {
-  std::pair<void*, MemoryDeleter> pair;
-  Param* param = GetDefaultParam();
+Ctxt::Ctxt(bool is_alias)
+{
+    std::pair<void*, MemoryDeleter> pair;
+    Param* param = GetDefaultParam();
 
-  lwe_sample_ = new LWESample(param->lwe_n_);
-  lwe_sample_device_ = new LWESample(param->lwe_n_);
+    lwe_sample_ = new LWESample(param->lwe_n_);
+    lwe_sample_device_ = new LWESample(param->lwe_n_);
 
-  if (is_alias) {
-    lwe_sample_->set_data(nullptr);
-    lwe_sample_deleter_ = nullptr;
-    lwe_sample_device_->set_data(nullptr);
-    lwe_sample_device_deleter_ = nullptr;
-  } else {
-    //pair = AllocatorBoth::New(lwe_sample_->SizeMalloc());
-    pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
-    lwe_sample_->set_data((LWESample::PointerType)pair.first);
-    lwe_sample_deleter_ = pair.second;
+    if (is_alias) {
+        lwe_sample_->set_data(nullptr);
+        lwe_sample_deleter_ = nullptr;
+        lwe_sample_device_->set_data(nullptr);
+        lwe_sample_device_deleter_ = nullptr;
+    }
+    else {
+        // pair = AllocatorBoth::New(lwe_sample_->SizeMalloc());
+        pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
+        lwe_sample_->set_data((LWESample::PointerType)pair.first);
+        lwe_sample_deleter_ = pair.second;
 
-    pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
-    lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
-    lwe_sample_device_deleter_ = pair.second;
-  }
+        pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
+        lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
+        lwe_sample_device_deleter_ = pair.second;
+    }
 }
 
-} // namespace cufhe
+}  // namespace cufhe

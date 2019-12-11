@@ -2,8 +2,9 @@
 CC = g++
 CU = nvcc
 ## Flags
-FLAGS = -std=c++11 -O3 -w
-CU_FLAGS = #-gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
+FLAGS = -std=c++14 -O3 -w
+##CU_FLAGS = -gencode=arch=compute_70,code=sm_70 -gencode=arch=compute_70,code=compute_70
+CU_FLAGS = --ptxas-options=-v -arch=sm_70 
 ##-Wno-deprecated-gpu-targets
 INC = -I./
 ## Python header files
@@ -101,3 +102,9 @@ $(DIR_PY)/fhepy_gpu.so: $(DIR_PY)/fhepy_gpu.o
 
 $(DIR_PY)/fhepy_gpu.o: $(DIR_PY)/fhepy.cu
 	$(CU) $(CU_FLAGS) $(INC) $(PY_INC) -Xcompiler '-fPIC' -c $(DIR_PY)/fhepy.cu $(FLAGS) -o $@
+
+format:
+	clang-format -style=file -i lib/*.cu
+	clang-format -style=file -i lib/*.cc
+	clang-format -style=file -i include/*.cuh
+	clang-format -style=file -i include/*.h
