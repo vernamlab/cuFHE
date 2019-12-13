@@ -112,6 +112,7 @@ void gConstantOne(Ctxt& out, Stream st = 0);
 
 void SetToGPU(const Ctxt& in);
 void GetFromGPU(Ctxt& out);
+bool StreamQuery(Stream st);
 // Not Ready...
 // void Mux(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const Ctxt& in2,
 //          cudaStream_t st = 0);

@@ -336,4 +336,12 @@ void GetFromGPU(Ctxt& out)
                out.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost);
 }
 
+bool StreamQuery(Stream st){
+    cudaError_t res = cudaStreamQuery(st.st());
+    if(res == cudaSuccess){
+        return true;
+    }else{
+        return false;
+    }
+}
 }  // namespace cufhe
