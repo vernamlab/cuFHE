@@ -36,12 +36,12 @@ CC_DEP = $(CC_OBJ:.o=.d)
 
 ##
 targets: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/libcufhe_gpu.so \
-	$(DIR_BIN)/test_api_cpu $(DIR_BIN)/test_api_gpu
+	$(DIR_BIN)/test_api_cpu $(DIR_BIN)/test_api_gpu $(DIR_BIN)/test_gate_gpu
 
 ##
 all: $(targets)
 cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/test_api_cpu
-gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu
+gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_BIN)/test_api_gpu $(DIR_BIN)/test_gate_gpu
 python_cpu: $(DIR_BIN)/libcufhe_cpu.so $(DIR_PY)/fhepy_cpu.so
 python_gpu: $(DIR_BIN)/libcufhe_gpu.so $(DIR_PY)/fhepy_gpu.so
 clean:
@@ -64,7 +64,16 @@ $(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o
 	$(dir_guard)
 	$(CU) $(FLAGS) $(CU_FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
 
+$(DIR_BIN)/test_gate_gpu: $(DIR_OBJ)/test/test_gate_gpu.o
+	$(dir_guard)
+	$(CU) $(FLAGS) $(CU_FLAGS) -o $@ $(DIR_OBJ)/test/test_gate_gpu.o -L$(DIR_BIN) -lcufhe_gpu
+
 $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
+	$(dir_guard)
+	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
+	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ $<
+
+$(DIR_OBJ)/test/test_gate_gpu.o: test/test_gate_gpu.cu
 	$(dir_guard)
 	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ $<
