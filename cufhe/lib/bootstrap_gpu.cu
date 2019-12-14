@@ -321,7 +321,7 @@ __global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
         2 * DEF_N - ModSwitch2048(fix - in0[DEF_n] - in1[DEF_n]);
-    RotatedTestVector<DEF_n, DEF_Nbit>(tlwe, bar, mu);
+    RotatedTestVector<DEF_n, DEF_N, DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
 #pragma unroll

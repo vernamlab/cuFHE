@@ -45,13 +45,13 @@ public:
   inline
   void CreateConstant() {
     CuSafeCall(cudaMemcpyToSymbol(con_twd, this->twd_,
-        sizeof(FFP) * 1024, 0,  cudaMemcpyDeviceToDevice));
+        sizeof(FFP) * length, 0,  cudaMemcpyDeviceToDevice));
     CuSafeCall(cudaMemcpyToSymbol(con_twd_inv, this->twd_inv_,
-        sizeof(FFP) * 1024, 0, cudaMemcpyDeviceToDevice));
+        sizeof(FFP) * length, 0, cudaMemcpyDeviceToDevice));
     CuSafeCall(cudaMemcpyToSymbol(con_twd_sqrt, this->twd_sqrt_,
-        sizeof(FFP) * 1024, 0,  cudaMemcpyDeviceToDevice));
+        sizeof(FFP) * length, 0,  cudaMemcpyDeviceToDevice));
     CuSafeCall(cudaMemcpyToSymbol(con_twd_sqrt_inv, this->twd_sqrt_inv_,
-        sizeof(FFP) * 1024, 0, cudaMemcpyDeviceToDevice));
+        sizeof(FFP) * length, 0, cudaMemcpyDeviceToDevice));
   }
 
   template <typename T>
