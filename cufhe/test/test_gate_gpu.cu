@@ -59,6 +59,10 @@ void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = (in0.message_ + in1.message_) & 0x1;
 }
 
+void XnorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
+  out.message_ = (~(in0.message_ ^ in1.message_)) & 0x1;
+}
+
 void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
   out.message_ = inc.message_?in1.message_:in0.message_;
 }
@@ -195,6 +199,7 @@ int main() {
   TestIn2("ANDYN", AndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn2("ANDNY", AndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn2("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  TestIn2("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn3("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
 
   for (int i = 0; i < kNumSMs; i ++)
