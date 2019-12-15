@@ -520,12 +520,10 @@ __global__ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
     KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
 }
 
-__global__ void __CopyBootstrap__(Torus* out, Torus* in, int n)
+__global__ void __CopyBootstrap__(Torus* out, Torus* in)
 {
-#pragma unroll
-    for (int i = 0; i <= n; i++) {
-        out[i] = in[i];
-    }
+    uint32_t tid = ThisThreadRankInBlock();
+    out[tid] = in[tid];
     __syncthreads();
 }
 
@@ -698,9 +696,9 @@ void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
     CuCheckError();
 }
 
-void CopyBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st)
+void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st)
 {
-    __CopyBootstrap__<<<1, DEF_N / 2, 0, st>>>(out->data(), in->data(), n);
+    __CopyBootstrap__<<<1, DEF_n+1, 0, st>>>(out->data(), in->data());
     CuCheckError();
 }
 

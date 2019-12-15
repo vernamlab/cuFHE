@@ -258,14 +258,14 @@ void Copy(Ctxt& out, const Ctxt& in, Stream st)
 {
     CtxtCopyH2D(in, st);
     CopyBootstrap(out.lwe_sample_device_, in.lwe_sample_device_,
-                 in.lwe_sample_->n(), st.st());
+                 st.st());
     CtxtCopyD2H(out, st);
 }
 
 void gCopy(Ctxt& out, const Ctxt& in, Stream st)
 {
     CopyBootstrap(out.lwe_sample_device_, in.lwe_sample_device_,
-                 in.lwe_sample_->n(), st.st());
+                  st.st());
 }
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
