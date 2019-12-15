@@ -27,6 +27,14 @@ using namespace cufhe;
 #include <iostream>
 using namespace std;
 
+void NotCheck(Ptxt& out, const Ptxt& in) {
+  out.message_ = (~in.message_)&0x1;
+}
+
+void CopyCheck(Ptxt& out, const Ptxt& in) {
+  out.message_ = in.message_;
+}
+
 void NandCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = 1 - in0.message_ * in1.message_;
 }
@@ -65,6 +73,42 @@ void XnorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 
 void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
   out.message_ = inc.message_?in1.message_:in0.message_;
+}
+
+void TestIn1(
+        string type, 
+        void (*func)(Ctxt&, const Ctxt&, Stream), 
+        void (*check)(Ptxt&, const Ptxt&), 
+        Ptxt* pt, 
+        Ctxt* ct, 
+        Stream* st, 
+        int kNumTests, 
+        int kNumSMs, 
+        PriKey& pri_key)
+{
+  cout<< "------ Test "<<type<<" Gate ------" <<endl;
+  cout<< "Number of tests:\t" << kNumTests <<endl;
+  bool correct = true;
+  int cnt_failures = 0;
+
+  for (int i = 0; i < kNumTests; i ++){
+    func(ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+    check(pt[i], pt[i + kNumTests]);
+  }
+  Synchronize();
+  for (int i = 0; i < kNumTests; i ++){
+    Ptxt res;
+    Decrypt(res, ct[i], pri_key);
+    if (res.message_ != pt[i].message_) {
+      correct = false;
+      cnt_failures += 1;
+      std::cout<< type<<" Fail at iteration: " << i <<std::endl;
+    }
+  }
+  if (correct)
+    cout<< "PASS" <<endl;
+  else
+    cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
 }
 
 void TestIn2(
@@ -191,6 +235,8 @@ int main() {
   }
   Synchronize();
 
+  TestIn1("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  TestIn1("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn2("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn2("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn2("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
