@@ -27,6 +27,14 @@ using namespace cufhe;
 #include <iostream>
 using namespace std;
 
+void ConstantZeroCheck(Ptxt& out){
+  out.message_ = 0;
+}
+
+void ConstantOneCheck(Ptxt& out){
+  out.message_ = 1;
+}
+
 void NotCheck(Ptxt& out, const Ptxt& in) {
   out.message_ = (~in.message_)&0x1;
 }
@@ -73,6 +81,42 @@ void XnorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
 
 void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
   out.message_ = inc.message_?in1.message_:in0.message_;
+}
+
+void TestIn0(
+        string type, 
+        void (*func)(Ctxt&, Stream), 
+        void (*check)(Ptxt&), 
+        Ptxt* pt, 
+        Ctxt* ct, 
+        Stream* st, 
+        int kNumTests, 
+        int kNumSMs, 
+        PriKey& pri_key)
+{
+  cout<< "------ Test "<<type<<" Gate ------" <<endl;
+  cout<< "Number of tests:\t" << kNumTests <<endl;
+  bool correct = true;
+  int cnt_failures = 0;
+
+  for (int i = 0; i < kNumTests; i ++){
+    func(ct[i], st[i % kNumSMs]);
+    check(pt[i]);
+  }
+  Synchronize();
+  for (int i = 0; i < kNumTests; i ++){
+    Ptxt res;
+    Decrypt(res, ct[i], pri_key);
+    if (res.message_ != pt[i].message_) {
+      correct = false;
+      cnt_failures += 1;
+      std::cout<< type<<" Fail at iteration: " << i <<std::endl;
+    }
+  }
+  if (correct)
+    cout<< "PASS" <<endl;
+  else
+    cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
 }
 
 void TestIn1(
@@ -247,6 +291,8 @@ int main() {
   TestIn2("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn2("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   TestIn3("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  TestIn0("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  TestIn0("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
 
   for (int i = 0; i < kNumSMs; i ++)
     st[i].Destroy();
