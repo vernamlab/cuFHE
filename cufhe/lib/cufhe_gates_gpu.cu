@@ -257,15 +257,13 @@ void gNot(Ctxt& out, const Ctxt& in, Stream st)
 void Copy(Ctxt& out, const Ctxt& in, Stream st)
 {
     CtxtCopyH2D(in, st);
-    CopyBootstrap(out.lwe_sample_device_, in.lwe_sample_device_,
-                 in.lwe_sample_->n(), st.st());
+    CopyBootstrap(out.lwe_sample_device_, in.lwe_sample_device_, st.st());
     CtxtCopyD2H(out, st);
 }
 
 void gCopy(Ctxt& out, const Ctxt& in, Stream st)
 {
-    CopyBootstrap(out.lwe_sample_device_, in.lwe_sample_device_,
-                 in.lwe_sample_->n(), st.st());
+    CopyBootstrap(out.lwe_sample_device_, in.lwe_sample_device_, st.st());
 }
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
@@ -337,11 +335,13 @@ void GetFromGPU(Ctxt& out)
                out.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost);
 }
 
-bool StreamQuery(Stream st){
+bool StreamQuery(Stream st)
+{
     cudaError_t res = cudaStreamQuery(st.st());
-    if(res == cudaSuccess){
+    if (res == cudaSuccess) {
         return true;
-    }else{
+    }
+    else {
         return false;
     }
 }

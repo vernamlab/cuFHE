@@ -52,7 +52,7 @@ void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
                   Torus fix, cudaStream_t st);
 void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
                    Torus fix, cudaStream_t st);
-void CopyBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st);
+void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st);
 void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st);
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, Torus mu, Torus fix, Torus muxfix,

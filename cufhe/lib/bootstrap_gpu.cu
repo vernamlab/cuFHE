@@ -162,7 +162,8 @@ template <uint32_t lwe_n = 500, uint32_t tlwe_n = 1024, uint32_t tlwe_nbit = 10>
 __device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar, uint32_t mu)
 {
     // volatile is needed to make register usage of Mux to 128.
-    // Reference https://devtalk.nvidia.com/default/topic/466758/cuda-programming-and-performance/tricks-to-fight-register-pressure-or-how-i-got-down-from-29-to-15-registers-/
+    // Reference
+    // https://devtalk.nvidia.com/default/topic/466758/cuda-programming-and-performance/tricks-to-fight-register-pressure-or-how-i-got-down-from-29-to-15-registers-/
     volatile uint32_t tid = ThisThreadRankInBlock();
     volatile uint32_t bdim = ThisBlockSize();
     uint32_t cmp, neg, pos;
@@ -307,7 +308,8 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     static const uint32_t tlwe_n = 1024;
     static const uint32_t ks_bits = 2;
     static const uint32_t ks_size = 8;
-    KeySwitch<lwe_n, tlwe_n, ks_bits, ks_size>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -329,7 +331,8 @@ __global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 - in0[i] - in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -350,7 +353,8 @@ __global__ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 + in0[i] + in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __OrYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -371,7 +375,8 @@ __global__ void __OrYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 + in0[i] - in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __OrNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -392,7 +397,8 @@ __global__ void __OrNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 - in0[i] + in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -413,7 +419,8 @@ __global__ void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 + in0[i] + in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __AndYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -434,7 +441,8 @@ __global__ void __AndYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 + in0[i] - in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __AndNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -455,7 +463,8 @@ __global__ void __AndNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 - in0[i] + in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __NorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -475,7 +484,8 @@ __global__ void __NorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 - in0[i] - in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __XorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -496,7 +506,8 @@ __global__ void __XorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 + 2 * in0[i] + 2 * in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
-    KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    KeySwitch<DEF_n, DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
 __global__ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
@@ -518,15 +529,15 @@ __global__ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
     KeySwitch<500, 1024, 2, 8>(out, tlwe, ksk);
+    __threadfence();
 }
 
-__global__ void __CopyBootstrap__(Torus* out, Torus* in, int n)
+__global__ void __CopyBootstrap__(Torus* out, Torus* in)
 {
-#pragma unroll
-    for (int i = 0; i <= n; i++) {
-        out[i] = in[i];
-    }
+    uint32_t tid = ThisThreadRankInBlock();
+    out[tid] = in[tid];
     __syncthreads();
+    __threadfence();
 }
 
 __global__ void __NotBootstrap__(Torus* out, Torus* in, int n)
@@ -536,6 +547,7 @@ __global__ void __NotBootstrap__(Torus* out, Torus* in, int n)
         out[i] = -in[i];
     }
     __syncthreads();
+    __threadfence();
 }
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
@@ -583,6 +595,7 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     __syncthreads();
 
     KeySwitch<500, 1024, 2, 8>(out, tlwe1, ksk);
+    __threadfence();
 }
 
 __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
@@ -596,6 +609,7 @@ __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
         else
             out[i] = 0;
     }
+    __threadfence();
 }
 
 void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st)
@@ -698,9 +712,9 @@ void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
     CuCheckError();
 }
 
-void CopyBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st)
+void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st)
 {
-    __CopyBootstrap__<<<1, DEF_N / 2, 0, st>>>(out->data(), in->data(), n);
+    __CopyBootstrap__<<<1, DEF_n + 1, 0, st>>>(out->data(), in->data());
     CuCheckError();
 }
 
@@ -714,11 +728,14 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, Torus mu, Torus fix, Torus muxfix,
                   cudaStream_t st)
 {
-    int maxbytes = 98304; // 96 KB
-    cudaFuncSetAttribute(__MuxBootstrap__, cudaFuncAttributeMaxDynamicSharedMemorySize, (2*DEF_l + 3)*DEF_N*sizeof(FFP));
-    __MuxBootstrap__<<<1, DEF_N / 2, (2*DEF_l + 3)*DEF_N*sizeof(FFP), st>>>(
-        out->data(), inc->data(), in1->data(), in0->data(), mu, fix, muxfix,
-        bk_ntt->data(), ksk_dev->data(), *ntt_handler);
+    int maxbytes = 98304;  // 96 KB
+    cudaFuncSetAttribute(__MuxBootstrap__,
+                         cudaFuncAttributeMaxDynamicSharedMemorySize,
+                         (2 * DEF_l + 3) * DEF_N * sizeof(FFP));
+    __MuxBootstrap__<<<1, DEF_N / 2, (2 * DEF_l + 3) * DEF_N * sizeof(FFP),
+                       st>>>(out->data(), inc->data(), in1->data(), in0->data(),
+                             mu, fix, muxfix, bk_ntt->data(), ksk_dev->data(),
+                             *ntt_handler);
     CuCheckError();
 }
 
