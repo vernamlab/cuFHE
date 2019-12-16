@@ -217,8 +217,8 @@ int main() {
   Test("XOR", gXor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   Test("XNOR", gXnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   Test("MUX", gMux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ConstantZero", gConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ConstantOne", gConstantOne, ConstantOneCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
 
   for (int i = 0; i < kNumSMs; i ++)
     st[i].Destroy();
