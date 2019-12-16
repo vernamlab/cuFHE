@@ -100,6 +100,13 @@ void Test(
   bool correct = true;
   int cnt_failures = 0;
 
+  for (int i = 0; i < 4* kNumTests; i ++) {
+    pt[i] = rand() % Ptxt::kPtxtSpace;
+    Encrypt(ct[i], pt[i], pri_key);
+  }
+  Synchronize();
+
+
   for (int i = 0; i < kNumTests; i ++){
     if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>){
         func(ct[i], st[i % kNumSMs]);
@@ -177,13 +184,6 @@ int main() {
   Stream* st = new Stream[kNumSMs];
   for (int i = 0; i < kNumSMs; i ++)
     st[i].Create();
-
-  correct = true;
-  for (int i = 0; i < 4* kNumTests; i ++) {
-    pt[i] = rand() % Ptxt::kPtxtSpace;
-    Encrypt(ct[i], pt[i], pri_key);
-  }
-  Synchronize();
 
   Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
