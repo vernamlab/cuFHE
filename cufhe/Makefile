@@ -7,6 +7,10 @@ FLAGS = -std=c++14 -O3 -w
 CU_FLAGS = --ptxas-options=-v -arch=sm_70 
 ##-Wno-deprecated-gpu-targets
 INC = -I./
+
+CUDA_INC= -I/usr/local/cuda/include
+CC_17_FLAGS = -std=c++17 -O3 -w
+
 ## Python header files
 PYTHON_VERSION = 2.7
 PYTHON_INCLUDE = /usr/include/python$(PYTHON_VERSION)
@@ -77,10 +81,9 @@ $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ $<
 
-$(DIR_OBJ)/test/test_gate_gpu.o: test/test_gate_gpu.cu
+$(DIR_OBJ)/test/test_gate_gpu.o: test/test_gate_gpu.cc
 	$(dir_guard)
-	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
-	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ $<
+	$(CC) $(CC_17_FLAGS) $(INC) $(CUDA_INC) -c -o $@ $<
 
 $(DIR_OBJ)/test/test_gapi.o: test/test_gapi.cu
 	$(dir_guard)

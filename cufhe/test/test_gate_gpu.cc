@@ -83,10 +83,11 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
   out.message_ = inc.message_?in1.message_:in0.message_;
 }
 
-void TestIn0(
+template <class Func, class Check>
+void Test(
         string type, 
-        void (*func)(Ctxt&, Stream), 
-        void (*check)(Ptxt&), 
+        Func func,
+        Check check,
         Ptxt* pt, 
         Ctxt* ct, 
         Stream* st, 
@@ -100,116 +101,21 @@ void TestIn0(
   int cnt_failures = 0;
 
   for (int i = 0; i < kNumTests; i ++){
-    func(ct[i], st[i % kNumSMs]);
-    check(pt[i]);
-  }
-  Synchronize();
-  for (int i = 0; i < kNumTests; i ++){
-    Ptxt res;
-    Decrypt(res, ct[i], pri_key);
-    if (res.message_ != pt[i].message_) {
-      correct = false;
-      cnt_failures += 1;
-      std::cout<< type<<" Fail at iteration: " << i <<std::endl;
+    if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>){
+        func(ct[i], st[i % kNumSMs]);
+        check(pt[i]);
+    }else if constexpr(std::is_invocable_v<Func, Ctxt&, const Ctxt&, Stream>){
+        func(ct[i], ct[i + kNumTests], st[i % kNumSMs]);
+        check(pt[i], pt[i + kNumTests]);
+    }else if constexpr(std::is_invocable_v<Func, Ctxt&, const Ctxt&, const Ctxt&, Stream>){
+        func(ct[i], ct[i + kNumTests], ct[i + kNumTests*2], st[i % kNumSMs]);
+        check(pt[i], pt[i + kNumTests], pt[i + kNumTests*2]);
+    }else if constexpr(std::is_invocable_v<Func, Ctxt&, const Ctxt&, const Ctxt&, const Ctxt&, Stream>){
+        func(ct[i], ct[i + kNumTests], ct[i + kNumTests*2], ct[i + kNumTests*3], st[i % kNumSMs]);
+        check(pt[i], pt[i + kNumTests], pt[i + kNumTests*2], pt[i + kNumTests*3]);
+    }else{
+        std::cout << "Invalid Function" << std::endl;
     }
-  }
-  if (correct)
-    cout<< "PASS" <<endl;
-  else
-    cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
-}
-
-void TestIn1(
-        string type, 
-        void (*func)(Ctxt&, const Ctxt&, Stream), 
-        void (*check)(Ptxt&, const Ptxt&), 
-        Ptxt* pt, 
-        Ctxt* ct, 
-        Stream* st, 
-        int kNumTests, 
-        int kNumSMs, 
-        PriKey& pri_key)
-{
-  cout<< "------ Test "<<type<<" Gate ------" <<endl;
-  cout<< "Number of tests:\t" << kNumTests <<endl;
-  bool correct = true;
-  int cnt_failures = 0;
-
-  for (int i = 0; i < kNumTests; i ++){
-    func(ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-    check(pt[i], pt[i + kNumTests]);
-  }
-  Synchronize();
-  for (int i = 0; i < kNumTests; i ++){
-    Ptxt res;
-    Decrypt(res, ct[i], pri_key);
-    if (res.message_ != pt[i].message_) {
-      correct = false;
-      cnt_failures += 1;
-      std::cout<< type<<" Fail at iteration: " << i <<std::endl;
-    }
-  }
-  if (correct)
-    cout<< "PASS" <<endl;
-  else
-    cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
-}
-
-void TestIn2(
-        string type, 
-        void (*func)(Ctxt&, const Ctxt&, const Ctxt&, Stream), 
-        void (*check)(Ptxt&, const Ptxt&, const Ptxt&), 
-        Ptxt* pt, 
-        Ctxt* ct, 
-        Stream* st, 
-        int kNumTests, 
-        int kNumSMs, 
-        PriKey& pri_key)
-{
-  cout<< "------ Test "<<type<<" Gate ------" <<endl;
-  cout<< "Number of tests:\t" << kNumTests <<endl;
-  bool correct = true;
-  int cnt_failures = 0;
-
-  for (int i = 0; i < kNumTests; i ++){
-    func(ct[i], ct[i + kNumTests], ct[i + kNumTests*2], st[i % kNumSMs]);
-    check(pt[i], pt[i + kNumTests], pt[i + kNumTests*2]);
-  }
-  Synchronize();
-  for (int i = 0; i < kNumTests; i ++){
-    Ptxt res;
-    Decrypt(res, ct[i], pri_key);
-    if (res.message_ != pt[i].message_) {
-      correct = false;
-      cnt_failures += 1;
-      std::cout<< type<<" Fail at iteration: " << i <<std::endl;
-    }
-  }
-  if (correct)
-    cout<< "PASS" <<endl;
-  else
-    cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
-}
-
-void TestIn3(
-        string type, 
-        void (*func)(Ctxt&, const Ctxt&, const Ctxt&, const Ctxt&, Stream), 
-        void (*check)(Ptxt&, const Ptxt&, const Ptxt&, const Ptxt&), 
-        Ptxt* pt, 
-        Ctxt* ct, 
-        Stream* st, 
-        int kNumTests, 
-        int kNumSMs, 
-        PriKey& pri_key)
-{
-  cout<< "------ Test "<<type<<" Gate ------" <<endl;
-  cout<< "Number of tests:\t" << kNumTests <<endl;
-  bool correct = true;
-  int cnt_failures = 0;
-
-  for (int i = 0; i < kNumTests; i ++){
-    func(ct[i], ct[i + kNumTests], ct[i + kNumTests*2], ct[i + kNumTests*3], st[i % kNumSMs]);
-    check(pt[i], pt[i + kNumTests], pt[i + kNumTests*2], pt[i + kNumTests*3]);
   }
   Synchronize();
   for (int i = 0; i < kNumTests; i ++){
@@ -279,20 +185,20 @@ int main() {
   }
   Synchronize();
 
-  TestIn1("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn1("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("ORNY", OrNY, OrNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("AND", And, AndCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("ANDYN", AndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("ANDNY", AndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn2("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn3("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn0("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  TestIn0("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ORNY", OrNY, OrNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("AND", And, AndCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ANDYN", AndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ANDNY", AndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
 
   for (int i = 0; i < kNumSMs; i ++)
     st[i].Destroy();
