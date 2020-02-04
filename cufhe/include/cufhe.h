@@ -37,23 +37,23 @@
 
 // Default Prameter Macro
 
-#define DEF_n 500
-#define DEF_N 1024
-#define DEF_Nbit 10
-#define DEF_k 1
-#define DEF_Bgbit 10
-#define DEF_l 2
-#define DEF_basebit 2
-#define DEF_t 8
-#define DEF_alpha 2.44e-5
-#define DEF_bkalpha 3.73e-9
-#define DEF_nbar 2048
-#define DEF_lbar 4
-#define DEF_Bgbitbar 9
-#define DEF_bklvl02alpha 2.0e-44
-#define DEF_tbar 10
-#define DEF_basebitlvl2 3
-#define DEF_privksakpha 2.0e-31
+#define cuFHE_DEF_n 500
+#define cuFHE_DEF_N 1024
+#define cuFHE_DEF_Nbit 10
+#define cuFHE_DEF_k 1
+#define cuFHE_DEF_Bgbit 10
+#define cuFHE_DEF_l 2
+#define cuFHE_DEF_basebit 2
+#define cuFHE_DEF_t 8
+#define cuFHE_DEF_alpha 2.44e-5
+#define cuFHE_DEF_bkalpha 3.73e-9
+#define cuFHE_DEF_nbar 2048
+#define cuFHE_DEF_lbar 4
+#define cuFHE_DEF_Bgbitbar 9
+#define cuFHE_DEF_bklvl02alpha 2.0e-44
+#define cuFHE_DEF_tbar 10
+#define cuFHE_DEF_basebitlvl2 3
+#define cuFHE_DEF_privksakpha 2.0e-31
 
 namespace cufhe {
 
