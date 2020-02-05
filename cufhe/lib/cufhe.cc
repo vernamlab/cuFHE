@@ -287,37 +287,6 @@ PubKey::~PubKey()
     delete ksk_;
 }
 
-Ctxt::~Ctxt()
-{
-    if (lwe_sample_ != nullptr) {
-        if (lwe_sample_deleter_ != nullptr) {
-            lwe_sample_deleter_(lwe_sample_->data());
-            lwe_sample_deleter_ = nullptr;
-        }
-
-        lwe_sample_->set_data(nullptr);
-        delete lwe_sample_;
-        lwe_sample_ = nullptr;
-    }
-
-    if (lwe_sample_device_ != nullptr) {
-        if (lwe_sample_device_deleter_ != nullptr) {
-            lwe_sample_device_deleter_(lwe_sample_device_->data());
-            lwe_sample_device_deleter_ = nullptr;
-        }
-
-        lwe_sample_device_->set_data(nullptr);
-        delete lwe_sample_device_;
-        lwe_sample_device_ = nullptr;
-    }
-
-    for(int i=0;i<lwe_sample_devices_.size();i++){
-        lwe_sample_devices_deleter_[i](lwe_sample_devices_[i]->data());
-        lwe_sample_devices_deleter_[i] = nullptr;
-    }
-    lwe_sample_devices_.clear();
-    lwe_sample_devices_deleter_.clear();
-}
 
 void Ctxt::assign(void* host_ptr, void* device_ptr)
 {

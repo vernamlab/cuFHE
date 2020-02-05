@@ -76,7 +76,7 @@ int main() {
   uint32_t kNumLevels = 10; 
 
   SetSeed(); // set random seed
-  int gpuNum = 2;
+  int gpuNum = 1;
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key
@@ -123,7 +123,6 @@ int main() {
     st[i]->Create();
   }
 
-  cout<< "------ Test NAND Gate ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < 3* kNumTests; i ++) {
@@ -135,10 +134,42 @@ int main() {
   chrono::system_clock::time_point start, end;
   start = chrono::system_clock::now();
   // Here, pass streams to gates for parallel gates.
-  for (int cycle = 0; cycle < kNumLevels; cycle++){
-    for (int i = 0; i < kNumTests; i ++)
-      mNand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
-  }
+  cout<< "------ Test NAND Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mNand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test OR Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mOr(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ORYN Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mOrYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ORNY Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mOrNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test AND Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mAnd(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ANDYN Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mAndYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ANDNY Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mAndNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test XOR Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mXor(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test MUX Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    mMux(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *ct[i+ 2*kNumTests].get(),
+	 *st[i % (kNumSMs*gpuNum)].get());
 
   Synchronize(gpuNum);
   end = chrono::system_clock::now();
@@ -148,9 +179,15 @@ int main() {
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    for(int cycle = 0; cycle < kNumLevels; cycle++){
-      NandCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
-    }
+    NandCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    OrCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    OrYNCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    OrNYCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    AndCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    AndYNCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    AndNYCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    XorCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    MuxCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get(), *pt[i + 2*kNumTests].get());
     Decrypt(*pt[i + kNumTests].get(), *ct[i].get(), pri_key);
     if (pt[i + kNumTests].get()->message_ != pt[i].get()->message_) {
       correct = false;
@@ -167,10 +204,8 @@ int main() {
     st[i].get()->Destroy();
   st.clear();
 
-  CleanUp(1);
-  cout << "Deleting..." << endl;
-  //ct.clear();
-  //pt.clear();
+  CleanUp(gpuNum);
+  ct.clear();
+  pt.clear();
   cout << "Deleted!" << endl;
-  sleep(1);
 }
