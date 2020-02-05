@@ -28,6 +28,7 @@ using namespace cufhe;
 
 #include <iostream>
 #include <memory>
+#include <chrono>
 using namespace std;
 
 void NandCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
@@ -71,10 +72,11 @@ int main() {
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
-  uint32_t kNumTests = kNumSMs * 512;// * 8;
-  uint32_t kNumLevels = 1; //Gate Types, Mux is counted as 2.
+  uint32_t kNumTests = kNumSMs * 64;// * 8;
+  uint32_t kNumLevels = 10; 
 
   SetSeed(); // set random seed
+  int gpuNum = 2;
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key
@@ -82,10 +84,10 @@ int main() {
   vector<shared_ptr<Ctxt>> ct;
   vector<shared_ptr<Ptxt>> pt;
   for(int i=0;i< 3*kNumTests;i++){
-    ct.push_back(make_shared<Ctxt>(1));
+    ct.push_back(make_shared<Ctxt>(gpuNum));
     pt.push_back(make_shared<Ptxt>());
   }
-  Synchronize();
+  Synchronize(gpuNum);
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
@@ -109,15 +111,15 @@ int main() {
     cout<< "FAIL" <<endl;
 
   cout<< "------ Initilizating Data on GPU(s) ------" <<endl;
-  Initialize(pub_key, 1); // essential for GPU computing
+  Initialize(pub_key, gpuNum); // essential for GPU computing
 
   cout << "Finished Initialize" << endl;
 
   // Create CUDA streams for parallel gates.
   cout << "------ Initializing Stream ------" << endl;
   vector<shared_ptr<Stream>> st;
-  for (int i = 0; i < kNumSMs; i ++){
-    st.push_back(make_shared<Stream>(0, 0));
+  for (int i = 0; i < kNumSMs*gpuNum; i ++){
+    st.push_back(make_shared<Stream>(i%gpuNum, 0));
     st[i]->Create();
   }
 
@@ -128,30 +130,27 @@ int main() {
     *pt[i].get() = rand() % Ptxt::kPtxtSpace;
     Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
   }
-  Synchronize();
+  Synchronize(gpuNum);
 
-  float et;
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start, 0);
-
+  chrono::system_clock::time_point start, end;
+  start = chrono::system_clock::now();
   // Here, pass streams to gates for parallel gates.
-  for (int i = 0; i < kNumTests; i ++)
-    mNand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % kNumSMs].get());
+  for (int cycle = 0; cycle < kNumLevels; cycle++){
+    for (int i = 0; i < kNumTests; i ++)
+      mNand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+  }
 
-  Synchronize();
+  Synchronize(gpuNum);
+  end = chrono::system_clock::now();
+  double elapsed = chrono::duration_cast<chrono::milliseconds>(end-start).count();
 
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&et, start, stop);
-  cout<< et / kNumTests / kNumLevels << " ms / gate" <<endl;
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  cout<< elapsed / kNumTests / kNumLevels << " ms / gate" <<endl;
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    NandCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    for(int cycle = 0; cycle < kNumLevels; cycle++){
+      NandCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    }
     Decrypt(*pt[i + kNumTests].get(), *ct[i].get(), pri_key);
     if (pt[i + kNumTests].get()->message_ != pt[i].get()->message_) {
       correct = false;
@@ -170,6 +169,8 @@ int main() {
 
   CleanUp(1);
   cout << "Deleting..." << endl;
-  ct.clear();
-  pt.clear();
+  //ct.clear();
+  //pt.clear();
+  cout << "Deleted!" << endl;
+  sleep(1);
 }

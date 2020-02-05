@@ -53,6 +53,12 @@ void CleanUp(int gpuNum);
  * \details This makes it easy to wrap in python.
  */
 inline void Synchronize() { cudaDeviceSynchronize(); };
+inline void Synchronize(int gpuNum) { 
+	for(int i=0;i<gpuNum;i++){
+		cudaSetDevice(i);
+		cudaDeviceSynchronize(); 
+	}
+};
 
 /**
  * \class Stream
