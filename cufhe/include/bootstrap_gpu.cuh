@@ -28,9 +28,13 @@
 namespace cufhe {
 
 void BootstrappingKeyToNTT(const BootstrappingKey* bk);
+void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum);
 void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk);
+void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum);
 void DeleteBootstrappingKeyNTT();
+void DeleteBootstrappingKeyNTT(int gpuNum);
 void DeleteKeySwitchingKey();
+void DeleteKeySwitchingKey(int gpuNum);
 void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st = 0);
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
                    Torus fix, cudaStream_t st);
@@ -58,4 +62,30 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, Torus mu, Torus fix, Torus muxfix,
                   cudaStream_t st);
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st);
+
+void mNandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                   Torus fix, cudaStream_t st, int gpuNum);
+void mOrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                 Torus fix, cudaStream_t st, int gpuNum);
+void mOrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                   Torus fix, cudaStream_t st, int gpuNum);
+void mOrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                   Torus fix, cudaStream_t st, int gpuNum);
+void mAndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                  Torus fix, cudaStream_t st, int gpuNum);
+void mAndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                    Torus fix, cudaStream_t st, int gpuNum);
+void mAndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                    Torus fix, cudaStream_t st, int gpuNum);
+void mNorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                  Torus fix, cudaStream_t st, int gpuNum);
+void mXorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                  Torus fix, cudaStream_t st, int gpuNum);
+void mXnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                   Torus fix, cudaStream_t st, int gpuNum);
+void mCopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
+void mNotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st, int gpuNum);
+void mMuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
+                  LWESample* in0, Torus mu, Torus fix, Torus muxfix,
+                  cudaStream_t st, int gpuNum);
 }  // namespace cufhe

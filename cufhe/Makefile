@@ -40,7 +40,7 @@ CC_DEP = $(CC_OBJ:.o=.d)
 
 ##
 targets: $(DIR_BIN)/libcufhe_cpu.so $(DIR_BIN)/libcufhe_gpu.so \
-	$(DIR_BIN)/test_api_cpu $(DIR_BIN)/test_api_gpu $(DIR_BIN)/test_gate_gpu $(DIR_BIN)/test_gapi $(DIR_BIN)/test_ggate_gpu
+	$(DIR_BIN)/test_api_gpu $(DIR_BIN)/test_gate_gpu $(DIR_BIN)/test_gapi $(DIR_BIN)/test_ggate_gpu $(DIR_BIN)/test_api_gpu_multi
 
 ##
 all: $(targets)
@@ -68,6 +68,10 @@ $(DIR_BIN)/test_api_gpu: $(DIR_OBJ)/test/test_api_gpu.o
 	$(dir_guard)
 	$(CU) $(FLAGS) $(CU_FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu.o -L$(DIR_BIN) -lcufhe_gpu
 
+$(DIR_BIN)/test_api_gpu_multi: $(DIR_OBJ)/test/test_api_gpu_multi.o
+	$(dir_guard)
+	$(CU) $(FLAGS) $(CU_FLAGS) -o $@ $(DIR_OBJ)/test/test_api_gpu_multi.o -L$(DIR_BIN) -lcufhe_gpu
+
 $(DIR_BIN)/test_gate_gpu: $(DIR_OBJ)/test/test_gate_gpu.o
 	$(dir_guard)
 	$(CU) $(FLAGS) $(CU_FLAGS) -o $@ $(DIR_OBJ)/test/test_gate_gpu.o -L$(DIR_BIN) -lcufhe_gpu
@@ -84,6 +88,11 @@ $(DIR_OBJ)/test/test_api_gpu.o: test/test_api_gpu.cu
 	$(dir_guard)
 	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
 	$(CU) $(FLAGS) $(CU_FLAGS) $(INC) -c -o $@ $<
+
+$(DIR_OBJ)/test/test_api_gpu_multi.o: test/test_api_gpu_multi.cu
+	$(dir_guard)
+	$(CU) $(CU_FLAGS) $(FLAGS) $(INC) -M -o $(@:%.o=%.d) $<
+	$(CU) $(CU_FLAGS) $(FLAGS) $(INC) -c -o $@ $<
 
 $(DIR_OBJ)/test/test_gate_gpu.o: test/test_gate_gpu.cc
 	$(dir_guard)

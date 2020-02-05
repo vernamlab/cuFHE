@@ -42,9 +42,11 @@ namespace cufhe {
  * 3. Copy KeySwitchingKey to GPU memory.
  */
 void Initialize(const PubKey& pub_key);
+void Initialize(const PubKey& pub_key, int gpuNum);
 
 /** Remove everything created in Initialize(). */
 void CleanUp();
+void CleanUp(int gpuNum);
 
 /**
  * \brief Synchronize device.
@@ -62,36 +64,48 @@ class Stream {
     inline Stream(int id)
     {
         Assert(id == 0);
+        _device_id = 0;
+        st_ = 0;
+    }
+    inline Stream(int device_id, int id){
+        _device_id = device_id;
         st_ = 0;
     }
     inline ~Stream() {}
     inline void Create()
     {
+        cudaSetDevice(_device_id);
         cudaStreamCreateWithFlags(&this->st_, cudaStreamNonBlocking);
     }
-    inline void Destroy() { cudaStreamDestroy(this->st_); }
+    inline void Destroy() {
+        cudaSetDevice(_device_id);
+        cudaStreamDestroy(this->st_);
+    }
     inline cudaStream_t st() { return st_; };
-
+    inline int device_id(){
+        return _device_id;
+    }
    private:
     cudaStream_t st_;
+    int _device_id;
 };  // class Stream
 
-void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void AndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void AndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void Or(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void OrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void OrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void Nor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void Xor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void Not(Ctxt& out, const Ctxt& in, Stream st = 0);
-void Copy(Ctxt& out, const Ctxt& in, Stream st = 0);
+void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void AndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void AndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void Or(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void OrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void OrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void Nor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void Xor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void Not(Ctxt& out, const Ctxt& in, Stream st);
+void Copy(Ctxt& out, const Ctxt& in, Stream st);
 void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
-         Stream st = 0);
-void ConstantZero(Ctxt& out, Stream st = 0);
-void ConstantOne(Ctxt& out, Stream st = 0);
+         Stream st);
+void ConstantZero(Ctxt& out, Stream st);
+void ConstantOne(Ctxt& out, Stream st);
 
 void gAnd(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
 void gAndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
@@ -109,6 +123,23 @@ void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
           Stream st = 0);
 void gConstantZero(Ctxt& out, Stream st = 0);
 void gConstantOne(Ctxt& out, Stream st = 0);
+
+void mAnd(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mAndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mAndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mOrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mOrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mNor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mXor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void mNot(Ctxt& out, const Ctxt& in, Stream st);
+void mCopy(Ctxt& out, const Ctxt& in, Stream st);
+void mMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
+          Stream st);
+void mConstantZero(Ctxt& out, Stream st);
+void mConstantOne(Ctxt& out, Stream st);
 
 void SetToGPU(const Ctxt& in);
 void GetFromGPU(Ctxt& out);

@@ -23,6 +23,7 @@
 #include <include/cufhe.h>
 #include <include/bootstrap_gpu.cuh>
 #include <include/cufhe_gpu.cuh>
+#include <unistd.h>
 
 namespace cufhe {
 
@@ -32,10 +33,22 @@ void Initialize(const PubKey& pub_key)
     KeySwitchingKeyToDevice(pub_key.ksk_);
 }
 
+void Initialize(const PubKey& pub_key, int gpuNum)
+{
+    BootstrappingKeyToNTT(pub_key.bk_, gpuNum);
+    KeySwitchingKeyToDevice(pub_key.ksk_, gpuNum);
+}
+
 void CleanUp()
 {
     DeleteBootstrappingKeyNTT();
     DeleteKeySwitchingKey();
+}
+
+void CleanUp(int gpuNum)
+{
+    DeleteBootstrappingKeyNTT(gpuNum);
+    DeleteKeySwitchingKey(gpuNum);
 }
 
 inline void CtxtCopyH2D(const Ctxt& c, Stream st)
@@ -47,6 +60,18 @@ inline void CtxtCopyH2D(const Ctxt& c, Stream st)
 inline void CtxtCopyD2H(const Ctxt& c, Stream st)
 {
     cudaMemcpyAsync(c.lwe_sample_->data(), c.lwe_sample_device_->data(),
+                    c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost, st.st());
+}
+
+inline void mCtxtCopyH2D(const Ctxt& c, Stream st)
+{
+    cudaMemcpyAsync(c.lwe_sample_devices_[st.device_id()]->data(), c.lwe_sample_->data(),
+                    c.lwe_sample_->SizeData(), cudaMemcpyHostToDevice, st.st());
+}
+
+inline void mCtxtCopyD2H(const Ctxt& c, Stream st)
+{
+    cudaMemcpyAsync(c.lwe_sample_->data(), c.lwe_sample_devices_[st.device_id()]->data(),
                     c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost, st.st());
 }
 
@@ -67,6 +92,18 @@ void gNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
     static const Torus fix = ModSwitchToTorus(1, 8);
     NandBootstrap(out.lwe_sample_device_, in0.lwe_sample_device_,
                   in1.lwe_sample_device_, mu, fix, st.st());
+}
+
+void mNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
+{
+    cudaSetDevice(st.device_id());
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    static const Torus fix = ModSwitchToTorus(1, 8);
+    mCtxtCopyH2D(in0, st);
+    mCtxtCopyH2D(in1, st);
+    mNandBootstrap(out.lwe_sample_devices_[st.device_id()], in0.lwe_sample_devices_[st.device_id()],
+                  in1.lwe_sample_devices_[st.device_id()], mu, fix, st.st(), st.device_id());
+    mCtxtCopyD2H(out, st);
 }
 
 void Or(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)

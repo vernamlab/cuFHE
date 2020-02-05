@@ -25,7 +25,7 @@
 
 namespace cufhe {
 
-Ctxt::Ctxt(bool is_alias)
+Ctxt::Ctxt()
 {
     Param* param = GetDefaultParam();
     lwe_sample_ = new LWESample(param->lwe_n_);

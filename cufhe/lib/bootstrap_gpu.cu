@@ -22,11 +22,13 @@
 
 #include <include/cufhe.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <include/bootstrap_gpu.cuh>
 #include <include/details/error_gpu.cuh>
 #include <include/ntt_gpu/ntt.cuh>
 
 #include <iostream>
+#include <vector>
 using namespace std;
 
 namespace cufhe {
@@ -37,6 +39,12 @@ MemoryDeleter bk_ntt_deleter = nullptr;
 KeySwitchingKey* ksk_dev = nullptr;
 MemoryDeleter ksk_dev_deleter = nullptr;
 CuNTTHandler<>* ntt_handler = nullptr;
+
+vector<BootstrappingKeyNTT *> bk_ntts;
+vector<MemoryDeleter> bk_ntt_deleters;
+vector<CuNTTHandler<> *> ntt_handlers;
+vector<KeySwitchingKey *> ksk_devs;
+vector<MemoryDeleter> ksk_dev_deleters;
 
 __global__ void __BootstrappingKeyToNTT__(BootstrappingKeyNTT bk_ntt,
                                           BootstrappingKey bk,
@@ -63,6 +71,8 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk)
     BootstrappingKey* d_bk;
     d_bk = new BootstrappingKey(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
     std::pair<void*, MemoryDeleter> pair;
+
+    // Allocate GPU Memory
     pair = AllocatorGPU::New(d_bk->SizeMalloc());
     d_bk->set_data((BootstrappingKey::PointerType)pair.first);
     MemoryDeleter d_bk_deleter = pair.second;
@@ -72,6 +82,8 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk)
     Assert(bk_ntt == nullptr);
     bk_ntt =
         new BootstrappingKeyNTT(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
+
+    //Allocate GPU Memory
     pair = AllocatorGPU::New(bk_ntt->SizeMalloc());
     bk_ntt->set_data((BootstrappingKeyNTT::PointerType)pair.first);
     bk_ntt_deleter = pair.second;
@@ -93,6 +105,48 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk)
     delete d_bk;
 }
 
+void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
+{
+    for(int i=0;i<gpuNum;i++){
+        cudaSetDevice(i);
+
+        BootstrappingKey* d_bk;
+        d_bk = new BootstrappingKey(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
+        std::pair<void*, MemoryDeleter> pair;
+
+        // Allocate GPU Memory
+        pair = AllocatorGPU::New(d_bk->SizeMalloc());
+        d_bk->set_data((BootstrappingKey::PointerType)pair.first);
+        MemoryDeleter d_bk_deleter = pair.second;
+        CuSafeCall(cudaMemcpy(d_bk->data(), bk->data(), d_bk->SizeMalloc(),
+                          cudaMemcpyHostToDevice));
+        Assert(bk_ntts.size() == i);
+
+        bk_ntts.push_back(new BootstrappingKeyNTT(bk->n(), bk->k(), bk->l(), bk->w(), bk->t()));
+
+        //Allocate GPU Memory
+        pair = AllocatorGPU::New(bk_ntts[i]->SizeMalloc());
+        bk_ntts[i]->set_data((BootstrappingKeyNTT::PointerType)pair.first);
+        bk_ntt_deleters.push_back(pair.second);
+
+        Assert(ntt_handlers.size() == i);
+        ntt_handlers.push_back(new CuNTTHandler<>());
+        ntt_handlers[i]->Create();
+        ntt_handlers[i]->CreateConstant();
+        cudaDeviceSynchronize();
+        CuCheckError();
+
+        dim3 grid(bk->k() + 1, (bk->k() + 1) * bk->l(), bk->t());
+        dim3 block(128);
+        __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntts[i], *d_bk, *ntt_handlers[i]);
+        cudaDeviceSynchronize();
+        CuCheckError();
+
+        d_bk_deleter(d_bk->data());
+        delete d_bk;
+    }
+}
+
 void DeleteBootstrappingKeyNTT()
 {
     bk_ntt_deleter(bk_ntt->data());
@@ -101,6 +155,19 @@ void DeleteBootstrappingKeyNTT()
 
     ntt_handler->Destroy();
     delete ntt_handler;
+}
+
+void DeleteBootstrappingKeyNTT(int gpuNum)
+{
+  for(int i=0;i<bk_ntts.size();i++){
+    cudaSetDevice(i);
+    bk_ntt_deleters[i](bk_ntts[i]->data());
+    delete bk_ntts[i];
+    bk_ntts[i] = nullptr;
+
+    ntt_handlers[i]->Destroy();
+    delete ntt_handlers[i];
+  }
 }
 
 void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk)
@@ -115,11 +182,38 @@ void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk)
                           cudaMemcpyHostToDevice));
 }
 
+void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum)
+{
+    for(int i=0;i<gpuNum;i++){
+        cudaSetDevice(i);
+
+        Assert(ksk_devs.size() == i);
+        ksk_devs.push_back(new KeySwitchingKey(ksk->n(), ksk->l(), ksk->w(), ksk->m()));
+
+        std::pair<void*, MemoryDeleter> pair;
+        pair = AllocatorGPU::New(ksk_devs[i]->SizeMalloc());
+        ksk_devs[i]->set_data((KeySwitchingKey::PointerType)pair.first);
+        ksk_dev_deleters.push_back(pair.second);
+        CuSafeCall(cudaMemcpy(ksk_devs[i]->data(), ksk->data(), ksk->SizeMalloc(),
+                              cudaMemcpyHostToDevice));
+    }
+}
+
 void DeleteKeySwitchingKey()
 {
     ksk_dev_deleter(ksk_dev->data());
     delete ksk_dev;
     ksk_dev = nullptr;
+}
+
+void DeleteKeySwitchingKey(int gpuNum)
+{
+    for(int i=0;i<ksk_devs.size();i++){
+        cudaSetDevice(i);
+        ksk_dev_deleters[i](ksk_devs[i]->data());
+        delete ksk_devs[i];
+        ksk_devs[i] = nullptr;
+    }
 }
 
 __device__ inline uint32_t ModSwitch2048(uint32_t a)
@@ -628,6 +722,14 @@ void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
     __NandBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
         out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
         ksk_dev->data(), *ntt_handler);
+    CuCheckError();
+}
+void mNandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
+                   Torus fix, cudaStream_t st, int gpuNum)
+{
+    __NandBootstrap__<<<1, DEF_N / 2, 0, st>>>(
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
