@@ -75,6 +75,18 @@ inline void mCtxtCopyD2H(const Ctxt& c, Stream st)
                     c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost, st.st());
 }
 
+inline void CtxtCopyH2DSync(const Ctxt& c)
+{
+    cudaMemcpy(c.lwe_sample_devices_[0]->data(), c.lwe_sample_->data(),
+                    c.lwe_sample_->SizeData(), cudaMemcpyHostToDevice);
+}
+
+inline void CtxtCopyD2HSync(const Ctxt& c)
+{
+    cudaMemcpy(c.lwe_sample_->data(), c.lwe_sample_devices_[0]->data(),
+                    c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost);
+}
+
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
 {
     static const Torus mu = ModSwitchToTorus(1, 8);
@@ -136,6 +148,7 @@ void mOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
                 in1.lwe_sample_devices_[st.device_id()], mu, fix, st.st(), st.device_id());
     mCtxtCopyD2H(out, st);
 }
+
 
 void OrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
 {
@@ -427,6 +440,15 @@ void mCopy(Ctxt& out, const Ctxt& in, Stream st)
     mCopyBootstrap(out.lwe_sample_devices_[st.device_id()], in.lwe_sample_devices_[st.device_id()], 
                    st.st(), st.device_id());
     mCtxtCopyD2H(out, st);
+}
+
+void mCopySync(Ctxt& out, const Ctxt& int)
+{
+    cudaSetDevice(0);
+    CtxtCopyH2DSync(in);
+    mCopyBootstrap(out.lwe_sample_devices_[0], in.lwe_sample_devices_[0], 
+                   0, 0);
+    CtxtCopyD2HSync(out);
 }
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0

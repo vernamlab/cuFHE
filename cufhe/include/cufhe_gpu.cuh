@@ -142,6 +142,7 @@ void mXor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void mXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void mNot(Ctxt& out, const Ctxt& in, Stream st);
 void mCopy(Ctxt& out, const Ctxt& in, Stream st);
+void mCopySync(Ctxt& out, const Ctxt& int);
 void mMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
           Stream st);
 void mConstantZero(Ctxt& out, Stream st);
