@@ -45,6 +45,18 @@ Ctxt::Ctxt()
     pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
     lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
     lwe_sample_device_deleter_ = pair.second;
+
+    int gpu_num = 1;
+    for(int i=0;i<gpu_num;i++){
+        lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
+    }
+
+    for(int i=0;i<gpu_num;i++){
+        cudaSetDevice(i);
+        pair = AllocatorGPU::New(lwe_sample_devices_[i]->SizeMalloc());
+        lwe_sample_devices_[i]->set_data((LWESample::PointerType)pair.first);
+        lwe_sample_devices_deleter_.push_back(pair.second);
+    }
 }
 
 Ctxt::Ctxt(int gpu_num)
