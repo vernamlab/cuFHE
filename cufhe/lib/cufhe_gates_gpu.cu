@@ -442,12 +442,11 @@ void mCopy(Ctxt& out, const Ctxt& in, Stream st)
     mCtxtCopyD2H(out, st);
 }
 
-void mCopySync(Ctxt& out, const Ctxt& int)
+void mCopySync(Ctxt& out, const Ctxt& in)
 {
     cudaSetDevice(0);
     CtxtCopyH2DSync(in);
-    mCopyBootstrap(out.lwe_sample_devices_[0], in.lwe_sample_devices_[0], 
-                   0, 0);
+    mCopyBootstrap(out.lwe_sample_devices_[0], in.lwe_sample_devices_[0], 0, 0);
     CtxtCopyD2HSync(out);
 }
 
