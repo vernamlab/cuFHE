@@ -200,7 +200,7 @@ int main() {
     cout<< "PASS" <<endl;
   else
     cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
-  for (int i = 0; i < kNumSMs; i ++)
+  for (int i = 0; i < kNumSMs*gpuNum; i ++)
     st[i].get()->Destroy();
   st.clear();
 

@@ -516,6 +516,7 @@ void GetFromGPU(Ctxt& out)
 
 bool StreamQuery(Stream st)
 {
+    cudaSetDevice(st.device_id());
     cudaError_t res = cudaStreamQuery(st.st());
     if (res == cudaSuccess) {
         return true;
