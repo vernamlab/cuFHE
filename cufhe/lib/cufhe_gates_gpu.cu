@@ -444,10 +444,13 @@ void mCopy(Ctxt& out, const Ctxt& in, Stream st)
 
 void mCopySync(Ctxt& out, const Ctxt& in)
 {
-    cudaSetDevice(0);
-    CtxtCopyH2DSync(in);
-    mCopyBootstrap(out.lwe_sample_devices_[0], in.lwe_sample_devices_[0], 0, 0);
-    CtxtCopyD2HSync(out);
+    //cudaSetDevice(0);
+    //CtxtCopyH2DSync(in);
+    //mCopyBootstrap(out.lwe_sample_devices_[0], in.lwe_sample_devices_[0], 0, 0);
+    //CtxtCopyD2HSync(out);
+    for(int i = 0;i<= in.lwe_sample_->n();i++){
+	out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
+    }
 }
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0

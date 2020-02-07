@@ -46,7 +46,7 @@ Ctxt::Ctxt()
     lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
     lwe_sample_device_deleter_ = pair.second;
 
-    int gpu_num = 1;
+    int gpu_num = 8;
     for(int i=0;i<gpu_num;i++){
         lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
     }
