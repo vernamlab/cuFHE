@@ -229,18 +229,18 @@ int main() {
     st[i].get()->Create();
   }
 
-  Test("NOT", mNot, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("COPY", mCopy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("NAND", mNand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("OR", mOr, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("ORYN", mOrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("ORNY", mOrNY, OrNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("AND", mAnd, AndCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("ANDYN", mAndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("ANDNY", mAndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("XOR", mXor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("XNOR", mXnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-  Test("MUX", mMux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ORNY", OrNY, OrNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("AND", And, AndCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ANDYN", AndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("ANDNY", AndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+  Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
   Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
 

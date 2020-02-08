@@ -110,6 +110,7 @@ void Xor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void Not(Ctxt& out, const Ctxt& in, Stream st);
 void Copy(Ctxt& out, const Ctxt& in, Stream st);
+void CopySync(Ctxt& out, const Ctxt&);
 void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
          Stream st);
 void ConstantZero(Ctxt& out, Stream st);
@@ -131,24 +132,6 @@ void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
           Stream st = 0);
 void gConstantZero(Ctxt& out, Stream st = 0);
 void gConstantOne(Ctxt& out, Stream st = 0);
-
-void mAnd(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mAndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mAndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mOrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mOrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mNor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mXor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void mNot(Ctxt& out, const Ctxt& in, Stream st);
-void mCopy(Ctxt& out, const Ctxt& in, Stream st);
-void mCopySync(Ctxt& out, const Ctxt&);
-void mMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
-          Stream st);
-void mConstantZero(Ctxt& out, Stream st);
-void mConstantOne(Ctxt& out, Stream st);
 
 void SetToGPU(const Ctxt& in);
 void GetFromGPU(Ctxt& out);

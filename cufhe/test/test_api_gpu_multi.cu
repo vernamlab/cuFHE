@@ -137,39 +137,39 @@ int main() {
   // Here, pass streams to gates for parallel gates.
   cout<< "------ Test NAND Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mNand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    Nand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test OR Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mOr(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    Or(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test ORYN Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mOrYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    OrYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test ORNY Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mOrNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    OrNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test AND Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mAnd(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    And(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test ANDYN Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mAndYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    AndYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test ANDNY Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mAndNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    AndNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test XOR Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mXor(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+    Xor(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
   cout<< "------ Test MUX Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    mMux(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *ct[i+ 2*kNumTests].get(),
+    Mux(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *ct[i+ 2*kNumTests].get(),
 	 *st[i % (kNumSMs*gpuNum)].get());
 
   Synchronize();
