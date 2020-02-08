@@ -22,6 +22,7 @@
 
 #include <include/cufhe.h>
 #include <include/details/allocator_gpu.cuh>
+#include <include/cufhe_gpu.cuh>
 #include <cuda.h>
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
@@ -42,39 +43,17 @@ Ctxt::Ctxt()
     lwe_sample_->set_data((LWESample::PointerType)pair.first);
     lwe_sample_deleter_ = pair.second;
 
+/*
     pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
     lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
     lwe_sample_device_deleter_ = pair.second;
+*/
 
-    int gpu_num = 8;
-    for(int i=0;i<gpu_num;i++){
+    for(int i=0;i<_gpuNum;i++){
         lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
     }
 
-    for(int i=0;i<gpu_num;i++){
-        cudaSetDevice(i);
-        pair = AllocatorGPU::New(lwe_sample_devices_[i]->SizeMalloc());
-        lwe_sample_devices_[i]->set_data((LWESample::PointerType)pair.first);
-        lwe_sample_devices_deleter_.push_back(pair.second);
-    }
-}
-
-Ctxt::Ctxt(int gpu_num)
-{
-    std::pair<void*, MemoryDeleter> pair;
-    Param* param = GetDefaultParam();
-
-    lwe_sample_ = new LWESample(param->lwe_n_);
-
-    for(int i=0;i<gpu_num;i++){
-        lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
-    }
-
-    pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
-    lwe_sample_->set_data((LWESample::PointerType)pair.first);
-    lwe_sample_deleter_ = pair.second;
-
-    for(int i=0;i<gpu_num;i++){
+    for(int i=0;i<_gpuNum;i++){
         cudaSetDevice(i);
         pair = AllocatorGPU::New(lwe_sample_devices_[i]->SizeMalloc());
         lwe_sample_devices_[i]->set_data((LWESample::PointerType)pair.first);

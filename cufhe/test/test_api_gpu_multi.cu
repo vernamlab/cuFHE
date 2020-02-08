@@ -85,10 +85,10 @@ int main() {
   vector<shared_ptr<Ctxt>> ct;
   vector<shared_ptr<Ptxt>> pt;
   for(int i=0;i< 3*kNumTests;i++){
-    ct.push_back(make_shared<Ctxt>(gpuNum));
+    ct.push_back(make_shared<Ctxt>());
     pt.push_back(make_shared<Ptxt>());
   }
-  Synchronize(gpuNum);
+  Synchronize();
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
@@ -130,7 +130,7 @@ int main() {
     *pt[i].get() = rand() % Ptxt::kPtxtSpace;
     Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
   }
-  Synchronize(gpuNum);
+  Synchronize();
 
   chrono::system_clock::time_point start, end;
   start = chrono::system_clock::now();
@@ -172,7 +172,7 @@ int main() {
     mMux(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *ct[i+ 2*kNumTests].get(),
 	 *st[i % (kNumSMs*gpuNum)].get());
 
-  Synchronize(gpuNum);
+  Synchronize();
   end = chrono::system_clock::now();
   double elapsed = chrono::duration_cast<chrono::milliseconds>(end-start).count();
 

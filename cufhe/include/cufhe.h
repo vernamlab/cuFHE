@@ -134,7 +134,6 @@ struct PubKey {
 /** Ciphertext. */
 struct Ctxt {
     Ctxt();
-    Ctxt(int gpu_num);
     ~Ctxt();
     Ctxt(const Ctxt& that) = delete;
     Ctxt& operator=(const Ctxt& that) = delete;

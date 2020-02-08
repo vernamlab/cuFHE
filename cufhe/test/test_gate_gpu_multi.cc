@@ -194,7 +194,7 @@ int main() {
   vector<shared_ptr<Ctxt>> ct;
   vector<shared_ptr<Ptxt>> pt;
   for(int i=0;i < 4*kNumTests;i++){
-    ct.push_back(make_shared<Ctxt>(gpuNum));
+    ct.push_back(make_shared<Ctxt>());
     pt.push_back(make_shared<Ptxt>());
   }
   Synchronize();

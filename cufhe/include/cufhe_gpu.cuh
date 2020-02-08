@@ -42,21 +42,20 @@ extern int _gpuNum;
  * 2. Convert BootstrappingKey to NTT form.
  * 3. Copy KeySwitchingKey to GPU memory.
  */
-void SetGPUNum(int _gpuNum);
+void SetGPUNum(int gpuNum);
 
 void Initialize(const PubKey& pub_key);
-void Initialize(const PubKey& pub_key, int gpuNum);
+//void Initialize(const PubKey& pub_key, int gpuNum);
 
 /** Remove everything created in Initialize(). */
 void CleanUp();
-void CleanUp(int gpuNum);
+//void CleanUp(int gpuNum);
 
 /**
  * \brief Synchronize device.
  * \details This makes it easy to wrap in python.
  */
-inline void Synchronize() { cudaDeviceSynchronize(); };
-inline void Synchronize(int gpuNum) { 
+inline void Synchronize() { 
 	for(int i=0;i<_gpuNum;i++){
 		cudaSetDevice(i);
 		cudaDeviceSynchronize(); 
