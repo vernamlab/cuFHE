@@ -27,28 +27,38 @@
 
 namespace cufhe {
 
+int _gpuNum = 1;
+
+/*
 void Initialize(const PubKey& pub_key)
 {
     BootstrappingKeyToNTT(pub_key.bk_);
     KeySwitchingKeyToDevice(pub_key.ksk_);
 }
+*/
 
-void Initialize(const PubKey& pub_key, int gpuNum)
-{
-    BootstrappingKeyToNTT(pub_key.bk_, gpuNum);
-    KeySwitchingKeyToDevice(pub_key.ksk_, gpuNum);
+void SetGPUNum(int gpuNum){
+    _gpuNum = gpuNum;
 }
 
+void Initialize(const PubKey& pub_key)
+{
+    BootstrappingKeyToNTT(pub_key.bk_, _gpuNum);
+    KeySwitchingKeyToDevice(pub_key.ksk_, _gpuNum);
+}
+
+/*
 void CleanUp()
 {
     DeleteBootstrappingKeyNTT();
     DeleteKeySwitchingKey();
 }
+*/
 
-void CleanUp(int gpuNum)
+void CleanUp()
 {
-    DeleteBootstrappingKeyNTT(gpuNum);
-    DeleteKeySwitchingKey(gpuNum);
+    DeleteBootstrappingKeyNTT(_gpuNum);
+    DeleteKeySwitchingKey(_gpuNum);
 }
 
 inline void CtxtCopyH2D(const Ctxt& c, Stream st)

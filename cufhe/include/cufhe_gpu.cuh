@@ -35,12 +35,15 @@
 
 namespace cufhe {
 
+extern int _gpuNum;
 /**
  * Call before running gates on server.
  * 1. Generate necessary NTT data.
  * 2. Convert BootstrappingKey to NTT form.
  * 3. Copy KeySwitchingKey to GPU memory.
  */
+void SetGPUNum(int _gpuNum);
+
 void Initialize(const PubKey& pub_key);
 void Initialize(const PubKey& pub_key, int gpuNum);
 
@@ -54,7 +57,7 @@ void CleanUp(int gpuNum);
  */
 inline void Synchronize() { cudaDeviceSynchronize(); };
 inline void Synchronize(int gpuNum) { 
-	for(int i=0;i<gpuNum;i++){
+	for(int i=0;i<_gpuNum;i++){
 		cudaSetDevice(i);
 		cudaDeviceSynchronize(); 
 	}

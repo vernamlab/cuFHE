@@ -117,7 +117,7 @@ void Test(
     *pt[i].get() = rand() % Ptxt::kPtxtSpace;
     Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
   }
-  Synchronize(gpuNum);
+  Synchronize();
 
 
   for (int i = 0; i < kNumTests; i ++){
@@ -138,7 +138,7 @@ void Test(
         std::cout << "Invalid Function" << std::endl;
     }
   }
-  Synchronize(gpuNum);
+  Synchronize();
 
   for (int i = 0; i < kNumTests; i ++){
     if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>){
@@ -160,7 +160,7 @@ void Test(
         std::cout << "Invalid Function" << std::endl;
     }
   }
-  Synchronize(gpuNum);
+  Synchronize();
 
   for (int i = 0; i < kNumTests; i ++){
     Ptxt res;
@@ -178,6 +178,7 @@ void Test(
 }
 
 int main() {
+  SetGPUNum(gpuNum);
   cudaSetDevice(0);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
@@ -196,7 +197,7 @@ int main() {
     ct.push_back(make_shared<Ctxt>(gpuNum));
     pt.push_back(make_shared<Ptxt>());
   }
-  Synchronize(gpuNum);
+  Synchronize();
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
@@ -220,7 +221,7 @@ int main() {
     cout<< "FAIL" <<endl;
 
   cout<< "------ Initilizating Data on GPU(s) ------" <<endl;
-  Initialize(pub_key, gpuNum); // essential for GPU computing
+  Initialize(pub_key); // essential for GPU computing
 
   vector<shared_ptr<Stream>> st;
   for (int i = 0; i < kNumSMs*gpuNum; i ++){
@@ -249,7 +250,7 @@ int main() {
   st.clear();
 
   cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
-  CleanUp(gpuNum); // essential to clean and deallocate data
+  CleanUp(); // essential to clean and deallocate data
   ct.clear();
   pt.clear();
   return 0;

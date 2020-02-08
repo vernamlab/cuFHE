@@ -68,6 +68,7 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
 }
 
 int main() {
+  SetGPUNum(1);
   cudaSetDevice(0);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
@@ -111,7 +112,7 @@ int main() {
     cout<< "FAIL" <<endl;
 
   cout<< "------ Initilizating Data on GPU(s) ------" <<endl;
-  Initialize(pub_key, gpuNum); // essential for GPU computing
+  Initialize(pub_key); // essential for GPU computing
 
   cout << "Finished Initialize" << endl;
 
@@ -204,7 +205,7 @@ int main() {
     st[i].get()->Destroy();
   st.clear();
 
-  CleanUp(gpuNum);
+  CleanUp();
   ct.clear();
   pt.clear();
   cout << "Deleted!" << endl;
