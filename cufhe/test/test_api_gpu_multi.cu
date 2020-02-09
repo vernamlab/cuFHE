@@ -68,7 +68,7 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
 }
 
 int main() {
-  int gpuNum = 2;
+  int gpuNum = 1;
   SetGPUNum(gpuNum);
   cudaSetDevice(0);
   cudaDeviceProp prop;
@@ -120,7 +120,7 @@ int main() {
   cout << "------ Initializing Stream ------" << endl;
   vector<shared_ptr<Stream>> st;
   for (int i = 0; i < kNumSMs*gpuNum; i ++){
-    st.push_back(make_shared<Stream>(i%gpuNum, 0));
+    st.push_back(make_shared<Stream>(i%gpuNum));
     st[i]->Create();
   }
 

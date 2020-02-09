@@ -68,23 +68,24 @@ inline void Synchronize() {
  */
 class Stream {
    public:
-    inline Stream() {}
-    inline Stream(int id)
-    {
-        Assert(id == 0);
-        _device_id = 0;
-        st_ = 0;
+    inline Stream() {
+       st_ = 0;
     }
-    inline Stream(int device_id, int id){
+    inline Stream(int device_id){
         _device_id = device_id;
         st_ = 0;
     }
-    inline ~Stream() {}
+
+    inline ~Stream() {
+        Destroy();
+    }
+
     inline void Create()
     {
         cudaSetDevice(_device_id);
         cudaStreamCreateWithFlags(&this->st_, cudaStreamNonBlocking);
     }
+
     inline void Destroy() {
         cudaSetDevice(_device_id);
         cudaStreamDestroy(this->st_);
@@ -136,8 +137,5 @@ void gConstantOne(Ctxt& out, Stream st = 0);
 void SetToGPU(const Ctxt& in);
 void GetFromGPU(Ctxt& out);
 bool StreamQuery(Stream st);
-// Not Ready...
-// void Mux(Ctxt& out, const Ctxt& in0, const Ctxt& in1, const Ctxt& in2,
-//          cudaStream_t st = 0);
 
 }  // namespace cufhe

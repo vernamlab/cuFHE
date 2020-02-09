@@ -225,7 +225,7 @@ int main() {
 
   vector<shared_ptr<Stream>> st;
   for (int i = 0; i < kNumSMs*gpuNum; i ++){
-    st.push_back(make_shared<Stream>(i%gpuNum, 0));
+    st.push_back(make_shared<Stream>(i%gpuNum));
     st[i].get()->Create();
   }
 
