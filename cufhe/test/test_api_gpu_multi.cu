@@ -68,7 +68,8 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
 }
 
 int main() {
-  SetGPUNum(1);
+  int gpuNum = 2;
+  SetGPUNum(gpuNum);
   cudaSetDevice(0);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
@@ -77,7 +78,6 @@ int main() {
   uint32_t kNumLevels = 10; 
 
   SetSeed(); // set random seed
-  int gpuNum = 1;
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key

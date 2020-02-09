@@ -29,7 +29,7 @@ using namespace cufhe;
 #include <memory>
 using namespace std;
 
-const int gpuNum = 1;
+const int gpuNum = 2;
 
 void ConstantZeroCheck(Ptxt& out){
   out.message_ = 0;
