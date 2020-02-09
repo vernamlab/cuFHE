@@ -302,7 +302,7 @@ void gCopy(Ctxt& out, const Ctxt& in, Stream st)
                    st.st(), st.device_id());
 }
 
-void CopySync(Ctxt& out, const Ctxt& in)
+void CopyOnHost(Ctxt& out, const Ctxt& in)
 {
     for(int i = 0;i<= in.lwe_sample_->n();i++){
 	out.lwe_sample_->data()[i] = in.lwe_sample_->data()[i];
@@ -338,7 +338,7 @@ void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
                  muxfix, st.st(), st.device_id());
 }
 
-void ConstantZero(Ctxt& out, Stream st)
+void ConstantZero(Ctxt& out)
 {
     static const Torus mu = ModSwitchToTorus(1, 8);
     for (int i = 0; i < out.lwe_sample_->n(); i++) {
@@ -353,7 +353,7 @@ void gConstantZero(Ctxt& out, Stream st)
     NoiselessTrivial(out.lwe_sample_device_, 0, mu, st.st());
 }
 
-void ConstantOne(Ctxt& out, Stream st)
+void ConstantOne(Ctxt& out)
 {
     static const Torus mu = ModSwitchToTorus(1, 8);
     for (int i = 0; i < out.lwe_sample_->n(); i++) {

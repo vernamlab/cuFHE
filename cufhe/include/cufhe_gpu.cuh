@@ -110,11 +110,11 @@ void Xor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void Not(Ctxt& out, const Ctxt& in, Stream st);
 void Copy(Ctxt& out, const Ctxt& in, Stream st);
-void CopySync(Ctxt& out, const Ctxt&);
+void CopyOnHost(Ctxt& out, const Ctxt&);
 void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
          Stream st);
-void ConstantZero(Ctxt& out, Stream st);
-void ConstantOne(Ctxt& out, Stream st);
+void ConstantZero(Ctxt& out);
+void ConstantOne(Ctxt& out);
 
 bool StreamQuery(Stream st);
 
