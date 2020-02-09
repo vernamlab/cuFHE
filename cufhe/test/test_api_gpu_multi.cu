@@ -68,7 +68,7 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
 }
 
 int main() {
-  int gpuNum = 1;
+  int gpuNum = 2;
   SetGPUNum(gpuNum);
   cudaSetDevice(0);
   cudaDeviceProp prop;

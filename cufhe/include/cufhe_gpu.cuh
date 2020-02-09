@@ -76,7 +76,7 @@ class Stream {
     }
 
     inline ~Stream() {
-        Destroy();
+        //Destroy();
     }
 
     inline void Create()
