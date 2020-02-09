@@ -31,6 +31,7 @@
 
 #include <math.h>
 #include <time.h>
+#include <vector>
 #include <iostream>
 #include "cufhe_core.h"
 #include "details/allocator.h"
@@ -132,7 +133,7 @@ struct PubKey {
 
 /** Ciphertext. */
 struct Ctxt {
-    Ctxt(bool is_alias = false);
+    Ctxt();
     ~Ctxt();
     Ctxt(const Ctxt& that) = delete;
     Ctxt& operator=(const Ctxt& that) = delete;
@@ -141,6 +142,9 @@ struct Ctxt {
     MemoryDeleter lwe_sample_deleter_;
     LWESample* lwe_sample_device_;
     MemoryDeleter lwe_sample_device_deleter_;
+
+    std::vector<LWESample*> lwe_sample_devices_;
+    std::vector<MemoryDeleter> lwe_sample_devices_deleter_;
 };
 
 /** Plaintext is in {0, 1}. */

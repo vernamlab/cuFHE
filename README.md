@@ -35,6 +35,7 @@ For devices with Compute Capability less than 6.0, there is [an issue](https://g
 ### User Manual
 Use files in `cufhe/test/` as examples. To summarize, follow the following function calling procedures.
 ```c++
+SetGPUNum(2); //Set number of gpu to use. Now use 2 GPU. If you do not specify GPU number, use only 1 GPU.
 SetSeed(); // init random generator seed
 PriKey pri_key;
 PubKey pub_key;
@@ -43,18 +44,31 @@ KeyGen(pub_key, pri_key); // key generation
 Ptxt pt[2];
 pt[0] = 0; // 0 or 1, single bit
 pt[1] = 1;
-Ctxt ct[2];
+
+Ctxt ct[4];
 Encrypt(ct[0], pt[0], pri_key);
 Encrypt(ct[1], pt[1], pri_key);
+Encrypt(ct[2], pt[0], pri_key);
+Encrypt(ct[3], pt[1], pri_key);
 
 Initialize(pub_key); // for GPU library
-Nand(ct[0], ct[0], ct[1], pub_key); // for CPU library
-Nand(ct[0], ct[0], ct[1]); // for GPU library non-parallelized gates
-cudaSteam_t stream_id;
-cudaStreamCreate(&stream_id);
-Nand(ct[0], ct[0], ct[1], stream_id); // for GPU library parallelized gates
+
+Stream stream_gpu_0(0); //Create Stream runs on GPU0
+stream_gpu_0.Create();
+
+Stream stream_gpu_1(1); //Create Stream runs on GPU1
+stream_gpu_1.Create();
+
+Nand(ct[0], ct[0], ct[1], stream_gpu_0); //Run Nand on GPU0
+Nand(ct[2], ct[2], ct[3], stream_gpu_1); //Run Nand on GPU1
+
+Synchronize(); //Synchronize All GPU
 
 Decrypt(pt[0], ct[0], pri_key);
+
+stream_gpu_0.Destroy(); //Destroy Stream
+stream_gpu_1.Destory(); 
+
 CleanUp(); // for GPU library
 ```
 

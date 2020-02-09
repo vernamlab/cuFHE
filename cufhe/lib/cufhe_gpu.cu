@@ -22,12 +22,16 @@
 
 #include <include/cufhe.h>
 #include <include/details/allocator_gpu.cuh>
+#include <include/cufhe_gpu.cuh>
+#include <cuda.h>
+#include <cuda_device_runtime_api.h>
+#include <cuda_runtime.h>
 
 namespace cufhe {
 
 uint32_t cnt = 0;
 
-Ctxt::Ctxt(bool is_alias)
+Ctxt::Ctxt()
 {
     std::pair<void*, MemoryDeleter> pair;
     Param* param = GetDefaultParam();
@@ -35,22 +39,60 @@ Ctxt::Ctxt(bool is_alias)
     lwe_sample_ = new LWESample(param->lwe_n_);
     lwe_sample_device_ = new LWESample(param->lwe_n_);
 
-    if (is_alias) {
-        lwe_sample_->set_data(nullptr);
-        lwe_sample_deleter_ = nullptr;
-        lwe_sample_device_->set_data(nullptr);
-        lwe_sample_device_deleter_ = nullptr;
-    }
-    else {
-        // pair = AllocatorBoth::New(lwe_sample_->SizeMalloc());
-        pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
-        lwe_sample_->set_data((LWESample::PointerType)pair.first);
-        lwe_sample_deleter_ = pair.second;
+    pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
+    lwe_sample_->set_data((LWESample::PointerType)pair.first);
+    lwe_sample_deleter_ = pair.second;
 
-        pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
-        lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
-        lwe_sample_device_deleter_ = pair.second;
+/*
+    pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
+    lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
+    lwe_sample_device_deleter_ = pair.second;
+*/
+
+    for(int i=0;i<_gpuNum;i++){
+        lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
+    }
+
+    for(int i=0;i<_gpuNum;i++){
+        cudaSetDevice(i);
+        pair = AllocatorGPU::New(lwe_sample_devices_[i]->SizeMalloc());
+        lwe_sample_devices_[i]->set_data((LWESample::PointerType)pair.first);
+        lwe_sample_devices_deleter_.push_back(pair.second);
     }
 }
+
+Ctxt::~Ctxt()
+{
+    if (lwe_sample_ != nullptr) {
+        if (lwe_sample_deleter_ != nullptr) {
+            lwe_sample_deleter_(lwe_sample_->data());
+            lwe_sample_deleter_ = nullptr;
+        }
+
+        lwe_sample_->set_data(nullptr);
+        delete lwe_sample_;
+        lwe_sample_ = nullptr;
+    }
+
+    if (lwe_sample_device_ != nullptr && lwe_sample_devices_.size() == 0) {
+        if (lwe_sample_device_deleter_ != nullptr) {
+            lwe_sample_device_deleter_(lwe_sample_device_->data());
+            lwe_sample_device_deleter_ = nullptr;
+        }
+
+        lwe_sample_device_->set_data(nullptr);
+        delete lwe_sample_device_;
+        lwe_sample_device_ = nullptr;
+    }
+
+    for(int i=0;i<lwe_sample_devices_.size();i++){
+        cudaSetDevice(i);
+        lwe_sample_devices_deleter_[i](lwe_sample_devices_[i]->data());
+        lwe_sample_devices_deleter_[i] = nullptr;
+    }
+    lwe_sample_devices_.clear();
+    lwe_sample_devices_deleter_.clear();
+}
+
 
 }  // namespace cufhe

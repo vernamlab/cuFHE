@@ -22,21 +22,29 @@
 
 #include <include/cufhe.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <include/bootstrap_gpu.cuh>
 #include <include/details/error_gpu.cuh>
 #include <include/ntt_gpu/ntt.cuh>
 
 #include <iostream>
+#include <vector>
 using namespace std;
 
 namespace cufhe {
 
 using BootstrappingKeyNTT = TGSWSampleArray_T<FFP>;
-BootstrappingKeyNTT* bk_ntt = nullptr;
-MemoryDeleter bk_ntt_deleter = nullptr;
-KeySwitchingKey* ksk_dev = nullptr;
-MemoryDeleter ksk_dev_deleter = nullptr;
-CuNTTHandler<>* ntt_handler = nullptr;
+//BootstrappingKeyNTT* bk_ntt = nullptr;
+//MemoryDeleter bk_ntt_deleter = nullptr;
+//KeySwitchingKey* ksk_dev = nullptr;
+//MemoryDeleter ksk_dev_deleter = nullptr;
+//CuNTTHandler<>* ntt_handler = nullptr;
+
+vector<BootstrappingKeyNTT *> bk_ntts;
+vector<MemoryDeleter> bk_ntt_deleters;
+vector<CuNTTHandler<> *> ntt_handlers;
+vector<KeySwitchingKey *> ksk_devs;
+vector<MemoryDeleter> ksk_dev_deleters;
 
 __global__ void __BootstrappingKeyToNTT__(BootstrappingKeyNTT bk_ntt,
                                           BootstrappingKey bk,
@@ -58,68 +66,86 @@ __global__ void __BootstrappingKeyToNTT__(BootstrappingKeyNTT bk_ntt,
     ntt.NTT<Torus>(poly_out, poly_in, sh_temp, 0);
 }
 
-void BootstrappingKeyToNTT(const BootstrappingKey* bk)
+void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
 {
-    BootstrappingKey* d_bk;
-    d_bk = new BootstrappingKey(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
-    std::pair<void*, MemoryDeleter> pair;
-    pair = AllocatorGPU::New(d_bk->SizeMalloc());
-    d_bk->set_data((BootstrappingKey::PointerType)pair.first);
-    MemoryDeleter d_bk_deleter = pair.second;
-    CuSafeCall(cudaMemcpy(d_bk->data(), bk->data(), d_bk->SizeMalloc(),
+    for(int i=0;i<gpuNum;i++){
+        cudaSetDevice(i);
+
+        BootstrappingKey* d_bk;
+        d_bk = new BootstrappingKey(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
+        std::pair<void*, MemoryDeleter> pair;
+
+        // Allocate GPU Memory
+        pair = AllocatorGPU::New(d_bk->SizeMalloc());
+        d_bk->set_data((BootstrappingKey::PointerType)pair.first);
+        MemoryDeleter d_bk_deleter = pair.second;
+        CuSafeCall(cudaMemcpy(d_bk->data(), bk->data(), d_bk->SizeMalloc(),
                           cudaMemcpyHostToDevice));
+        Assert(bk_ntts.size() == i);
 
-    Assert(bk_ntt == nullptr);
-    bk_ntt =
-        new BootstrappingKeyNTT(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
-    pair = AllocatorGPU::New(bk_ntt->SizeMalloc());
-    bk_ntt->set_data((BootstrappingKeyNTT::PointerType)pair.first);
-    bk_ntt_deleter = pair.second;
+        bk_ntts.push_back(new BootstrappingKeyNTT(bk->n(), bk->k(), bk->l(), bk->w(), bk->t()));
 
-    Assert(ntt_handler == nullptr);
-    ntt_handler = new CuNTTHandler<>();
-    ntt_handler->Create();
-    ntt_handler->CreateConstant();
-    cudaDeviceSynchronize();
-    CuCheckError();
+        //Allocate GPU Memory
+        pair = AllocatorGPU::New(bk_ntts[i]->SizeMalloc());
+        bk_ntts[i]->set_data((BootstrappingKeyNTT::PointerType)pair.first);
+        bk_ntt_deleters.push_back(pair.second);
 
-    dim3 grid(bk->k() + 1, (bk->k() + 1) * bk->l(), bk->t());
-    dim3 block(128);
-    __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntt, *d_bk, *ntt_handler);
-    cudaDeviceSynchronize();
-    CuCheckError();
+        Assert(ntt_handlers.size() == i);
+        ntt_handlers.push_back(new CuNTTHandler<>());
+        ntt_handlers[i]->Create();
+        ntt_handlers[i]->CreateConstant();
+        cudaDeviceSynchronize();
+        CuCheckError();
 
-    d_bk_deleter(d_bk->data());
-    delete d_bk;
+        dim3 grid(bk->k() + 1, (bk->k() + 1) * bk->l(), bk->t());
+        dim3 block(128);
+        __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntts[i], *d_bk, *ntt_handlers[i]);
+        cudaDeviceSynchronize();
+        CuCheckError();
+
+        d_bk_deleter(d_bk->data());
+        delete d_bk;
+    }
 }
 
-void DeleteBootstrappingKeyNTT()
+void DeleteBootstrappingKeyNTT(int gpuNum)
 {
-    bk_ntt_deleter(bk_ntt->data());
-    delete bk_ntt;
-    bk_ntt = nullptr;
+  for(int i=0;i<bk_ntts.size();i++){
+    cudaSetDevice(i);
+    bk_ntt_deleters[i](bk_ntts[i]->data());
+    delete bk_ntts[i];
+    bk_ntts[i] = nullptr;
 
-    ntt_handler->Destroy();
-    delete ntt_handler;
+    ntt_handlers[i]->Destroy();
+    delete ntt_handlers[i];
+  }
 }
 
-void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk)
+void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum)
 {
-    Assert(ksk_dev == nullptr);
-    ksk_dev = new KeySwitchingKey(ksk->n(), ksk->l(), ksk->w(), ksk->m());
-    std::pair<void*, MemoryDeleter> pair;
-    pair = AllocatorGPU::New(ksk_dev->SizeMalloc());
-    ksk_dev->set_data((KeySwitchingKey::PointerType)pair.first);
-    ksk_dev_deleter = pair.second;
-    CuSafeCall(cudaMemcpy(ksk_dev->data(), ksk->data(), ksk->SizeMalloc(),
-                          cudaMemcpyHostToDevice));
+    for(int i=0;i<gpuNum;i++){
+        cudaSetDevice(i);
+
+        Assert(ksk_devs.size() == i);
+        ksk_devs.push_back(new KeySwitchingKey(ksk->n(), ksk->l(), ksk->w(), ksk->m()));
+
+        std::pair<void*, MemoryDeleter> pair;
+        pair = AllocatorGPU::New(ksk_devs[i]->SizeMalloc());
+        ksk_devs[i]->set_data((KeySwitchingKey::PointerType)pair.first);
+        ksk_dev_deleters.push_back(pair.second);
+        CuSafeCall(cudaMemcpy(ksk_devs[i]->data(), ksk->data(), ksk->SizeMalloc(),
+                              cudaMemcpyHostToDevice));
+    }
 }
 
-void DeleteKeySwitchingKey()
+void DeleteKeySwitchingKey(int gpuNum)
 {
-    ksk_dev_deleter(ksk_dev->data());
-    delete ksk_dev;
-    ksk_dev = nullptr;
+    for(int i=0;i<ksk_devs.size();i++){
+        cudaSetDevice(i);
+        ksk_dev_deleters[i](ksk_devs[i]->data());
+        delete ksk_devs[i];
+        ksk_devs[i] = nullptr;
+    }
 }
 
 __device__ inline uint32_t ModSwitch2048(uint32_t a)
@@ -612,113 +638,113 @@ __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
     __threadfence();
 }
 
-void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st)
+void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st, int gpuNum)
 {
     dim3 grid(1);
     dim3 block(512);
     __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,
-                                          bk_ntt->data(), ksk_dev->data(),
-                                          *ntt_handler);
+                                          bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+                                          *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st)
+                   Torus fix, cudaStream_t st, int gpuNum)
 {
     __NandBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                 Torus fix, cudaStream_t st)
+                 Torus fix, cudaStream_t st, int gpuNum)
 {
     __OrBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st)
+                   Torus fix, cudaStream_t st, int gpuNum)
 {
     __OrYNBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st)
+                   Torus fix, cudaStream_t st, int gpuNum)
 {
     __OrNYBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st)
+                  Torus fix, cudaStream_t st, int gpuNum)
 {
     __AndBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                    Torus fix, cudaStream_t st)
+                    Torus fix, cudaStream_t st, int gpuNum)
 {
     __AndYNBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                    Torus fix, cudaStream_t st)
+                    Torus fix, cudaStream_t st, int gpuNum)
 {
     __AndNYBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st)
+                  Torus fix, cudaStream_t st, int gpuNum)
 {
     __NorBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st)
+                  Torus fix, cudaStream_t st, int gpuNum)
 {
     __XorBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st)
+                   Torus fix, cudaStream_t st, int gpuNum)
 {
     __XnorBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntt->data(),
-        ksk_dev->data(), *ntt_handler);
+        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st)
+void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
 {
     __CopyBootstrap__<<<1, cuFHE_DEF_n + 1, 0, st>>>(out->data(), in->data());
     CuCheckError();
 }
 
-void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st)
+void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st, int gpuNum)
 {
     __NotBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(out->data(), in->data(), n);
     CuCheckError();
@@ -726,7 +752,7 @@ void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st)
 
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, Torus mu, Torus fix, Torus muxfix,
-                  cudaStream_t st)
+                  cudaStream_t st, int gpuNum)
 {
     int maxbytes = 98304;  // 96 KB
     cudaFuncSetAttribute(__MuxBootstrap__,
@@ -734,8 +760,8 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                          (2 * cuFHE_DEF_l + 3) * cuFHE_DEF_N * sizeof(FFP));
     __MuxBootstrap__<<<1, cuFHE_DEF_N / 2, (2 * cuFHE_DEF_l + 3) * cuFHE_DEF_N * sizeof(FFP),
                        st>>>(out->data(), inc->data(), in1->data(), in0->data(),
-                             mu, fix, muxfix, bk_ntt->data(), ksk_dev->data(),
-                             *ntt_handler);
+                             mu, fix, muxfix, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+                             *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 

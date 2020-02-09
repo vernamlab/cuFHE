@@ -25,7 +25,7 @@
 
 namespace cufhe {
 
-Ctxt::Ctxt(bool is_alias)
+Ctxt::Ctxt()
 {
     Param* param = GetDefaultParam();
     lwe_sample_ = new LWESample(param->lwe_n_);
@@ -36,6 +36,31 @@ Ctxt::Ctxt(bool is_alias)
     lwe_sample_deleter_ = pair.second;
     lwe_sample_device_ = nullptr;
     lwe_sample_device_deleter_ = nullptr;
+}
+
+Ctxt::~Ctxt()
+{
+    if (lwe_sample_ != nullptr) {
+        if (lwe_sample_deleter_ != nullptr) {
+            lwe_sample_deleter_(lwe_sample_->data());
+            lwe_sample_deleter_ = nullptr;
+        }
+
+        lwe_sample_->set_data(nullptr);
+        delete lwe_sample_;
+        lwe_sample_ = nullptr;
+    }
+
+    if (lwe_sample_device_ != nullptr) {
+        if (lwe_sample_device_deleter_ != nullptr) {
+            lwe_sample_device_deleter_(lwe_sample_device_->data());
+            lwe_sample_device_deleter_ = nullptr;
+        }
+
+        lwe_sample_device_->set_data(nullptr);
+        delete lwe_sample_device_;
+        lwe_sample_device_ = nullptr;
+    }
 }
 
 }  // namespace cufhe

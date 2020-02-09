@@ -21,23 +21,15 @@
  */
 
 // Include these two files for GPU computing.
+#include <unistd.h>
+
 #include <include/cufhe_gpu.cuh>
 using namespace cufhe;
 
 #include <iostream>
+#include <memory>
+#include <chrono>
 using namespace std;
-
-inline void CtxtCopyH2D(const Ctxt& c, Stream st)
-{
-    cudaMemcpyAsync(c.lwe_sample_device_->data(), c.lwe_sample_->data(),
-                    c.lwe_sample_->SizeData(), cudaMemcpyHostToDevice, st.st());
-}
-
-inline void CtxtCopyD2H(const Ctxt& c, Stream st)
-{
-    cudaMemcpyAsync(c.lwe_sample_->data(), c.lwe_sample_device_->data(),
-                    c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost, st.st());
-}
 
 void NandCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1) {
   out.message_ = 1 - in0.message_ * in1.message_;
@@ -76,37 +68,40 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0){
 }
 
 int main() {
+  int gpuNum = 2;
+  SetGPUNum(gpuNum);
   cudaSetDevice(0);
   cudaDeviceProp prop;
   cudaGetDeviceProperties(&prop, 0);
   uint32_t kNumSMs = prop.multiProcessorCount;
-  uint32_t kNumTests = kNumSMs * 32;// * 8;
-  uint32_t kNumLevels = 10; //Gate Types, Mux is counted as 2.
+  uint32_t kNumTests = kNumSMs * 64;// * 8;
+  uint32_t kNumLevels = 10; 
 
   SetSeed(); // set random seed
 
   PriKey pri_key; // private key
   PubKey pub_key; // public key
   //MUX Need 3 input
-  Ptxt* pt = new Ptxt[3 * kNumTests];
-  Ctxt* ct = new Ctxt[3 * kNumTests];
+  vector<shared_ptr<Ctxt>> ct;
+  vector<shared_ptr<Ptxt>> pt;
+  for(int i=0;i< 3*kNumTests;i++){
+    ct.push_back(make_shared<Ctxt>());
+    pt.push_back(make_shared<Ptxt>());
+  }
   Synchronize();
   bool correct;
 
   cout<< "------ Key Generation ------" <<endl;
   KeyGen(pub_key, pri_key);
-  // Alternatively ...
-  // PriKeyGen(pri_key);
-  // PubKeyGen(pub_key, pri_key);
 
   cout<< "------ Test Encryption/Decryption ------" <<endl;
   cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < kNumTests; i ++) {
-    pt[i].message_ = rand() % Ptxt::kPtxtSpace;
-    Encrypt(ct[i], pt[i], pri_key);
-    Decrypt(pt[kNumTests + i], ct[i], pri_key);
-    if (pt[kNumTests + i].message_ != pt[i].message_) {
+    pt[i].get()->message_ = rand() % Ptxt::kPtxtSpace;
+    Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
+    Decrypt(*pt[kNumTests + i].get(), *ct[i].get(), pri_key);
+    if (pt[kNumTests + i].get()->message_ != pt[i].get()->message_) {
       correct = false;
       break;
     }
@@ -119,89 +114,99 @@ int main() {
   cout<< "------ Initilizating Data on GPU(s) ------" <<endl;
   Initialize(pub_key); // essential for GPU computing
 
-  cout<< "------ Test NAND Gate ------" <<endl;
-  cout<< "Number of tests:\t" << kNumTests <<endl;
-  // Create CUDA streams for parallel gates.
-  Stream* st = new Stream[kNumSMs];
-  for (int i = 0; i < kNumSMs; i ++)
-    st[i].Create();
+  cout << "Finished Initialize" << endl;
 
+  // Create CUDA streams for parallel gates.
+  cout << "------ Initializing Stream ------" << endl;
+  vector<shared_ptr<Stream>> st;
+  for (int i = 0; i < kNumSMs*gpuNum; i ++){
+    st.push_back(make_shared<Stream>(i%gpuNum));
+    st[i]->Create();
+  }
+
+  cout<< "Number of tests:\t" << kNumTests <<endl;
   correct = true;
   for (int i = 0; i < 3* kNumTests; i ++) {
-    pt[i] = rand() % Ptxt::kPtxtSpace;
-    Encrypt(ct[i], pt[i], pri_key);
-    CtxtCopyH2D(ct[i], st[i % kNumSMs]);
+    *pt[i].get() = rand() % Ptxt::kPtxtSpace;
+    Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
   }
   Synchronize();
 
-  float et;
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-  cudaEventRecord(start, 0);
-
+  chrono::system_clock::time_point start, end;
+  start = chrono::system_clock::now();
   // Here, pass streams to gates for parallel gates.
+  cout<< "------ Test NAND Gate ------" <<endl;
   for (int i = 0; i < kNumTests; i ++)
-    gNand(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gOr(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gOrYN(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gOrNY(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gAnd(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gAndYN(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gAndNY(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gXor(ct[i], ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-  for (int i = 0; i < kNumTests; i ++)
-    gMux(ct[i], ct[i], ct[i + kNumTests], ct[i + 2*kNumTests] ,st[i % kNumSMs]);
-  Synchronize();
+    Nand(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
-  cudaEventRecord(stop, 0);
-  cudaEventSynchronize(stop);
-  cudaEventElapsedTime(&et, start, stop);
-  cout<< et / kNumTests / kNumLevels << " ms / gate" <<endl;
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
+  cout<< "------ Test OR Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    Or(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
 
-  for (int i = 0; i < kNumTests; i ++) {
-    CtxtCopyD2H(ct[i], st[i % kNumSMs]);
-  }
+  cout<< "------ Test ORYN Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    OrYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ORNY Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    OrNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test AND Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    And(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ANDYN Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    AndYN(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test ANDNY Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    AndNY(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test XOR Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    Xor(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *st[i % (kNumSMs*gpuNum)].get());
+
+  cout<< "------ Test MUX Gate ------" <<endl;
+  for (int i = 0; i < kNumTests; i ++)
+    Mux(*ct[i].get(), *ct[i].get(), *ct[i + kNumTests].get(), *ct[i+ 2*kNumTests].get(),
+	 *st[i % (kNumSMs*gpuNum)].get());
+
   Synchronize();
+  end = chrono::system_clock::now();
+  double elapsed = chrono::duration_cast<chrono::milliseconds>(end-start).count();
+
+  cout<< elapsed / kNumTests / kNumLevels << " ms / gate" <<endl;
 
   int cnt_failures = 0;
   for (int i = 0; i < kNumTests; i ++) {
-    NandCheck(pt[i], pt[i], pt[i + kNumTests]);
-    OrCheck(pt[i], pt[i], pt[i + kNumTests]);
-    OrYNCheck(pt[i], pt[i], pt[i + kNumTests]);
-    OrNYCheck(pt[i], pt[i], pt[i + kNumTests]);
-    AndCheck(pt[i], pt[i], pt[i + kNumTests]);
-    AndYNCheck(pt[i], pt[i], pt[i + kNumTests]);
-    AndNYCheck(pt[i], pt[i], pt[i + kNumTests]);
-    XorCheck(pt[i], pt[i], pt[i + kNumTests]);
-    MuxCheck(pt[i], pt[i], pt[i + kNumTests],pt[i + 2*kNumTests]);
-    Decrypt(pt[i + kNumTests], ct[i], pri_key);
-    if (pt[i + kNumTests].message_ != pt[i].message_) {
+    NandCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    OrCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    OrYNCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    OrNYCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    AndCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    AndYNCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    AndNYCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    XorCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get());
+    MuxCheck(*pt[i].get(), *pt[i].get(), *pt[i + kNumTests].get(), *pt[i + 2*kNumTests].get());
+    Decrypt(*pt[i + kNumTests].get(), *ct[i].get(), pri_key);
+    if (pt[i + kNumTests].get()->message_ != pt[i].get()->message_) {
       correct = false;
       cnt_failures += 1;
       //std::cout<< "Fail at iteration: " << i <<std::endl;
     }
   }
+
   if (correct)
     cout<< "PASS" <<endl;
   else
     cout<< "FAIL:\t" << cnt_failures << "/" << kNumTests <<endl;
-  for (int i = 0; i < kNumSMs; i ++)
-    st[i].Destroy();
-  delete [] st;
+  for (int i = 0; i < kNumSMs*gpuNum; i ++)
+    st[i].get()->Destroy();
+  st.clear();
 
-  cout<< "------ Cleaning Data on GPU(s) ------" <<endl;
-  CleanUp(); // essential to clean and deallocate data
-  delete [] ct;
-  delete [] pt;
-  return 0;
+  CleanUp();
+  ct.clear();
+  pt.clear();
+  cout << "Deleted!" << endl;
 }
