@@ -119,6 +119,9 @@ void DeleteBootstrappingKeyNTT(int gpuNum)
     ntt_handlers[i]->Destroy();
     delete ntt_handlers[i];
   }
+  bk_ntts.clear();
+  bk_ntt_deleters.clear();
+  ntt_handlers.clear();
 }
 
 void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum)
@@ -146,6 +149,8 @@ void DeleteKeySwitchingKey(int gpuNum)
         delete ksk_devs[i];
         ksk_devs[i] = nullptr;
     }
+    ksk_dev_deleters.clear();
+    ksk_devs.clear();
 }
 
 __device__ inline uint32_t ModSwitch2048(uint32_t a)
