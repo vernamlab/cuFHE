@@ -330,7 +330,7 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     __syncthreads();
 // accumulate
 #pragma unroll
-    for (int i = 0; i < 500; i++) {  // 500 iterations
+    for (int i = 0; i < cuFHE_DEF_n; i++) {  // n iterations
         bar = ModSwitch2048(in[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
@@ -340,6 +340,49 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     static const uint32_t ks_bits = 2;
     static const uint32_t ks_size = 8;
     KeySwitch<cuFHE_DEF_n, cuFHE_DEF_N, 2, 8>(out, tlwe, ksk);
+    __threadfence();
+}
+
+__global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu, FFP* bk,
+                              Torus* ksk, CuNTTHandler<> ntt)
+{
+    //  Assert(bk.k() == 1);
+    //  Assert(bk.l() == 2);
+    //  Assert(bk.n() == 1024);
+    __shared__ FFP sh[6 * 1024];
+    //  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
+    //  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
+    Torus* tlwe = (Torus*)&sh[5120];
+
+    // test vector
+    // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+    register int32_t bar = 2048 - ModSwitch2048(in[500]);
+    register uint32_t tid = ThisThreadRankInBlock();
+    register uint32_t bdim = ThisBlockSize();
+    register uint32_t cmp, neg, pos;
+#pragma unroll
+    for (int i = tid; i < 1024; i += bdim) {
+        tlwe[i] = 0;  // part a
+        if (bar == 2048)
+            tlwe[i + 1024] = mu;
+        else {
+            cmp = (uint32_t)(i < (bar & 1023));
+            neg = -(cmp ^ (bar >> 10));
+            pos = -((1 - cmp) ^ (bar >> 10));
+            tlwe[i + 1024] = (mu & pos) + ((-mu) & neg);  // part b
+        }
+    }
+    __syncthreads();
+// accumulate
+#pragma unroll
+    for (int i = 0; i < cuFHE_DEF_n; i++) {  // n iterations
+        bar = ModSwitch2048(in[i]);
+        Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+    }
+    __syncthreads();
+    for(int i =0; i< 2*cuFHE_DEF_N; i++){
+        out[i] = tlwe[i];
+    }
     __threadfence();
 }
 
@@ -648,6 +691,16 @@ void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st, int gpu
     dim3 grid(1);
     dim3 block(512);
     __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,
+                                          bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+                                          *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
+void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st, int gpuNum)
+{
+    dim3 grid(1);
+    dim3 block(512);
+    __BootstrapTLWE2TRLWE__<<<grid, block, 0, st>>>(out, in->data(), mu,
                                           bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
                                           *ntt_handlers[gpuNum]);
     CuCheckError();

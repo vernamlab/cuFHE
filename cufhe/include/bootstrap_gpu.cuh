@@ -31,7 +31,8 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum);
 void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum);
 void DeleteBootstrappingKeyNTT(int gpuNum);
 void DeleteKeySwitchingKey(int gpuNum);
-void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st = 0);
+void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,int gpuNum);
+void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,int gpuNum);
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st);
 
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,

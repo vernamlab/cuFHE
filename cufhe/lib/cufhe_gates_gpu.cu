@@ -24,6 +24,7 @@
 #include <include/bootstrap_gpu.cuh>
 #include <include/cufhe_gpu.cuh>
 #include <unistd.h>
+#include <array>
 
 namespace cufhe {
 
@@ -57,6 +58,18 @@ inline void CtxtCopyD2H(const Ctxt& c, Stream st)
     cudaSetDevice(st.device_id());
     cudaMemcpyAsync(c.lwe_sample_->data(), c.lwe_sample_devices_[st.device_id()]->data(),
                     c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost, st.st());
+}
+
+void GateBootstrappingTLWE2TRLWElvl01NTT(std::array< std::array<uint32_t, cuFHE_DEF_N> ,2>& out, const Ctxt& in, Stream st){
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    Torus* temp;
+    cudaSetDevice(st.device_id());
+    cudaMalloc((void**)&temp, sizeof(out));
+    CtxtCopyH2D(in,st);
+    BootstrapTLWE2TRLWE(temp,in.lwe_sample_devices_[st.device_id()],mu,st.st(),st.device_id());
+    cudaMemcpyAsync(out.data(), temp,
+                    sizeof(out), cudaMemcpyDeviceToHost, st.st());
+    cudaFree(temp);
 }
 
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
