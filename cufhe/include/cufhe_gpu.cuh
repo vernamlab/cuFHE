@@ -31,6 +31,7 @@
 #include <cuda.h>
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
+#include <array>
 #include "cufhe.h"
 
 namespace cufhe {
@@ -98,6 +99,7 @@ class Stream {
     int _device_id;
 };  // class Stream
 
+void GateBootstrappingTLWE2TRLWElvl01NTT(std::array< std::array<uint32_t, cuFHE_DEF_N> ,2>& out, const Ctxt& in, Stream st);
 void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void AndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void AndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
