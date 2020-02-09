@@ -29,14 +29,6 @@ namespace cufhe {
 
 int _gpuNum = 1;
 
-/*
-void Initialize(const PubKey& pub_key)
-{
-    BootstrappingKeyToNTT(pub_key.bk_);
-    KeySwitchingKeyToDevice(pub_key.ksk_);
-}
-*/
-
 void SetGPUNum(int gpuNum){
     _gpuNum = gpuNum;
 }
@@ -46,14 +38,6 @@ void Initialize(const PubKey& pub_key)
     BootstrappingKeyToNTT(pub_key.bk_, _gpuNum);
     KeySwitchingKeyToDevice(pub_key.ksk_, _gpuNum);
 }
-
-/*
-void CleanUp()
-{
-    DeleteBootstrappingKeyNTT();
-    DeleteKeySwitchingKey();
-}
-*/
 
 void CleanUp()
 {

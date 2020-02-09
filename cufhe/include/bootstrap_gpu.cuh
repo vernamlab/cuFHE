@@ -32,31 +32,6 @@ void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum);
 void DeleteBootstrappingKeyNTT(int gpuNum);
 void DeleteKeySwitchingKey(int gpuNum);
 void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st = 0);
-//void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                   Torus fix, cudaStream_t st);
-//void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                 Torus fix, cudaStream_t st);
-//void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                   Torus fix, cudaStream_t st);
-//void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                   Torus fix, cudaStream_t st);
-//void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                  Torus fix, cudaStream_t st);
-//void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                    Torus fix, cudaStream_t st);
-//void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                    Torus fix, cudaStream_t st);
-//void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                  Torus fix, cudaStream_t st);
-//void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                  Torus fix, cudaStream_t st);
-//void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-//                   Torus fix, cudaStream_t st);
-//void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st);
-//void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st);
-//void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
-//                  LWESample* in0, Torus mu, Torus fix, Torus muxfix,
-//                  cudaStream_t st);
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st);
 
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,

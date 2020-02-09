@@ -45,11 +45,9 @@ extern int _gpuNum;
 void SetGPUNum(int gpuNum);
 
 void Initialize(const PubKey& pub_key);
-//void Initialize(const PubKey& pub_key, int gpuNum);
 
 /** Remove everything created in Initialize(). */
 void CleanUp();
-//void CleanUp(int gpuNum);
 
 /**
  * \brief Synchronize device.
@@ -70,6 +68,7 @@ class Stream {
    public:
     inline Stream() {
        st_ = 0;
+       _device_id = 0;
     }
     inline Stream(int device_id){
         _device_id = device_id;
@@ -117,25 +116,6 @@ void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
 void ConstantZero(Ctxt& out, Stream st);
 void ConstantOne(Ctxt& out, Stream st);
 
-void gAnd(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gAndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gAndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gOrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gOrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gNor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gXor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st = 0);
-void gNot(Ctxt& out, const Ctxt& in, Stream st = 0);
-void gCopy(Ctxt& out, const Ctxt& in, Stream st = 0);
-void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
-          Stream st = 0);
-void gConstantZero(Ctxt& out, Stream st = 0);
-void gConstantOne(Ctxt& out, Stream st = 0);
-
-void SetToGPU(const Ctxt& in);
-void GetFromGPU(Ctxt& out);
 bool StreamQuery(Stream st);
 
 }  // namespace cufhe
