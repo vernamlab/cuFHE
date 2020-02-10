@@ -66,7 +66,7 @@ void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in, St
     BootstrapTLWE2TRLWE(out.trlwedevices[st.device_id()],in.lwe_sample_devices_[st.device_id()],mu,st.st(),st.device_id());
     cudaSetDevice(st.device_id());
     cudaMemcpyAsync(out.trlwehost.data(), out.trlwedevices[st.device_id()],
-                    sizeof(out), cudaMemcpyDeviceToHost, st.st());
+                    sizeof(out.trlwehost), cudaMemcpyDeviceToHost, st.st());
 }
 
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
