@@ -60,16 +60,12 @@ inline void CtxtCopyD2H(const Ctxt& c, Stream st)
                     c.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost, st.st());
 }
 
-void GateBootstrappingTLWE2TRLWElvl01NTT(std::array< std::array<uint32_t, cuFHE_DEF_N> ,2>& out, const Ctxt& in, Stream st){
+void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl01& out, const Ctxt& in, Stream st){
     static const Torus mu = ModSwitchToTorus(1, 8);
-    Torus* temp;
-    cudaSetDevice(st.device_id());
-    cudaMalloc((void**)&temp, sizeof(out));
     CtxtCopyH2D(in,st);
-    BootstrapTLWE2TRLWE(temp,in.lwe_sample_devices_[st.device_id()],mu,st.st(),st.device_id());
-    cudaMemcpyAsync(out.data(), temp,
+    BootstrapTLWE2TRLWE(out.trlwedevices[st.device_id()],in.lwe_sample_devices_[st.device_id()],mu,st.st(),st.device_id());
+    cudaMemcpyAsync(out.trlwehost.data(), out.trlwedevices[st.device_id()],
                     sizeof(out), cudaMemcpyDeviceToHost, st.st());
-    cudaFree(temp);
 }
 
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
