@@ -64,6 +64,7 @@ void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in, St
     static const Torus mu = ModSwitchToTorus(1, 8);
     CtxtCopyH2D(in,st);
     BootstrapTLWE2TRLWE(out.trlwedevices[st.device_id()],in.lwe_sample_devices_[st.device_id()],mu,st.st(),st.device_id());
+    cudaSetDevice(st.device_id());
     cudaMemcpyAsync(out.trlwehost.data(), out.trlwedevices[st.device_id()],
                     sizeof(out), cudaMemcpyDeviceToHost, st.st());
 }
