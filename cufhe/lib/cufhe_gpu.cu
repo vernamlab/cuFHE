@@ -94,7 +94,7 @@ Ctxt::~Ctxt()
     lwe_sample_devices_deleter_.clear();
 }
 
-cuFHETRLWElvl01::cuFHETRLWElvl01(){
+cuFHETRLWElvl1::cuFHETRLWElvl1(){
     trlwedevices.resize(_gpuNum);
     for(int i=0;i<_gpuNum;i++){
         cudaSetDevice(i);
