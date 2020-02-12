@@ -95,6 +95,7 @@ Ctxt::~Ctxt()
 }
 
 cuFHETRLWElvl1::cuFHETRLWElvl1(){
+    cudaHostRegister(trlwehost.data(),sizeof(trlwehost),cudaHostRegisterDefault);
     trlwedevices.resize(_gpuNum);
     for(int i=0;i<_gpuNum;i++){
         cudaSetDevice(i);
