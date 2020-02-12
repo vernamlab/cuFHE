@@ -54,11 +54,12 @@ void CleanUp();
  * \brief Synchronize device.
  * \details This makes it easy to wrap in python.
  */
-inline void Synchronize() { 
-	for(int i=0;i<_gpuNum;i++){
-		cudaSetDevice(i);
-		cudaDeviceSynchronize(); 
-	}
+inline void Synchronize()
+{
+    for (int i = 0; i < _gpuNum; i++) {
+        cudaSetDevice(i);
+        cudaDeviceSynchronize();
+    }
 };
 
 /**
@@ -67,17 +68,20 @@ inline void Synchronize() {
  */
 class Stream {
    public:
-    inline Stream() {
-       st_ = 0;
-       _device_id = 0;
+    inline Stream()
+    {
+        st_ = 0;
+        _device_id = 0;
     }
-    inline Stream(int device_id){
+    inline Stream(int device_id)
+    {
         _device_id = device_id;
         st_ = 0;
     }
 
-    inline ~Stream() {
-        //Destroy();
+    inline ~Stream()
+    {
+        // Destroy();
     }
 
     inline void Create()
@@ -86,20 +90,21 @@ class Stream {
         cudaStreamCreateWithFlags(&this->st_, cudaStreamNonBlocking);
     }
 
-    inline void Destroy() {
+    inline void Destroy()
+    {
         cudaSetDevice(_device_id);
         cudaStreamDestroy(this->st_);
     }
     inline cudaStream_t st() { return st_; };
-    inline int device_id(){
-        return _device_id;
-    }
+    inline int device_id() { return _device_id; }
+
    private:
     cudaStream_t st_;
     int _device_id;
 };  // class Stream
 
-void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in, Stream st);
+void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
+                                         Stream st);
 void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void AndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void AndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);

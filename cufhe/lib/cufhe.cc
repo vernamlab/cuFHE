@@ -287,7 +287,6 @@ PubKey::~PubKey()
     delete ksk_;
 }
 
-
 void Ctxt::assign(void* host_ptr, void* device_ptr)
 {
     if (lwe_sample_deleter_ != nullptr) {

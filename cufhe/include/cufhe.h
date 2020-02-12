@@ -31,9 +31,9 @@
 
 #include <math.h>
 #include <time.h>
-#include <vector>
 #include <array>
 #include <iostream>
+#include <vector>
 #include "cufhe_core.h"
 #include "details/allocator.h"
 
@@ -56,7 +56,6 @@
 #define cuFHE_DEF_tbar 10
 #define cuFHE_DEF_basebitlvl2 3
 #define cuFHE_DEF_privksakpha 2.0e-31
-
 
 namespace cufhe {
 
@@ -150,8 +149,8 @@ struct Ctxt {
 };
 
 /** TRLWE holder */
-struct cuFHETRLWElvl1{
-    std::array< std::array<uint32_t, cuFHE_DEF_N> ,2> trlwehost;
+struct cuFHETRLWElvl1 {
+    std::array<std::array<uint32_t, cuFHE_DEF_N>, 2> trlwehost;
     std::vector<Torus*> trlwedevices;
     cuFHETRLWElvl1();
 };
