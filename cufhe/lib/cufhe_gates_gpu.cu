@@ -75,6 +75,7 @@ void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
 
 void SampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st)
 {
+    cudaSetDevice(st.device_id());
     cudaMemcpyAsync(in.trlwedevices[st.device_id()], in.trlwehost.data(),
                     sizeof(in.trlwehost), cudaMemcpyHostToDevice, st.st());
     SEandKS(out.lwe_sample_devices_[st.device_id()],
