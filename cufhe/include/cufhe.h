@@ -31,8 +31,9 @@
 
 #include <math.h>
 #include <time.h>
-#include <vector>
+#include <array>
 #include <iostream>
+#include <vector>
 #include "cufhe_core.h"
 #include "details/allocator.h"
 
@@ -145,6 +146,13 @@ struct Ctxt {
 
     std::vector<LWESample*> lwe_sample_devices_;
     std::vector<MemoryDeleter> lwe_sample_devices_deleter_;
+};
+
+/** TRLWE holder */
+struct cuFHETRLWElvl1 {
+    std::array<std::array<uint32_t, cuFHE_DEF_N>, 2> trlwehost;
+    std::vector<Torus*> trlwedevices;
+    cuFHETRLWElvl1();
 };
 
 /** Plaintext is in {0, 1}. */

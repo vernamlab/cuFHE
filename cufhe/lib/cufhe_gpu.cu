@@ -20,12 +20,12 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include <include/cufhe.h>
-#include <include/details/allocator_gpu.cuh>
-#include <include/cufhe_gpu.cuh>
 #include <cuda.h>
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
+#include <include/cufhe.h>
+#include <include/cufhe_gpu.cuh>
+#include <include/details/allocator_gpu.cuh>
 
 namespace cufhe {
 
@@ -43,17 +43,17 @@ Ctxt::Ctxt()
     lwe_sample_->set_data((LWESample::PointerType)pair.first);
     lwe_sample_deleter_ = pair.second;
 
-/*
-    pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
-    lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
-    lwe_sample_device_deleter_ = pair.second;
-*/
+    /*
+        pair = AllocatorGPU::New(lwe_sample_device_->SizeMalloc());
+        lwe_sample_device_->set_data((LWESample::PointerType)pair.first);
+        lwe_sample_device_deleter_ = pair.second;
+    */
 
-    for(int i=0;i<_gpuNum;i++){
+    for (int i = 0; i < _gpuNum; i++) {
         lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
     }
 
-    for(int i=0;i<_gpuNum;i++){
+    for (int i = 0; i < _gpuNum; i++) {
         cudaSetDevice(i);
         pair = AllocatorGPU::New(lwe_sample_devices_[i]->SizeMalloc());
         lwe_sample_devices_[i]->set_data((LWESample::PointerType)pair.first);
@@ -85,7 +85,7 @@ Ctxt::~Ctxt()
         lwe_sample_device_ = nullptr;
     }
 
-    for(int i=0;i<lwe_sample_devices_.size();i++){
+    for (int i = 0; i < lwe_sample_devices_.size(); i++) {
         cudaSetDevice(i);
         lwe_sample_devices_deleter_[i](lwe_sample_devices_[i]->data());
         lwe_sample_devices_deleter_[i] = nullptr;
@@ -94,5 +94,15 @@ Ctxt::~Ctxt()
     lwe_sample_devices_deleter_.clear();
 }
 
+cuFHETRLWElvl1::cuFHETRLWElvl1()
+{
+    cudaHostRegister(trlwehost.data(), sizeof(trlwehost),
+                     cudaHostRegisterDefault);
+    trlwedevices.resize(_gpuNum);
+    for (int i = 0; i < _gpuNum; i++) {
+        cudaSetDevice(i);
+        cudaMalloc((void**)&trlwedevices[i], sizeof(trlwehost));
+    }
+}
 
 }  // namespace cufhe

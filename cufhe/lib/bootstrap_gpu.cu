@@ -34,16 +34,16 @@ using namespace std;
 namespace cufhe {
 
 using BootstrappingKeyNTT = TGSWSampleArray_T<FFP>;
-//BootstrappingKeyNTT* bk_ntt = nullptr;
-//MemoryDeleter bk_ntt_deleter = nullptr;
-//KeySwitchingKey* ksk_dev = nullptr;
-//MemoryDeleter ksk_dev_deleter = nullptr;
-//CuNTTHandler<>* ntt_handler = nullptr;
+// BootstrappingKeyNTT* bk_ntt = nullptr;
+// MemoryDeleter bk_ntt_deleter = nullptr;
+// KeySwitchingKey* ksk_dev = nullptr;
+// MemoryDeleter ksk_dev_deleter = nullptr;
+// CuNTTHandler<>* ntt_handler = nullptr;
 
-vector<BootstrappingKeyNTT *> bk_ntts;
+vector<BootstrappingKeyNTT*> bk_ntts;
 vector<MemoryDeleter> bk_ntt_deleters;
-vector<CuNTTHandler<> *> ntt_handlers;
-vector<KeySwitchingKey *> ksk_devs;
+vector<CuNTTHandler<>*> ntt_handlers;
+vector<KeySwitchingKey*> ksk_devs;
 vector<MemoryDeleter> ksk_dev_deleters;
 
 __global__ void __BootstrappingKeyToNTT__(BootstrappingKeyNTT bk_ntt,
@@ -68,11 +68,12 @@ __global__ void __BootstrappingKeyToNTT__(BootstrappingKeyNTT bk_ntt,
 
 void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
 {
-    for(int i=0;i<gpuNum;i++){
+    for (int i = 0; i < gpuNum; i++) {
         cudaSetDevice(i);
 
         BootstrappingKey* d_bk;
-        d_bk = new BootstrappingKey(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
+        d_bk =
+            new BootstrappingKey(bk->n(), bk->k(), bk->l(), bk->w(), bk->t());
         std::pair<void*, MemoryDeleter> pair;
 
         // Allocate GPU Memory
@@ -80,12 +81,13 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
         d_bk->set_data((BootstrappingKey::PointerType)pair.first);
         MemoryDeleter d_bk_deleter = pair.second;
         CuSafeCall(cudaMemcpy(d_bk->data(), bk->data(), d_bk->SizeMalloc(),
-                          cudaMemcpyHostToDevice));
+                              cudaMemcpyHostToDevice));
         Assert(bk_ntts.size() == i);
 
-        bk_ntts.push_back(new BootstrappingKeyNTT(bk->n(), bk->k(), bk->l(), bk->w(), bk->t()));
+        bk_ntts.push_back(new BootstrappingKeyNTT(bk->n(), bk->k(), bk->l(),
+                                                  bk->w(), bk->t()));
 
-        //Allocate GPU Memory
+        // Allocate GPU Memory
         pair = AllocatorGPU::New(bk_ntts[i]->SizeMalloc());
         bk_ntts[i]->set_data((BootstrappingKeyNTT::PointerType)pair.first);
         bk_ntt_deleters.push_back(pair.second);
@@ -99,7 +101,8 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
 
         dim3 grid(bk->k() + 1, (bk->k() + 1) * bk->l(), bk->t());
         dim3 block(128);
-        __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntts[i], *d_bk, *ntt_handlers[i]);
+        __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntts[i], *d_bk,
+                                                   *ntt_handlers[i]);
         cudaDeviceSynchronize();
         CuCheckError();
 
@@ -110,40 +113,41 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
 
 void DeleteBootstrappingKeyNTT(int gpuNum)
 {
-  for(int i=0;i<bk_ntts.size();i++){
-    cudaSetDevice(i);
-    bk_ntt_deleters[i](bk_ntts[i]->data());
-    delete bk_ntts[i];
-    bk_ntts[i] = nullptr;
+    for (int i = 0; i < bk_ntts.size(); i++) {
+        cudaSetDevice(i);
+        bk_ntt_deleters[i](bk_ntts[i]->data());
+        delete bk_ntts[i];
+        bk_ntts[i] = nullptr;
 
-    ntt_handlers[i]->Destroy();
-    delete ntt_handlers[i];
-  }
-  bk_ntts.clear();
-  bk_ntt_deleters.clear();
-  ntt_handlers.clear();
+        ntt_handlers[i]->Destroy();
+        delete ntt_handlers[i];
+    }
+    bk_ntts.clear();
+    bk_ntt_deleters.clear();
+    ntt_handlers.clear();
 }
 
 void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum)
 {
-    for(int i=0;i<gpuNum;i++){
+    for (int i = 0; i < gpuNum; i++) {
         cudaSetDevice(i);
 
         Assert(ksk_devs.size() == i);
-        ksk_devs.push_back(new KeySwitchingKey(ksk->n(), ksk->l(), ksk->w(), ksk->m()));
+        ksk_devs.push_back(
+            new KeySwitchingKey(ksk->n(), ksk->l(), ksk->w(), ksk->m()));
 
         std::pair<void*, MemoryDeleter> pair;
         pair = AllocatorGPU::New(ksk_devs[i]->SizeMalloc());
         ksk_devs[i]->set_data((KeySwitchingKey::PointerType)pair.first);
         ksk_dev_deleters.push_back(pair.second);
-        CuSafeCall(cudaMemcpy(ksk_devs[i]->data(), ksk->data(), ksk->SizeMalloc(),
-                              cudaMemcpyHostToDevice));
+        CuSafeCall(cudaMemcpy(ksk_devs[i]->data(), ksk->data(),
+                              ksk->SizeMalloc(), cudaMemcpyHostToDevice));
     }
 }
 
 void DeleteKeySwitchingKey(int gpuNum)
 {
-    for(int i=0;i<ksk_devs.size();i++){
+    for (int i = 0; i < ksk_devs.size(); i++) {
         cudaSetDevice(i);
         ksk_dev_deleters[i](ksk_devs[i]->data());
         delete ksk_devs[i];
@@ -330,7 +334,7 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     __syncthreads();
 // accumulate
 #pragma unroll
-    for (int i = 0; i < 500; i++) {  // 500 iterations
+    for (int i = 0; i < cuFHE_DEF_n; i++) {  // n iterations
         bar = ModSwitch2048(in[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
     }
@@ -343,17 +347,69 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     __threadfence();
 }
 
+__global__ void __SEandKS__(Torus* out, Torus* in, FFP* bk, Torus* ksk,
+                            CuNTTHandler<> ntt)
+{
+    KeySwitch<cuFHE_DEF_n, cuFHE_DEF_N, 2, 8>(out, in, ksk);
+    __threadfence();
+}
+
+__global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
+                                        FFP* bk, Torus* ksk, CuNTTHandler<> ntt)
+{
+    //  Assert(bk.k() == 1);
+    //  Assert(bk.l() == 2);
+    //  Assert(bk.n() == 1024);
+    __shared__ FFP sh[6 * 1024];
+    //  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
+    //  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
+    Torus* tlwe = (Torus*)&sh[5120];
+
+    // test vector
+    // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+    register int32_t bar = 2048 - ModSwitch2048(in[500]);
+    register uint32_t tid = ThisThreadRankInBlock();
+    register uint32_t bdim = ThisBlockSize();
+    register uint32_t cmp, neg, pos;
+#pragma unroll
+    for (int i = tid; i < 1024; i += bdim) {
+        tlwe[i] = 0;  // part a
+        if (bar == 2048)
+            tlwe[i + 1024] = mu;
+        else {
+            cmp = (uint32_t)(i < (bar & 1023));
+            neg = -(cmp ^ (bar >> 10));
+            pos = -((1 - cmp) ^ (bar >> 10));
+            tlwe[i + 1024] = (mu & pos) + ((-mu) & neg);  // part b
+        }
+    }
+    __syncthreads();
+// accumulate
+#pragma unroll
+    for (int i = 0; i < cuFHE_DEF_n; i++) {  // n iterations
+        bar = ModSwitch2048(in[i]);
+        Accumulate(tlwe, sh, sh, bar, bk + (i << 13), ntt);
+    }
+    __syncthreads();
+    for (int i = 0; i < 2 * cuFHE_DEF_N; i++) {
+        out[i] = tlwe[i];
+    }
+    __threadfence();
+}
+
 __global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
                                   Torus fix, FFP* bk, Torus* ksk,
                                   CuNTTHandler<> ntt)
 {
-    __shared__ FFP sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
+    __shared__ FFP
+        sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
     // Use Last section to hold tlwe. This may to make these data in serial
     Torus* tlwe = (Torus*)&sh[(2 * cuFHE_DEF_l + 1) * cuFHE_DEF_N];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix - in0[cuFHE_DEF_n] - in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix - in0[cuFHE_DEF_n] - in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -375,7 +431,8 @@ __global__ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix + in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix + in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -397,7 +454,8 @@ __global__ void __OrYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix + in0[cuFHE_DEF_n] - in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix + in0[cuFHE_DEF_n] - in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -419,7 +477,8 @@ __global__ void __OrNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix - in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix - in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -436,12 +495,14 @@ __global__ void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
                                  Torus fix, FFP* bk, Torus* ksk,
                                  CuNTTHandler<> ntt)
 {
-    __shared__ FFP sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
+    __shared__ FFP
+        sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
     Torus* tlwe = (Torus*)&sh[(2 * cuFHE_DEF_l + 1) * cuFHE_DEF_N];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix + in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix + in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -458,12 +519,14 @@ __global__ void __AndYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
                                    Torus fix, FFP* bk, Torus* ksk,
                                    CuNTTHandler<> ntt)
 {
-    __shared__ FFP sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
+    __shared__ FFP
+        sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
     Torus* tlwe = (Torus*)&sh[(2 * cuFHE_DEF_l + 1) * cuFHE_DEF_N];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix + in0[cuFHE_DEF_n] - in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix + in0[cuFHE_DEF_n] - in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -480,12 +543,14 @@ __global__ void __AndNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
                                    Torus fix, FFP* bk, Torus* ksk,
                                    CuNTTHandler<> ntt)
 {
-    __shared__ FFP sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
+    __shared__ FFP
+        sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];  // This is V100's MAX
     Torus* tlwe = (Torus*)&sh[(2 * cuFHE_DEF_l + 1) * cuFHE_DEF_N];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix - in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix - in0[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N, cuFHE_DEF_Nbit>(tlwe, bar, mu);
 
 // accumulate
@@ -593,7 +658,8 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     Torus* tlwe0 = (Torus*)&sh[(2 * cuFHE_DEF_l + 2) * cuFHE_DEF_N];
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * cuFHE_DEF_N - ModSwitch2048(fix + inc[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
+        2 * cuFHE_DEF_N -
+        ModSwitch2048(fix + inc[cuFHE_DEF_n] + in1[cuFHE_DEF_n]);
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N>(tlwe1, bar, mu);
 
 // accumulate
@@ -603,7 +669,8 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
         Accumulate(tlwe1, sh, sh, bar, bk + (i << 13), ntt);
     }
 
-    bar = 2 * cuFHE_DEF_N - ModSwitch2048(fix - inc[cuFHE_DEF_n] + in0[cuFHE_DEF_n]);
+    bar = 2 * cuFHE_DEF_N -
+          ModSwitch2048(fix - inc[cuFHE_DEF_n] + in0[cuFHE_DEF_n]);
 
     RotatedTestVector<cuFHE_DEF_n, cuFHE_DEF_N>(tlwe0, bar, mu);
 
@@ -643,13 +710,35 @@ __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
     __threadfence();
 }
 
-void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st, int gpuNum)
+void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
+               int gpuNum)
 {
     dim3 grid(1);
     dim3 block(512);
-    __Bootstrap__<<<grid, block, 0, st>>>(out->data(), in->data(), mu,
-                                          bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
-                                          *ntt_handlers[gpuNum]);
+    __Bootstrap__<<<grid, block, 0, st>>>(
+        out->data(), in->data(), mu, bk_ntts[gpuNum]->data(),
+        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
+void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum)
+{
+    dim3 grid(1);
+    dim3 block(512);
+    __SEandKS__<<<grid, block, 0, st>>>(
+        out->data(), in, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+        *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
+void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
+                         int gpuNum)
+{
+    dim3 grid(1);
+    dim3 block(512);
+    __BootstrapTLWE2TRLWE__<<<grid, block, 0, st>>>(
+        out, in->data(), mu, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+        *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
@@ -749,7 +838,8 @@ void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
     CuCheckError();
 }
 
-void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st, int gpuNum)
+void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
+                  int gpuNum)
 {
     __NotBootstrap__<<<1, cuFHE_DEF_N / 2, 0, st>>>(out->data(), in->data(), n);
     CuCheckError();
@@ -763,15 +853,17 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
     cudaFuncSetAttribute(__MuxBootstrap__,
                          cudaFuncAttributeMaxDynamicSharedMemorySize,
                          (2 * cuFHE_DEF_l + 3) * cuFHE_DEF_N * sizeof(FFP));
-    __MuxBootstrap__<<<1, cuFHE_DEF_N / 2, (2 * cuFHE_DEF_l + 3) * cuFHE_DEF_N * sizeof(FFP),
-                       st>>>(out->data(), inc->data(), in1->data(), in0->data(),
-                             mu, fix, muxfix, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
-                             *ntt_handlers[gpuNum]);
+    __MuxBootstrap__<<<1, cuFHE_DEF_N / 2,
+                       (2 * cuFHE_DEF_l + 3) * cuFHE_DEF_N * sizeof(FFP), st>>>(
+        out->data(), inc->data(), in1->data(), in0->data(), mu, fix, muxfix,
+        bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+        *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st)
 {
-    __NoiselessTrivial__<<<1, cuFHE_DEF_n + 1, 0, st>>>(out->data(), p ? mu : -mu);
+    __NoiselessTrivial__<<<1, cuFHE_DEF_n + 1, 0, st>>>(out->data(),
+                                                        p ? mu : -mu);
 }
 }  // namespace cufhe
