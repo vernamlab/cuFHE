@@ -347,6 +347,13 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     __threadfence();
 }
 
+__global__ void __SEandKS__(Torus* out, Torus* in, FFP* bk, Torus* ksk,
+                            CuNTTHandler<> ntt)
+{
+    KeySwitch<cuFHE_DEF_n, cuFHE_DEF_N, 2, 8>(out, in, ksk);
+    __threadfence();
+}
+
 __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
                                         FFP* bk, Torus* ksk, CuNTTHandler<> ntt)
 {
@@ -711,6 +718,16 @@ void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
     __Bootstrap__<<<grid, block, 0, st>>>(
         out->data(), in->data(), mu, bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
+void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum)
+{
+    dim3 grid(1);
+    dim3 block(512);
+    __SEandKS__<<<grid, block, 0, st>>>(
+        out->data(), in, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+        *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 

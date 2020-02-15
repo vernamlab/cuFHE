@@ -105,6 +105,7 @@ class Stream {
 
 void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
                                          Stream st);
+void SampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st);
 void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void AndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void AndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);

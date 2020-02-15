@@ -35,6 +35,7 @@ void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
                int gpuNum);
 void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
                          int gpuNum);
+void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum);
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st);
 
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
