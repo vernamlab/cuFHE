@@ -166,15 +166,15 @@ template <uint32_t lwe_n = 500, uint32_t tlwe_n = 1024,
           uint32_t decomp_bits = 2, uint32_t decomp_size = 8>
 __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
 {
-    static const Torus decomp_mask = (1u << decomp_bits) - 1;
-    static const Torus decomp_offset = 1u << (31 - decomp_size * decomp_bits);
+    constexpr Torus decomp_mask = (1u << decomp_bits) - 1;
+    constexpr Torus decomp_offset = 1u << (31 - decomp_size * decomp_bits);
     uint32_t tid = ThisThreadRankInBlock();
     uint32_t bdim = ThisBlockSize();
-    Torus tmp;
-    Torus res = 0;
-    Torus val = 0;
 #pragma unroll 0
     for (int i = tid; i <= lwe_n; i += bdim) {
+	Torus tmp;
+    	Torus res = 0;
+    	Torus val = 0;
         if (i == lwe_n) res = tlwe[tlwe_n];
 #pragma unroll 0
         for (int j = 0; j < tlwe_n; j++) {
