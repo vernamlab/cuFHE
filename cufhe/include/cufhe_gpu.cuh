@@ -37,6 +37,9 @@
 namespace cufhe {
 
 extern int _gpuNum;
+
+extern int streamCount;
+
 /**
  * Call before running gates on server.
  * 1. Generate necessary NTT data.
@@ -71,12 +74,14 @@ class Stream {
     inline Stream()
     {
         st_ = 0;
-        _device_id = 0;
+        _device_id = streamCount%_gpuNum;
+        streamCount++;
     }
     inline Stream(int device_id)
     {
         _device_id = device_id;
         st_ = 0;
+        streamCount++;
     }
 
     inline ~Stream()

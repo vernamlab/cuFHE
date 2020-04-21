@@ -30,6 +30,8 @@ namespace cufhe {
 
 int _gpuNum = 1;
 
+int streamCount = 0;
+
 void SetGPUNum(int gpuNum) { _gpuNum = gpuNum; }
 
 void Initialize(const PubKey& pub_key)
