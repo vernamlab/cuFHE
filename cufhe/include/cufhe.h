@@ -153,6 +153,7 @@ struct cuFHETRLWElvl1 {
     std::array<std::array<uint32_t, cuFHE_DEF_N>, 2> trlwehost;
     std::vector<Torus*> trlwedevices;
     cuFHETRLWElvl1();
+    ~cuFHETRLWElvl1();
 };
 
 /** Plaintext is in {0, 1}. */

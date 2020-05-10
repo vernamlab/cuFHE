@@ -105,4 +105,11 @@ cuFHETRLWElvl1::cuFHETRLWElvl1()
     }
 }
 
+cuFHETRLWElvl1::~cuFHETRLWElvl1()
+{
+    cudaHostUnregister(trlwehost.data());
+    for (auto&& trlwedevice : trlwedevices)
+        cudaFree(trlwedevice);
+}
+
 }  // namespace cufhe
