@@ -37,7 +37,7 @@
 #include "cufhe_core.h"
 #include "details/allocator.h"
 
-// Default Prameter Macro
+// Default security prameter macro
 
 #define cuFHE_DEF_n 500
 #define cuFHE_DEF_N 1024
@@ -56,6 +56,10 @@
 #define cuFHE_DEF_tbar 10
 #define cuFHE_DEF_basebitlvl2 3
 #define cuFHE_DEF_privksakpha 2.0e-31
+
+// Implementation dependent parameter macro
+
+#define cuFHE_DEF_NTT_thread_unitbit 3 // How many threads works as one group in NTT algorithm.
 
 namespace cufhe {
 
