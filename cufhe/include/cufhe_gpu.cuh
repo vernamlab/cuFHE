@@ -130,5 +130,22 @@ void ConstantZero(Ctxt& out);
 void ConstantOne(Ctxt& out);
 
 bool StreamQuery(Stream st);
+void CtxtCopyH2D(const Ctxt& c, Stream st);
+void CtxtCopyD2H(const Ctxt& c, Stream st);
+
+void gNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gOrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gOrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gAnd(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gAndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gAndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gNor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gXor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
+void gNot(Ctxt& out, const Ctxt& in, Stream st);
+void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
+          Stream st);
+void gCopy(Ctxt& out, const Ctxt& in, Stream st);
 
 }  // namespace cufhe
