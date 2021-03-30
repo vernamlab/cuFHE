@@ -29,6 +29,7 @@
 
 #pragma once
 
+#include <bits/stdint-uintn.h>
 #include <math.h>
 #include <time.h>
 #include <array>
@@ -37,35 +38,22 @@
 #include "cufhe_core.h"
 #include "details/allocator.h"
 
-// Default security prameter macro
-
-#define cuFHE_DEF_n 500
-#define cuFHE_DEF_N 1024
-#define cuFHE_DEF_Nbit 10
-#define cuFHE_DEF_k 1
-#define cuFHE_DEF_Bgbit 10
-#define cuFHE_DEF_l 2
-#define cuFHE_DEF_basebit 2
-#define cuFHE_DEF_t 8
-#define cuFHE_DEF_alpha 2.44e-5
-#define cuFHE_DEF_bkalpha 3.73e-9
-#define cuFHE_DEF_nbar 2048
-#define cuFHE_DEF_lbar 4
-#define cuFHE_DEF_Bgbitbar 9
-#define cuFHE_DEF_bklvl02alpha 2.0e-44
-#define cuFHE_DEF_tbar 10
-#define cuFHE_DEF_basebitlvl2 3
-#define cuFHE_DEF_privksakpha 2.0e-31
-
-// Implementation dependent parameter macro
-
-#define cuFHE_DEF_NTT_thread_unitbit 3 // How many threads works as one group in NTT algorithm.
-
 namespace cufhe {
 
 /*****************************
- * Macros *
+ * Parameters *
  *****************************/
+
+// Implementation dependent parameter
+constexpr uint32_t NTT_THRED_UNITBIT = 3;// How many threads works as one group in NTT algorithm.
+
+#ifdef USE_80BIT_SECURITY
+#include "../thirdparties/TFHEpp/include/params/CGGI16.hpp"
+#elif defined(USE_CGGI19)
+#include "../thirdparties/TFHEpp/include/params/CGGI19.hpp"
+#else
+#include "../thirdparties/TFHEpp/include/params/128bit.hpp"
+#endif
 
 /*****************************
  * Essential Data Structures *
@@ -154,7 +142,7 @@ struct Ctxt {
 
 /** TRLWE holder */
 struct cuFHETRLWElvl1 {
-    std::array<std::array<uint32_t, cuFHE_DEF_N>, 2> trlwehost;
+    std::array<std::array<uint32_t, lvl1param::n>, 2> trlwehost;
     std::vector<Torus*> trlwedevices;
     cuFHETRLWElvl1();
     ~cuFHETRLWElvl1();

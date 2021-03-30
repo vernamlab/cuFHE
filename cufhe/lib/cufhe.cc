@@ -29,20 +29,6 @@
 
 namespace cufhe {
 
-Param kParam = {
-    cuFHE_DEF_n,        // n
-    cuFHE_DEF_N,        // N
-    cuFHE_DEF_k,        // k
-    cuFHE_DEF_Bgbit,    // Bgbit
-    cuFHE_DEF_l,        // l
-    cuFHE_DEF_basebit,  // basebit
-    cuFHE_DEF_t,        // t
-    cuFHE_DEF_alpha,    // alpha
-    cuFHE_DEF_bkalpha   // bkalpha
-};
-
-Param* GetDefaultParam() { return &kParam; }
-
 ////////////////////////////////////////////////////////////////////////////////
 std::default_random_engine generator;  // @todo Set Seed!
 
