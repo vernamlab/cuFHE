@@ -28,6 +28,7 @@
 #include <include/ntt_gpu/ntt.cuh>
 
 #include <iostream>
+#include <limits>
 #include <vector>
 using namespace std;
 
@@ -166,7 +167,7 @@ template <class P>
 __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
 {
     constexpr Torus decomp_mask = (1u << P::basebit) - 1;
-    constexpr Torus decomp_offset = 1u << (31 - P::t * P::basebit);
+    constexpr Torus decomp_offset = 1u << (std::numeric_limits<typename P::domainP::T>::digits - 1 - P::t * P::basebit);
     uint32_t tid = ThisThreadRankInBlock();
     uint32_t bdim = ThisBlockSize();
 #pragma unroll 0
@@ -183,7 +184,7 @@ __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
                 tmp = -tlwe[P::domainP::n - j];
             tmp += decomp_offset;
             for (int k = 0; k < P::t; k++) {
-                val = (tmp >> (32 - (k + 1) * P::basebit)) & decomp_mask;
+                val = (tmp >> (std::numeric_limits<typename P::domainP::T>::digits - (k + 1) * P::basebit)) & decomp_mask;
                 if (val != 0)
                     res -= ksk[(j << 14) | (k << 11) | (val << 9) | i];
             }
@@ -675,7 +676,7 @@ void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t 
 
 void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
 {
-    __CopyBootstrap__<<<1, lvl1param::n + 1, 0, st>>>(out->data(), in->data());
+    __CopyBootstrap__<<<1, lvl0param::n + 1, 0, st>>>(out->data(), in->data());
     CuCheckError();
 }
 

@@ -1,0 +1,2 @@
+add_executable(test_gate_gpu test_gate_gpu.cc)
+target_link_libraries(test_gate_gpu cufhe_gpu)

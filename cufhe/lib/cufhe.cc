@@ -84,13 +84,13 @@ void PolyMulAddBinary(Torus* r, Torus* a, Binary* b, uint32_t n)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void LWEKeyGen(LWEKey* key, const Param* param = GetDefaultParam())
+void LWEKeyGen(LWEKey* key)
 {
     std::uniform_int_distribution<> dist(0, 1);
     for (int i = 0; i < key->n(); i++) key->data()[i] = dist(generator);
 }
 
-void TLWEKeyGen(TLWEKey* key, const Param* param = GetDefaultParam())
+void TLWEKeyGen(TLWEKey* key)
 {
     std::uniform_int_distribution<> dist(0, 1);
     for (int i = 0; i < key->NumPolys(); i++)
@@ -99,7 +99,7 @@ void TLWEKeyGen(TLWEKey* key, const Param* param = GetDefaultParam())
 }
 
 void LWEEncrypt(LWESample* ct, const Torus pt, const LWEKey* key,
-                const double noise_bound = GetDefaultParam()->lwe_noise_)
+                const double noise_bound = lvl0param::α)
 {
     std::normal_distribution<double> dist_b(0.0, SDFromBound(noise_bound));
     ct->b() = pt + TorusFromDouble(dist_b(generator));
@@ -134,8 +134,7 @@ void LWEDecrypt(Torus& pt, const LWESample* ct, const LWEKey* key,
 }
 
 void KeySwitchingKeyGen(KeySwitchingKey* key, const LWEKey* lwe_key_to,
-                        const LWEKey* lwe_key_from,
-                        const Param* param = GetDefaultParam())
+                        const LWEKey* lwe_key_from)
 {
     Torus mu;
     uint32_t temp;
@@ -145,7 +144,7 @@ void KeySwitchingKeyGen(KeySwitchingKey* key, const LWEKey* lwe_key_to,
     double error = 0;
     for (int i = 0; i < total; i++) {
         std::normal_distribution<double> dist(0.0,
-                                              SDFromBound(param->lwe_noise_));
+                                              SDFromBound(lvl0param::α));
         noise[i] = dist(generator);
         error += noise[i];
     }
@@ -171,7 +170,7 @@ void KeySwitchingKeyGen(KeySwitchingKey* key, const LWEKey* lwe_key_to,
 }
 
 void TLWEEncryptZero(TLWESample* ct, const TLWEKey* key,
-                     const double noise_bound = GetDefaultParam()->tlwe_noise_)
+                     const double noise_bound = lvl1param::α)
 {
     std::normal_distribution<double> dist_b(0.0, SDFromBound(noise_bound));
     for (int i = 0; i < key->n(); i++)
@@ -184,8 +183,7 @@ void TLWEEncryptZero(TLWESample* ct, const TLWEKey* key,
     }
 }
 
-void TGSWEncryptBinary(TGSWSample* ct, const Binary pt, const TGSWKey* key,
-                       const Param* param = GetDefaultParam())
+void TGSWEncryptBinary(TGSWSample* ct, const Binary pt, const TGSWKey* key)
 {
     uint32_t l = ct->l();
     uint32_t k = ct->k();
@@ -208,8 +206,7 @@ void TGSWEncryptBinary(TGSWSample* ct, const Binary pt, const TGSWKey* key,
 }
 
 void BootstrappingKeyGen(BootstrappingKey* key, const LWEKey* lwe_key,
-                         const TGSWKey* tgsw_key,
-                         const Param* param = GetDefaultParam())
+                         const TGSWKey* tgsw_key)
 {
     TGSWSample* tgsw_sample = new TGSWSample;
     for (int i = 0; i < lwe_key->n(); i++) {
@@ -223,9 +220,8 @@ void BootstrappingKeyGen(BootstrappingKey* key, const LWEKey* lwe_key,
 
 PriKey::PriKey(bool is_alias)
 {
-    Param* param = GetDefaultParam();
-    lwe_key_ = new LWEKey(param->lwe_n_);
-    tlwe_key_ = new TLWEKey(param->tlwe_n_, param->tlwe_k_);
+    lwe_key_ = new LWEKey(lvl0param::n);
+    tlwe_key_ = new TLWEKey(lvl1param::n, 1);
     lwe_key_deleter_ = nullptr;
     tlwe_key_deleter_ = nullptr;
     std::pair<void*, MemoryDeleter> pair;
@@ -247,13 +243,12 @@ PriKey::~PriKey()
 
 PubKey::PubKey(bool is_alias)
 {
-    Param* param = GetDefaultParam();
-    bk_ = new BootstrappingKey(param->tlwe_n_, param->tlwe_k_,
-                               param->tgsw_decomp_size_,
-                               param->tgsw_decomp_bits_, param->lwe_n_);
-    ksk_ = new KeySwitchingKey(param->lwe_n_, param->keyswitching_decomp_size_,
-                               param->keyswitching_decomp_bits_,
-                               param->tlwe_n_ * param->tlwe_k_);
+    bk_ = new BootstrappingKey(lvl1param::n, 1,
+                               lvl1param::l,
+                               lvl1param::Bgbit, lvl0param::n);
+    ksk_ = new KeySwitchingKey(lvl0param::n, lvl10param::t,
+                               lvl10param::basebit,
+                               lvl1param::n * 1);
     bk_deleter_ = nullptr;
     ksk_deleter_ = nullptr;
     std::pair<void*, MemoryDeleter> pair;

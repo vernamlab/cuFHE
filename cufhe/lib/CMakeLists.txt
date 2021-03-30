@@ -10,6 +10,3 @@ add_library(cufhe_gpu
 target_include_directories(cufhe_gpu
     PUBLIC ../ ../include
     )
-target_compile_options(cufhe_gpu
-    PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--ptxas-options=-v -arch=sm_70>
-    )
