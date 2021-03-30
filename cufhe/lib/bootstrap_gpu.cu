@@ -162,29 +162,28 @@ __device__ inline uint32_t ModSwitch2048(uint32_t a)
     return (((uint64_t)a << 32) + (0x1UL << 52)) >> 53;
 }
 
-template <uint32_t lwe_n = lvl1param::n, uint32_t tlwe_n = lvl1param::n,
-          uint32_t decomp_bits = lvl10param::t, uint32_t decomp_size = lvl10param::t>
+template <class P>
 __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
 {
-    constexpr Torus decomp_mask = (1u << decomp_bits) - 1;
-    constexpr Torus decomp_offset = 1u << (31 - decomp_size * decomp_bits);
+    constexpr Torus decomp_mask = (1u << P::basebit) - 1;
+    constexpr Torus decomp_offset = 1u << (31 - P::t * P::basebit);
     uint32_t tid = ThisThreadRankInBlock();
     uint32_t bdim = ThisBlockSize();
 #pragma unroll 0
-    for (int i = tid; i <= lwe_n; i += bdim) {
+    for (int i = tid; i <= P::targetP::n; i += bdim) {
 	Torus tmp;
     	Torus res = 0;
     	Torus val = 0;
-        if (i == lwe_n) res = tlwe[tlwe_n];
+        if (i == P::targetP::n) res = tlwe[P::domainP::n];
 #pragma unroll 0
-        for (int j = 0; j < tlwe_n; j++) {
+        for (int j = 0; j < P::domainP::n; j++) {
             if (j == 0)
                 tmp = tlwe[0];
             else
-                tmp = -tlwe[lvl1param::n - j];
+                tmp = -tlwe[P::domainP::n - j];
             tmp += decomp_offset;
-            for (int k = 0; k < decomp_size; k++) {
-                val = (tmp >> (32 - (k + 1) * decomp_bits)) & decomp_mask;
+            for (int k = 0; k < P::t; k++) {
+                val = (tmp >> (32 - (k + 1) * P::basebit)) & decomp_mask;
                 if (val != 0)
                     res -= ksk[(j << 14) | (k << 11) | (val << 9) | i];
             }
@@ -193,8 +192,8 @@ __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
     }
 }
 
-template <uint32_t lwe_n = lvl1param::n, uint32_t tlwe_n = lvl1param::n, uint32_t tlwe_nbit = lvl1param::nbit>
-__device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar, uint32_t mu)
+template <class P>
+__device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar, const typename P::T μ)
 {
     // volatile is needed to make register usage of Mux to 128.
     // Reference
@@ -203,15 +202,15 @@ __device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar, uint32_t mu)
     volatile uint32_t bdim = ThisBlockSize();
     uint32_t cmp, neg, pos;
 #pragma unroll
-    for (int i = tid; i < tlwe_n; i += bdim) {
+    for (int i = tid; i < P::n; i += bdim) {
         tlwe[i] = 0;  // part a
-        if (bar == 2 * tlwe_n)
-            tlwe[i + tlwe_n] = mu;
+        if (bar == 2 * P::n)
+            tlwe[i + P::n] = μ;
         else {
-            cmp = (uint32_t)(i < (bar & (lvl1param::n - 1)));
-            neg = -(cmp ^ (bar >> tlwe_nbit));
-            pos = -((1 - cmp) ^ (bar >> tlwe_nbit));
-            tlwe[i + tlwe_n] = (mu & pos) + ((-mu) & neg);  // part b
+            cmp = (uint32_t)(i < (bar & (P::n - 1)));
+            neg = -(cmp ^ (bar >> P::nbit));
+            pos = -((1 - cmp) ^ (bar >> P::nbit));
+            tlwe[i + P::n] = (μ & pos) + ((-μ) & neg);  // part b
         }
     }
     __syncthreads();
@@ -220,11 +219,10 @@ __device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar, uint32_t mu)
 __device__ void Accumulate(Torus* tlwe, FFP* sh_acc_ntt, FFP* sh_res_ntt,
                            uint32_t a_bar, FFP* tgsw_ntt, CuNTTHandler<> ntt)
 {
-    static const uint32_t decomp_bits = lvl1param::Bgbit;
-    static const uint32_t decomp_mask = (1 << decomp_bits) - 1;
-    static const int32_t decomp_half = 1 << (decomp_bits - 1);
+    static const uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
+    static const int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
     static const uint32_t decomp_offset =
-        (0x1u << 31) + (0x1u << (31 - decomp_bits));
+        (0x1u << 31) + (0x1u << (31 - lvl1param::Bgbit));
     uint32_t tid = ThisThreadRankInBlock();
     uint32_t bdim = ThisBlockSize();
 
@@ -246,9 +244,9 @@ __device__ void Accumulate(Torus* tlwe, FFP* sh_acc_ntt, FFP* sh_res_ntt,
             // decomp temp
             temp += decomp_offset;
             sh_acc_ntt[(2 * j) * lvl1param::n + i] = FFP(Torus(
-                ((temp >> (32 - decomp_bits)) & decomp_mask) - decomp_half));
+                ((temp >> (32 - lvl1param::Bgbit)) & decomp_mask) - decomp_half));
             sh_acc_ntt[(2 * j + 1) * lvl1param::n + i] =
-                FFP(Torus(((temp >> (32 - 2 * decomp_bits)) & decomp_mask) -
+                FFP(Torus(((temp >> (32 - 2 * lvl1param::Bgbit)) & decomp_mask) -
                           decomp_half));
         }
     }
@@ -339,14 +337,14 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
         Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
     }
 
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
+    KeySwitch<lvl10param>(out, tlwe, ksk);
     __threadfence();
 }
 
 __global__ void __SEandKS__(Torus* out, Torus* in, FFP* bk, Torus* ksk,
                             CuNTTHandler<> ntt)
 {
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, in, ksk);
+    KeySwitch<lvl10param>(out, in, ksk);
     __threadfence();
 }
 
@@ -393,8 +391,9 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
     __threadfence();
 }
 
-__global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                  Torus fix, FFP* bk, Torus* ksk,
+template<int casign, int cbsign, typename lvl0param::T offset>
+__device__ void __HomGate__(Torus* out, Torus* in0, Torus* in1, 
+                                  FFP* bk, Torus* ksk,
                                   CuNTTHandler<> ntt)
 {
     __shared__ FFP
@@ -405,8 +404,8 @@ __global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
         2 * lvl1param::n -
-        ModSwitch2048(fix - in0[lvl1param::n] - in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
+        ModSwitch2048(offset + casign * in0[lvl1param::n] + casign * in1[lvl1param::n]);
+    RotatedTestVector<lvl1param>(tlwe, bar, lvl1param::μ);
 
 // accumulate
 #pragma unroll
@@ -414,214 +413,70 @@ __global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
         bar = ModSwitch2048(0 - in0[i] - in1[i]);
         Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
     }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
+    KeySwitch<lvl10param>(out, tlwe, ksk);
     __threadfence();
 }
 
-__global__ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                Torus fix, FFP* bk, Torus* ksk,
+__global__ void __NandBootstrap__(Torus* out, Torus* in0, Torus* in1, 
+                                  FFP* bk, Torus* ksk,
+                                  CuNTTHandler<> ntt)
+{
+    __HomGate__<-1, -1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
+}
+
+__global__ void __NorBootstrap__(Torus* out, Torus* in0, Torus* in1, 
+                                 FFP* bk, Torus* ksk,
+                                 CuNTTHandler<> ntt)
+{
+    __HomGate__<-1, -1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
+}
+
+__global__ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
+                                  CuNTTHandler<> ntt)
+{
+    __HomGate__<-2, -2, -2*lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
+}
+
+__global__ void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1,  FFP* bk, Torus* ksk,
+                                 CuNTTHandler<> ntt)
+{
+    __HomGate__<1, 1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
+}
+
+__global__ void __OrBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
                                 CuNTTHandler<> ntt)
 {
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2 * lvl1param::n -
-        ModSwitch2048(fix + in0[lvl1param::n] + in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 + in0[i] + in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
+    __HomGate__<1, 1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __OrYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                  Torus fix, FFP* bk, Torus* ksk,
-                                  CuNTTHandler<> ntt)
-{
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2 * lvl1param::n -
-        ModSwitch2048(fix + in0[lvl1param::n] - in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 + in0[i] - in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
-}
-
-__global__ void __OrNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                  Torus fix, FFP* bk, Torus* ksk,
-                                  CuNTTHandler<> ntt)
-{
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2 * lvl1param::n -
-        ModSwitch2048(fix - in0[lvl1param::n] + in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 - in0[i] + in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
-}
-
-__global__ void __AndBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                 Torus fix, FFP* bk, Torus* ksk,
+__global__ void __XorBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
                                  CuNTTHandler<> ntt)
 {
-    __shared__ FFP
-        sh[(2 * lvl1param::l + 2) * lvl1param::n];  // This is V100's MAX
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2 * lvl1param::n -
-        ModSwitch2048(fix + in0[lvl1param::n] + in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 + in0[i] + in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
+    __HomGate__<2, 2, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __AndYNBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                   Torus fix, FFP* bk, Torus* ksk,
+__global__ void __AndNYBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
                                    CuNTTHandler<> ntt)
 {
-    __shared__ FFP
-        sh[(2 * lvl1param::l + 2) * lvl1param::n];  // This is V100's MAX
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2 * lvl1param::n -
-        ModSwitch2048(fix + in0[lvl1param::n] - in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 + in0[i] - in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
+    __HomGate__<-1, 1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __AndNYBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                   Torus fix, FFP* bk, Torus* ksk,
+__global__ void __AndYNBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
                                    CuNTTHandler<> ntt)
 {
-    __shared__ FFP
-        sh[(2 * lvl1param::l + 2) * lvl1param::n];  // This is V100's MAX
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2 * lvl1param::n -
-        ModSwitch2048(fix - in0[lvl1param::n] + in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n, lvl1param::nbit>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 - in0[i] + in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
+    __HomGate__<1, -1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __NorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                 Torus fix, FFP* bk, Torus* ksk,
-                                 CuNTTHandler<> ntt)
-{
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar = 2048 - ModSwitch2048(fix - in0[lvl1param::n] - in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 - in0[i] - in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
-}
-
-__global__ void __XorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                 Torus fix, FFP* bk, Torus* ksk,
-                                 CuNTTHandler<> ntt)
-{
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2048 - ModSwitch2048(fix + 2 * in0[lvl1param::n] + 2 * in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 + 2 * in0[i] + 2 * in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
-}
-
-__global__ void __XnorBootstrap__(Torus* out, Torus* in0, Torus* in1, Torus mu,
-                                  Torus fix, FFP* bk, Torus* ksk,
+__global__ void __OrNYBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
                                   CuNTTHandler<> ntt)
 {
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
+    __HomGate__<-1, 1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
+}
 
-    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
-        2048 - ModSwitch2048(fix - 2 * in0[lvl1param::n] - 2 * in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n>(tlwe, bar, mu);
-
-// accumulate
-#pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 - 2 * in0[i] - 2 * in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
-    }
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe, ksk);
-    __threadfence();
+__global__ void __OrYNBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk, Torus* ksk,
+                                  CuNTTHandler<> ntt)
+{
+    __HomGate__<1, -1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
 __global__ void __CopyBootstrap__(Torus* out, Torus* in)
@@ -656,7 +511,7 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     register int32_t bar =
         2 * lvl1param::n -
         ModSwitch2048(fix + inc[lvl1param::n] + in1[lvl1param::n]);
-    RotatedTestVector<lvl1param::n, lvl1param::n>(tlwe1, bar, mu);
+    RotatedTestVector<lvl1param>(tlwe1, bar, mu);
 
 // accumulate
 #pragma unroll
@@ -668,7 +523,7 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     bar = 2 * lvl1param::n -
           ModSwitch2048(fix - inc[lvl1param::n] + in0[lvl1param::n]);
 
-    RotatedTestVector<lvl1param::n, lvl1param::n>(tlwe0, bar, mu);
+    RotatedTestVector<lvl1param>(tlwe0, bar, mu);
 
 #pragma unroll
     for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
@@ -688,7 +543,7 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
 
     __syncthreads();
 
-    KeySwitch<lvl1param::n, lvl1param::n, lvl10param::basebit, lvl10param::t>(out, tlwe1, ksk);
+    KeySwitch<lvl10param>(out, tlwe1, ksk);
     __threadfence();
 }
 
@@ -738,92 +593,82 @@ void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
     CuCheckError();
 }
 
-void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum)
+void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __NandBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                 Torus fix, cudaStream_t st, int gpuNum)
+void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __OrBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum)
+void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __OrYNBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum)
+void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __OrNYBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st, int gpuNum)
+void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __AndBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                    Torus fix, cudaStream_t st, int gpuNum)
+void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __AndYNBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                    Torus fix, cudaStream_t st, int gpuNum)
+void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __AndNYBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st, int gpuNum)
+void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,  cudaStream_t st, int gpuNum)
 {
     __NorBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st, int gpuNum)
+void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,  cudaStream_t st, int gpuNum)
 {
     __XorBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum)
+void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
     __XnorBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
-        out->data(), in0->data(), in1->data(), mu, fix, bk_ntts[gpuNum]->data(),
+        out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }

@@ -38,26 +38,16 @@ void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
 void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum);
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st);
 
-void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum);
-void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                 Torus fix, cudaStream_t st, int gpuNum);
-void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum);
-void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum);
-void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st, int gpuNum);
-void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                    Torus fix, cudaStream_t st, int gpuNum);
-void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                    Torus fix, cudaStream_t st, int gpuNum);
-void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st, int gpuNum);
-void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                  Torus fix, cudaStream_t st, int gpuNum);
-void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, Torus mu,
-                   Torus fix, cudaStream_t st, int gpuNum);
+void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
+void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum);
 void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
 void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
                   int gpuNum);
