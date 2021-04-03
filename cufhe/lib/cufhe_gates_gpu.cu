@@ -75,6 +75,18 @@ void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
                     sizeof(out.trlwehost), cudaMemcpyDeviceToHost, st.st());
 }
 
+void gGateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
+                                         Stream st)
+{
+    cudaSetDevice(st.device_id());
+    static const Torus mu = ModSwitchToTorus(1, 8);
+    BootstrapTLWE2TRLWE(out.trlwedevices[st.device_id()],
+                        in.lwe_sample_devices_[st.device_id()], mu, st.st(),
+                        st.device_id());
+    cudaMemcpyAsync(out.trlwehost.data(), out.trlwedevices[st.device_id()],
+                    sizeof(out.trlwehost), cudaMemcpyDeviceToHost, st.st());
+}
+
 void SampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st)
 {
     cudaSetDevice(st.device_id());
@@ -83,6 +95,15 @@ void SampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st)
     SEandKS(out.lwe_sample_devices_[st.device_id()],
             in.trlwedevices[st.device_id()], st.st(), st.device_id());
     CtxtCopyD2H(out, st);
+}
+
+void gSampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st)
+{
+    cudaSetDevice(st.device_id());
+    cudaMemcpyAsync(in.trlwedevices[st.device_id()], in.trlwehost.data(),
+                    sizeof(in.trlwehost), cudaMemcpyHostToDevice, st.st());
+    SEandKS(out.lwe_sample_devices_[st.device_id()],
+            in.trlwedevices[st.device_id()], st.st(), st.device_id());
 }
 
 void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st)
