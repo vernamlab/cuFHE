@@ -344,9 +344,6 @@ void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
          Stream st)
 {
     cudaSetDevice(st.device_id());
-    static const Torus mu = ModSwitchToTorus(1, 8);
-    static const Torus fix = ModSwitchToTorus(-1, 8);
-    static const Torus muxfix = ModSwitchToTorus(1, 8);
     CtxtCopyH2D(inc, st);
     CtxtCopyH2D(in1, st);
     CtxtCopyH2D(in0, st);

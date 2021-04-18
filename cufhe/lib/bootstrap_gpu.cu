@@ -790,7 +790,7 @@ void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, cudaStream_t st, int gpuNum)
 {
-    const int maxbytes = 98304;  // 96 KB
+    // constexpr int maxbytes = 98304;  // 96 KB
     // cudaFuncSetAttribute(__MuxBootstrap__,
     //                      cudaFuncAttributeMaxDynamicSharedMemorySize,
     //                      (2 * lvl1param::l + 3) * lvl1param::n *
