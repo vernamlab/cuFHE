@@ -104,8 +104,8 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
     Synchronize();
 
     for (int i = 0; i < kNumTests; i++) {
-        if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>) {
-            func(ct[i], st[i % kNumSMs]);
+        if constexpr (std::is_invocable_v<Func, Ctxt&>) {
+            func(ct[i]);
             check(pt[i]);
         }
         else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
@@ -204,10 +204,10 @@ int main()
     Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    // Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
-    //      kNumSMs, pri_key);
-    // Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
-    //      kNumSMs, pri_key);
+    Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
+         kNumSMs, pri_key);
+    Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
+         kNumSMs, pri_key);
 
     for (int i = 0; i < kNumSMs; i++) st[i].Destroy();
     delete[] st;
