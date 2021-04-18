@@ -352,7 +352,7 @@ void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
     MuxBootstrap(out.lwe_sample_devices_[st.device_id()],
                  inc.lwe_sample_devices_[st.device_id()],
                  in1.lwe_sample_devices_[st.device_id()],
-                 in0.lwe_sample_devices_[st.device_id()], mu, fix, muxfix,
+                 in0.lwe_sample_devices_[st.device_id()],
                  st.st(), st.device_id());
     CtxtCopyD2H(out, st);
 }
@@ -367,7 +367,7 @@ void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
     MuxBootstrap(out.lwe_sample_devices_[st.device_id()],
                  inc.lwe_sample_devices_[st.device_id()],
                  in1.lwe_sample_devices_[st.device_id()],
-                 in0.lwe_sample_devices_[st.device_id()], mu, fix, muxfix,
+                 in0.lwe_sample_devices_[st.device_id()],
                  st.st(), st.device_id());
 }
 

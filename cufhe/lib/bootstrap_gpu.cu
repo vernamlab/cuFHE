@@ -463,7 +463,7 @@ __device__ inline void __HomGate__(Torus* out, Torus* in0, Torus* in1,
                                   CuNTTHandler<> ntt)
 {
     __shared__ FFP
-        sh[(2 + 2) * lvl1param::n];  // This is V100's MAX
+        sh[(2 + 1 + 1) * lvl1param::n];
     FFP* sh_acc_ntt = &sh[0];
     FFP* decpoly = &sh[2*lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
@@ -567,36 +567,40 @@ __global__ void __NotBootstrap__(Torus* out, Torus* in, int n)
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
 __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
-                                 Torus mu, Torus fix, Torus muxfix, FFP* bk,
+                                 FFP* bk,
                                  Torus* ksk, CuNTTHandler<> ntt)
 {
     // To use over 48 KiB shared Memory, the dynamic allocation is required.
-    extern __shared__ FFP sh[];
-    // Use Last section to hold tlwe. This may make these data in serial.
-    Torus* tlwe1 = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
-    Torus* tlwe0 = (Torus*)&sh[(2 * lvl1param::l + 2) * lvl1param::n];
+    // extern __shared__ FFP sh[];
+    __shared__ FFP
+        sh[(2 + 1 + 2) * lvl1param::n];
+    FFP* sh_acc_ntt = &sh[0];
+    FFP* decpoly = &sh[2*lvl1param::n];
+    // Use Last section to hold tlwe. This may to make these data in serial
+    Torus* tlwe1 = (Torus*)&sh[(2 + 1) * lvl1param::n];
+    Torus* tlwe0 = (Torus*)&sh[(2 + 2) * lvl1param::n];
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
         2 * lvl1param::n -
-        ModSwitch2048(fix + inc[lvl0param::n] + in1[lvl0param::n]);
-    RotatedTestVector<lvl1param>(tlwe1, bar, mu);
+        ModSwitch2048(-lvl0param::μ + inc[lvl0param::n] + in1[lvl0param::n]);
+    RotatedTestVector<lvl1param>(tlwe1, bar, lvl1param::μ);
 
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
         bar = ModSwitch2048(0 + inc[i] + in1[i]);
-        Accumulate(tlwe1, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
+        Accumulate(tlwe1, sh_acc_ntt, decpoly, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
     }
 
     bar = 2 * lvl1param::n -
-          ModSwitch2048(fix - inc[lvl0param::n] + in0[lvl0param::n]);
+          ModSwitch2048(-lvl0param::μ - inc[lvl0param::n] + in0[lvl0param::n]);
 
-    RotatedTestVector<lvl1param>(tlwe0, bar, mu);
+    RotatedTestVector<lvl1param>(tlwe0, bar, lvl1param::μ);
 
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
         bar = ModSwitch2048(0 - inc[i] + in0[i]);
-        Accumulate(tlwe0, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
+        Accumulate(tlwe0, sh_acc_ntt, decpoly, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
     }
 
     volatile uint32_t tid = ThisThreadRankInBlock();
@@ -605,7 +609,7 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     for (int i = tid; i <= lvl1param::n; i += bdim) {
         tlwe1[i] += tlwe0[i];
         if (i == lvl1param::n) {
-            tlwe1[lvl1param::n] += muxfix;
+            tlwe1[lvl1param::n] += lvl1param::μ;
         }
     }
 
@@ -755,16 +759,15 @@ void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
 }
 
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
-                  LWESample* in0, Torus mu, Torus fix, Torus muxfix,
+                  LWESample* in0,
                   cudaStream_t st, int gpuNum)
 {
     const int maxbytes = 98304;  // 96 KB
-    cudaFuncSetAttribute(__MuxBootstrap__,
-                         cudaFuncAttributeMaxDynamicSharedMemorySize,
-                         (2 * lvl1param::l + 3) * lvl1param::n * sizeof(FFP));
-    __MuxBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT,
-                       (2 * lvl1param::l + 3) * lvl1param::n * sizeof(FFP), st>>>(
-        out->data(), inc->data(), in1->data(), in0->data(), mu, fix, muxfix,
+    // cudaFuncSetAttribute(__MuxBootstrap__,
+    //                      cudaFuncAttributeMaxDynamicSharedMemorySize,
+    //                      (2 * lvl1param::l + 3) * lvl1param::n * sizeof(FFP));
+    __MuxBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
+        out->data(), inc->data(), in1->data(), in0->data(),
         bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
         *ntt_handlers[gpuNum]);
     CuCheckError();

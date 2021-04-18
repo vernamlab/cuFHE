@@ -52,6 +52,6 @@ void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
 void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
                   int gpuNum);
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
-                  LWESample* in0, Torus mu, Torus fix, Torus muxfix,
+                  LWESample* in0,
                   cudaStream_t st, int gpuNum);
 }  // namespace cufhe
