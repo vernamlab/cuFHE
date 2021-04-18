@@ -22,6 +22,7 @@
 
 #include <include/cufhe.h>
 #include <unistd.h>
+
 #include <array>
 #include <include/bootstrap_gpu.cuh>
 #include <include/cufhe_gpu.cuh>
@@ -352,8 +353,8 @@ void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
     MuxBootstrap(out.lwe_sample_devices_[st.device_id()],
                  inc.lwe_sample_devices_[st.device_id()],
                  in1.lwe_sample_devices_[st.device_id()],
-                 in0.lwe_sample_devices_[st.device_id()],
-                 st.st(), st.device_id());
+                 in0.lwe_sample_devices_[st.device_id()], st.st(),
+                 st.device_id());
     CtxtCopyD2H(out, st);
 }
 
@@ -367,8 +368,8 @@ void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
     MuxBootstrap(out.lwe_sample_devices_[st.device_id()],
                  inc.lwe_sample_devices_[st.device_id()],
                  in1.lwe_sample_devices_[st.device_id()],
-                 in0.lwe_sample_devices_[st.device_id()],
-                 st.st(), st.device_id());
+                 in0.lwe_sample_devices_[st.device_id()], st.st(),
+                 st.device_id());
 }
 
 void ConstantZero(Ctxt& out)

@@ -24,6 +24,7 @@
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
 #include <include/cufhe.h>
+
 #include <include/cufhe_gpu.cuh>
 #include <include/details/allocator_gpu.cuh>
 
@@ -107,8 +108,7 @@ cuFHETRLWElvl1::cuFHETRLWElvl1()
 cuFHETRLWElvl1::~cuFHETRLWElvl1()
 {
     cudaHostUnregister(trlwehost.data());
-    for (auto&& trlwedevice : trlwedevices)
-        cudaFree(trlwedevice);
+    for (auto&& trlwedevice : trlwedevices) cudaFree(trlwedevice);
 }
 
 }  // namespace cufhe

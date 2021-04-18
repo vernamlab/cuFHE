@@ -22,8 +22,8 @@
 
 #include <include/cufhe.h>
 #include <include/details/allocator_cpu.h>
-
 #include <math.h>
+
 #include <iostream>
 #include <random>
 
@@ -143,8 +143,7 @@ void KeySwitchingKeyGen(KeySwitchingKey* key, const LWEKey* lwe_key_to,
     double* noise = new double[total];
     double error = 0;
     for (int i = 0; i < total; i++) {
-        std::normal_distribution<double> dist(0.0,
-                                              SDFromBound(lvl0param::α));
+        std::normal_distribution<double> dist(0.0, SDFromBound(lvl0param::α));
         noise[i] = dist(generator);
         error += noise[i];
     }
@@ -243,11 +242,9 @@ PriKey::~PriKey()
 
 PubKey::PubKey(bool is_alias)
 {
-    bk_ = new BootstrappingKey(lvl1param::n, 1,
-                               lvl1param::l,
-                               lvl1param::Bgbit, lvl0param::n);
-    ksk_ = new KeySwitchingKey(lvl0param::n, lvl10param::t,
-                               lvl10param::basebit,
+    bk_ = new BootstrappingKey(lvl1param::n, 1, lvl1param::l, lvl1param::Bgbit,
+                               lvl0param::n);
+    ksk_ = new KeySwitchingKey(lvl0param::n, lvl10param::t, lvl10param::basebit,
                                lvl1param::n * 1);
     bk_deleter_ = nullptr;
     ksk_deleter_ = nullptr;

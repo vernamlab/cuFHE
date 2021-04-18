@@ -32,9 +32,11 @@
 #include <bits/stdint-uintn.h>
 #include <math.h>
 #include <time.h>
+
 #include <array>
 #include <iostream>
 #include <vector>
+
 #include "cufhe_core.h"
 #include "details/allocator.h"
 
@@ -45,7 +47,8 @@ namespace cufhe {
  *****************************/
 
 // Implementation dependent parameter
-constexpr uint32_t NTT_THRED_UNITBIT = 3;// How many threads works as one group in NTT algorithm.
+constexpr uint32_t NTT_THRED_UNITBIT =
+    3;  // How many threads works as one group in NTT algorithm.
 
 #ifdef USE_80BIT_SECURITY
 #include "../thirdparties/TFHEpp/include/params/CGGI16.hpp"
@@ -147,10 +150,10 @@ struct cuFHETRLWElvl1 {
     cuFHETRLWElvl1();
     ~cuFHETRLWElvl1();
 
-private:
+   private:
     // Don't allow users to copy this struct.
     cuFHETRLWElvl1(const cuFHETRLWElvl1&);
-    cuFHETRLWElvl1&operator=(const cuFHETRLWElvl1&);
+    cuFHETRLWElvl1& operator=(const cuFHETRLWElvl1&);
 };
 
 /** Plaintext is in {0, 1}. */

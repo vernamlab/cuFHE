@@ -31,7 +31,9 @@
 #include <cuda.h>
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
+
 #include <array>
+
 #include "cufhe.h"
 
 namespace cufhe {
@@ -74,7 +76,7 @@ class Stream {
     inline Stream()
     {
         st_ = 0;
-        _device_id = streamCount%_gpuNum;
+        _device_id = streamCount % _gpuNum;
         streamCount++;
     }
     inline Stream(int device_id)
