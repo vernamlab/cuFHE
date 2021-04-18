@@ -686,7 +686,7 @@ void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __NandBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __NandBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -695,7 +695,7 @@ void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                  cudaStream_t st, int gpuNum)
 {
-    __OrBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __OrBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -704,7 +704,7 @@ void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __OrYNBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __OrYNBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -713,7 +713,7 @@ void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __OrNYBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __OrNYBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -722,7 +722,7 @@ void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                   cudaStream_t st, int gpuNum)
 {
-    __AndBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __AndBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -731,7 +731,7 @@ void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                     cudaStream_t st, int gpuNum)
 {
-    __AndYNBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __AndYNBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -740,7 +740,7 @@ void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                     cudaStream_t st, int gpuNum)
 {
-    __AndNYBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __AndNYBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -749,7 +749,7 @@ void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                   cudaStream_t st, int gpuNum)
 {
-    __NorBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __NorBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -758,7 +758,7 @@ void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                   cudaStream_t st, int gpuNum)
 {
-    __XorBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __XorBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -767,7 +767,7 @@ void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __XnorBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __XnorBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -782,7 +782,7 @@ void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
 void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
                   int gpuNum)
 {
-    __NotBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __NotBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), in->data(), n);
     CuCheckError();
 }
@@ -795,7 +795,7 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
     //                      cudaFuncAttributeMaxDynamicSharedMemorySize,
     //                      (2 * lvl1param::l + 3) * lvl1param::n *
     //                      sizeof(FFP));
-    __MuxBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st> >>
+    __MuxBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
         (out->data(), inc->data(), in1->data(), in0->data(),
          bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
          *ntt_handlers[gpuNum]);
