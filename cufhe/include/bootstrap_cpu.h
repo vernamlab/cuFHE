@@ -23,6 +23,7 @@
 #pragma once
 
 #include <include/details/allocator_cpu.h>
+
 #include "cufhe_core.h"
 
 namespace cufhe {

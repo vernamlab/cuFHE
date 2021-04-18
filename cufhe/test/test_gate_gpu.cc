@@ -104,8 +104,8 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
     Synchronize();
 
     for (int i = 0; i < kNumTests; i++) {
-        if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>) {
-            func(ct[i], st[i % kNumSMs]);
+        if constexpr (std::is_invocable_v<Func, Ctxt&>) {
+            func(ct[i]);
             check(pt[i]);
         }
         else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
@@ -138,7 +138,7 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
         if (res.message_ != pt[i].message_) {
             correct = false;
             cnt_failures += 1;
-            std::cout << type << " Fail at iteration: " << i << std::endl;
+            // std::cout << type << " Fail at iteration: " << i << std::endl;
         }
     }
     if (correct)

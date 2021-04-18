@@ -21,6 +21,7 @@
  */
 
 #include <fstream>
+
 #include "../include/cufhe.h"
 #include "../include/cufhe_core.h"
 

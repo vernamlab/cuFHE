@@ -24,6 +24,7 @@
 #include <cuda_device_runtime_api.h>
 #include <cuda_runtime.h>
 #include <include/cufhe.h>
+
 #include <include/cufhe_gpu.cuh>
 #include <include/details/allocator_gpu.cuh>
 
@@ -34,10 +35,9 @@ uint32_t cnt = 0;
 Ctxt::Ctxt()
 {
     std::pair<void*, MemoryDeleter> pair;
-    Param* param = GetDefaultParam();
 
-    lwe_sample_ = new LWESample(param->lwe_n_);
-    lwe_sample_device_ = new LWESample(param->lwe_n_);
+    lwe_sample_ = new LWESample(lvl0param::n);
+    lwe_sample_device_ = new LWESample(lvl0param::n);
 
     pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
     lwe_sample_->set_data((LWESample::PointerType)pair.first);
@@ -50,7 +50,7 @@ Ctxt::Ctxt()
     */
 
     for (int i = 0; i < _gpuNum; i++) {
-        lwe_sample_devices_.push_back(new LWESample(param->lwe_n_));
+        lwe_sample_devices_.push_back(new LWESample(lvl0param::n));
     }
 
     for (int i = 0; i < _gpuNum; i++) {
@@ -108,8 +108,7 @@ cuFHETRLWElvl1::cuFHETRLWElvl1()
 cuFHETRLWElvl1::~cuFHETRLWElvl1()
 {
     cudaHostUnregister(trlwehost.data());
-    for (auto&& trlwedevice : trlwedevices)
-        cudaFree(trlwedevice);
+    for (auto&& trlwedevice : trlwedevices) cudaFree(trlwedevice);
 }
 
 }  // namespace cufhe

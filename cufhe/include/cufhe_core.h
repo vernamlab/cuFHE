@@ -23,6 +23,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "details/assert.h"
 #include "details/math.h"
 
