@@ -138,7 +138,7 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
         if (res.message_ != pt[i].message_) {
             correct = false;
             cnt_failures += 1;
-            std::cout << type << " Fail at iteration: " << i << std::endl;
+            // std::cout << type << " Fail at iteration: " << i << std::endl;
         }
     }
     if (correct)
@@ -204,10 +204,10 @@ int main()
     Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
-         kNumSMs, pri_key);
-    Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
-         kNumSMs, pri_key);
+    // Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
+    //      kNumSMs, pri_key);
+    // Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
+    //      kNumSMs, pri_key);
 
     for (int i = 0; i < kNumSMs; i++) st[i].Destroy();
     delete[] st;
