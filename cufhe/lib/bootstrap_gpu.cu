@@ -20,6 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <bits/stdint-uintn.h>
 #include <include/cufhe.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -217,47 +218,57 @@ __device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar, const typenam
     __syncthreads();
 }
 
-__device__ void Accumulate(Torus* tlwe, FFP* sh_acc_ntt, FFP* sh_res_ntt,
-                           uint32_t a_bar, FFP* tgsw_ntt, CuNTTHandler<> ntt)
+template <class P>
+__device__ constexpr typename P::T offsetgen()
 {
-    static const uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
-    static const int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
-    static const uint32_t decomp_offset =
-        (0x1u << 31) + (0x1u << (31 - lvl1param::Bgbit));
-    uint32_t tid = ThisThreadRankInBlock();
-    uint32_t bdim = ThisBlockSize();
+    typename P::T offset = 0;
+    for (int i = 1; i <= P::l; i++)
+        offset +=
+            P::Bg / 2 *
+            (1ULL << (numeric_limits<typename P::T>::digits - i * P::Bgbit));
+    return offset;
+}
 
+__device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(FFP* decpoly, const Torus* poly, const uint32_t a_bar,const int digit){
     // temp[2] = sh_acc[2] * (x^exp - 1)
     // sh_acc_ntt[0, 1] = Decomp(temp[0])
     // sh_acc_ntt[2, 3] = Decomp(temp[1])
     // This algorithm is tested in cpp.
+    uint32_t tid = ThisThreadRankInBlock();
+    uint32_t bdim = ThisBlockSize();
+    constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
+    constexpr int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
+    constexpr uint32_t decomp_offset = offsetgen<lvl1param>();
     Torus temp;
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
         uint32_t cmp = (uint32_t)(i < (a_bar & (lvl1param::n - 1)));
         uint32_t neg = -(cmp ^ (a_bar >> lvl1param::nbit));
         uint32_t pos = -((1 - cmp) ^ (a_bar >> lvl1param::nbit));
-#pragma unroll
-        for (int j = 0; j < 2; j++) {
-            temp = tlwe[(j << lvl1param::nbit) | ((i - a_bar) & (lvl1param::n - 1))];
+            temp = poly[(i - a_bar) & (lvl1param::n - 1)];
             temp = (temp & pos) + ((-temp) & neg);
-            temp -= tlwe[(j << lvl1param::nbit) | i];
+            temp -= poly[i];
             // decomp temp
             temp += decomp_offset;
-            sh_acc_ntt[(2 * j) * lvl1param::n + i] = FFP(Torus(
-                ((temp >> (32 - lvl1param::Bgbit)) & decomp_mask) - decomp_half));
-            sh_acc_ntt[(2 * j + 1) * lvl1param::n + i] =
-                FFP(Torus(((temp >> (32 - 2 * lvl1param::Bgbit)) & decomp_mask) -
-                          decomp_half));
-        }
+            decpoly[i] = FFP(Torus(
+                ((temp >> (32 - (digit+1) * lvl1param::Bgbit)) & decomp_mask) - decomp_half));
     }
     __syncthreads();  // must
+}
 
-    // 4 NTTs with 512 threads.
+__device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
+                           const uint32_t a_bar, const FFP* tgsw_ntt, const CuNTTHandler<> ntt)
+{
+    uint32_t tid = ThisThreadRankInBlock();
+    uint32_t bdim = ThisBlockSize();
+
+    PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[0], a_bar, 0);
+
+    // 1 NTTs with 128 threads.
     // Input/output/buffer use the same shared memory location.
-    if (tid < 512) {
-        FFP* tar = &sh_acc_ntt[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT) << lvl1param::nbit];
-        ntt.NTT<FFP>(tar, tar, tar, tid >> (lvl1param::nbit - NTT_THRED_UNITBIT) << (lvl1param::nbit - NTT_THRED_UNITBIT));
+    if (tid < 128) {
+        FFP* tar = &decpoly[0];
+        ntt.NTT<FFP>(tar, tar, tar, 0);
     }
     else {  // must meet 4 sync made by NTTInv
         __syncthreads();
@@ -270,27 +281,81 @@ __device__ void Accumulate(Torus* tlwe, FFP* sh_acc_ntt, FFP* sh_res_ntt,
 // Multiply with bootstrapping key in global memory.
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
-        sh_res_ntt[2 * lvl1param::l * lvl1param::n + i] = 0;
-#pragma unroll
-        for (int j = 0; j < 4; j++)
-            sh_res_ntt[2 * lvl1param::l * lvl1param::n + i] +=
-                sh_acc_ntt[j * lvl1param::n + i] * tgsw_ntt[((2 * j + 1) << lvl1param::nbit) + i];
+        sh_res_ntt[i] =
+            decpoly[i] * tgsw_ntt[((2 * 0 + 0) << lvl1param::nbit) + i];
+        sh_res_ntt[i+lvl1param::n] = decpoly[i] * tgsw_ntt[((2 * 0 + 1) << lvl1param::nbit) + i];
     }
-    __syncthreads();  // new
+    __syncthreads();
 #pragma unroll
-    for (int i = tid; i < lvl1param::n; i += bdim) {
-        FFP temp = 0;
-#pragma unroll
-        for (int j = 0; j < 4; j++)
-            temp += sh_acc_ntt[j * lvl1param::n + i] * tgsw_ntt[((2 * j) << lvl1param::nbit) + i];
-        sh_res_ntt[i] = temp;
+    for (int digit = 1;digit<lvl1param::l;digit++){
+        PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[0], a_bar, digit);
+
+            // 1 NTTs with 128 threads.
+            // Input/output/buffer use the same shared memory location.
+            if (tid < 128) {
+                FFP* tar = &decpoly[0];
+                ntt.NTT<FFP>(tar, tar, tar, 0);
+            }
+            else {  // must meet 4 sync made by NTTInv
+                __syncthreads();
+                __syncthreads();
+                __syncthreads();
+                __syncthreads();
+            }
+            __syncthreads();
+
+        // Multiply with bootstrapping key in global memory.
+        #pragma unroll
+            for (int i = tid; i < lvl1param::n; i += bdim) {
+                sh_res_ntt[i] +=
+                    decpoly[i] * tgsw_ntt[((2 * digit + 0) << lvl1param::nbit) + i];
+                sh_res_ntt[i+lvl1param::n] += decpoly[i] * tgsw_ntt[((2 * digit + 1) << lvl1param::nbit) + i];
+            }
+    }
+
+    #pragma unroll
+    for (int digit = 0;digit<lvl1param::l;digit++){
+        PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[lvl1param::n], a_bar, digit);
+
+            // 1 NTTs with 128 threads.
+            // Input/output/buffer use the same shared memory location.
+            if (tid < 128) {
+                FFP* tar = &decpoly[0];
+                ntt.NTT<FFP>(tar, tar, tar, 0);
+            }
+            else {  // must meet 4 sync made by NTTInv
+                __syncthreads();
+                __syncthreads();
+                __syncthreads();
+                __syncthreads();
+            }
+            __syncthreads();
+
+        // Multiply with bootstrapping key in global memory.
+        #pragma unroll
+            for (int i = tid; i < lvl1param::n; i += bdim) {
+                sh_res_ntt[i] +=
+                    decpoly[i] * tgsw_ntt[((2 * (digit+lvl1param::l) + 0) << lvl1param::nbit) + i];
+                sh_res_ntt[i+lvl1param::n] += decpoly[i] * tgsw_ntt[((2 * (digit+lvl1param::l) + 1) << lvl1param::nbit) + i];
+            }
+    }
+
+    // 1 NTTInvs and add acc with 128 threads.
+    if (tid < 128) {
+        FFP* src = &sh_res_ntt[0];
+        ntt.NTTInvAdd<Torus>(&tlwe[0], src, src, 0);
+    }
+    else {  // must meet 4 sync made by NTTInv
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
     }
     __syncthreads();  // must
-
-    // 2 NTTInvs and add acc with 256 threads.
-    if (tid < 256) {
-        FFP* src = &sh_res_ntt[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT) << 12];
-        ntt.NTTInvAdd<Torus>(&tlwe[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT) << lvl1param::nbit], src, src, tid >> (lvl1param::nbit - NTT_THRED_UNITBIT) << (lvl1param::nbit - NTT_THRED_UNITBIT));
+    // 1 NTTInvs and add acc with 128 threads.
+    if (tid < 128) {
+        FFP* src = &sh_res_ntt[lvl1param::n];
+        ntt.NTTInvAdd<Torus>(&tlwe[lvl1param::n], src, src, 0);
     }
     else {  // must meet 4 sync made by NTTInv
         __syncthreads();
@@ -398,9 +463,11 @@ __device__ void __HomGate__(Torus* out, Torus* in0, Torus* in1,
                                   CuNTTHandler<> ntt)
 {
     __shared__ FFP
-        sh[(2 * lvl1param::l + 2) * lvl1param::n];  // This is V100's MAX
+        sh[(2 + 2) * lvl1param::n];  // This is V100's MAX
+    FFP* sh_acc_ntt = &sh[0];
+    FFP* decpoly = &sh[2*lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
+    Torus* tlwe = (Torus*)&sh[(2 + 1) * lvl1param::n];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
@@ -412,7 +479,7 @@ __device__ void __HomGate__(Torus* out, Torus* in0, Torus* in1,
 #pragma unroll
     for (int i = 0; i < lvl1param::n; i++) {  // lvl1param::n iterations
         bar = ModSwitch2048(0 - in0[i] - in1[i]);
-        Accumulate(tlwe, sh, sh, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
+        Accumulate(tlwe, sh_acc_ntt, decpoly, bar, bk + (i << lvl1param::nbit)*2*2*lvl1param::l, ntt);
     }
     KeySwitch<lvl10param>(out, tlwe, ksk);
     __threadfence();
@@ -596,7 +663,7 @@ void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
 
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __NandBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __NandBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -604,7 +671,7 @@ void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t 
 
 void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __OrBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __OrBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -612,7 +679,7 @@ void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st
 
 void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __OrYNBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __OrYNBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -620,7 +687,7 @@ void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t 
 
 void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __OrNYBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __OrNYBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -628,7 +695,7 @@ void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t 
 
 void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __AndBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __AndBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -636,7 +703,7 @@ void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t s
 
 void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __AndYNBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __AndYNBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -644,7 +711,7 @@ void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t
 
 void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __AndNYBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __AndNYBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -652,7 +719,7 @@ void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t
 
 void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,  cudaStream_t st, int gpuNum)
 {
-    __NorBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __NorBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -660,7 +727,7 @@ void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,  cudaStream_t 
 
 void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,  cudaStream_t st, int gpuNum)
 {
-    __XorBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __XorBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -668,7 +735,7 @@ void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,  cudaStream_t 
 
 void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1, cudaStream_t st, int gpuNum)
 {
-    __XnorBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(
+    __XnorBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -683,7 +750,7 @@ void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
 void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
                   int gpuNum)
 {
-    __NotBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l, 0, st>>>(out->data(), in->data(), n);
+    __NotBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT, 0, st>>>(out->data(), in->data(), n);
     CuCheckError();
 }
 
@@ -695,7 +762,7 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
     cudaFuncSetAttribute(__MuxBootstrap__,
                          cudaFuncAttributeMaxDynamicSharedMemorySize,
                          (2 * lvl1param::l + 3) * lvl1param::n * sizeof(FFP));
-    __MuxBootstrap__<<<1,lvl1param::n / 8 * 2 * lvl1param::l,
+    __MuxBootstrap__<<<1,lvl1param::n>>NTT_THRED_UNITBIT,
                        (2 * lvl1param::l + 3) * lvl1param::n * sizeof(FFP), st>>>(
         out->data(), inc->data(), in1->data(), in0->data(), mu, fix, muxfix,
         bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
