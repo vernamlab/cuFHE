@@ -41,7 +41,7 @@ Param kParam = {
     lvl10param::basebit,  // basebit
     lvl10param::t,        // t
     lvl0param::α,    // alpha
-    lvl1pama::α   // bkalpha
+    lvl1param::α   // bkalpha
 };
 
 Param* GetDefaultParam() { return &kParam; }

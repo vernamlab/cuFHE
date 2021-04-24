@@ -427,8 +427,7 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     __threadfence();
 }
 
-__global__ void __SEandKS__(Torus* out, Torus* in, FFP* bk, Torus* ksk,
-                            CuNTTHandler<> ntt)
+__global__ void __SEandKS__(Torus* out, Torus* in, FFP* bk, Torus* ksk)
 {
     KeySwitch<lvl10param>(out, in, ksk);
     __threadfence();
@@ -654,9 +653,7 @@ __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
 void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
                int gpuNum)
 {
-    dim3 grid(1);
-    dim3 block(512);
-    __Bootstrap__<<<grid, block, 0, st>>>(
+    __Bootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>(
         out->data(), in->data(), mu, bk_ntts[gpuNum]->data(),
         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -664,20 +661,15 @@ void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
 
 void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum)
 {
-    dim3 grid(1);
-    dim3 block(512);
-    __SEandKS__<<<grid, block, 0, st>>>(
-        out->data(), in, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
-        *ntt_handlers[gpuNum]);
+    __SEandKS__<<<1, lvl0param::n+1, 0, st>>>(
+        out->data(), in, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data());
     CuCheckError();
 }
 
 void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
                          int gpuNum)
 {
-    dim3 grid(1);
-    dim3 block(512);
-    __BootstrapTLWE2TRLWE__<<<grid, block, 0, st>>>(
+    __BootstrapTLWE2TRLWE__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>(
         out, in->data(), mu, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
         *ntt_handlers[gpuNum]);
     CuCheckError();
