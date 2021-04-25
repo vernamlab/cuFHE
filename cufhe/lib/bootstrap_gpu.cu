@@ -391,10 +391,11 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     //  Assert(bk.k() == 1);
     //  Assert(bk.l() == 2);
     //  Assert(bk.n() == lvl1param::n);
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    //  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
-    //  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
+    __shared__ FFP sh[(2 + 1 + 1) * lvl1param::n];
+    FFP* sh_acc_ntt = &sh[0];
+    FFP* decpoly = &sh[2 * lvl1param::n];
+    // Use Last section to hold tlwe. This may to make these data in serial
+    Torus* tlwe = (Torus*)&sh[(2 + 1) * lvl1param::n];
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
@@ -417,9 +418,9 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     __syncthreads();
 // accumulate
 #pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // n iterations
+    for (int i = 0; i < lvl0param::n; i++) {  // n iterations
         bar = ModSwitch2048(in[i]);
-        Accumulate(tlwe, sh, sh, bar,
+        Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
 
@@ -439,10 +440,11 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
     //  Assert(bk.k() == 1);
     //  Assert(bk.l() == 2);
     //  Assert(bk.n() == lvl1param::n);
-    __shared__ FFP sh[(2 * lvl1param::l + 2) * lvl1param::n];
-    //  FFP* sh_acc_ntt[4] = { sh, sh + 1024, sh + 2048, sh + 3072 };
-    //  FFP* sh_res_ntt[2] = { sh, sh + 4096 };
-    Torus* tlwe = (Torus*)&sh[(2 * lvl1param::l + 1) * lvl1param::n];
+    __shared__ FFP sh[(2 + 1 + 1) * lvl1param::n];
+    FFP* sh_acc_ntt = &sh[0];
+    FFP* decpoly = &sh[2 * lvl1param::n];
+    // Use Last section to hold tlwe. This may to make these data in serial
+    Torus* tlwe = (Torus*)&sh[(2 + 1) * lvl1param::n];
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
@@ -465,9 +467,9 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
     __syncthreads();
 // accumulate
 #pragma unroll
-    for (int i = 0; i < lvl1param::n; i++) {  // n iterations
+    for (int i = 0; i < lvl0param::n; i++) {  // n iterations
         bar = ModSwitch2048(in[i]);
-        Accumulate(tlwe, sh, sh, bar,
+        Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
     __syncthreads();
@@ -641,9 +643,9 @@ __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
     register uint32_t tid = ThisThreadRankInBlock();
     register uint32_t bdim = ThisBlockSize();
 #pragma unroll
-    for (int i = tid; i <= lvl1param::n; i += bdim) {
-        if (i == lvl1param::n)
-            out[lvl1param::n] = pmu;
+    for (int i = tid; i <= lvl0param::n; i += bdim) {
+        if (i == lvl0param::n)
+            out[lvl0param::n] = pmu;
         else
             out[i] = 0;
     }
@@ -796,7 +798,7 @@ void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
 
 void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st)
 {
-    __NoiselessTrivial__<<<1, lvl1param::n + 1, 0, st>>>(out->data(),
+    __NoiselessTrivial__<<<1, lvl0param::n + 1, 0, st>>>(out->data(),
                                                          p ? mu : -mu);
 }
 }  // namespace cufhe
