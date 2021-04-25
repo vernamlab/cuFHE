@@ -400,22 +400,8 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar = 2 * lvl1param::n - ModSwitch2048(in[lvl0param::n]);
-    register uint32_t tid = ThisThreadRankInBlock();
-    register uint32_t bdim = ThisBlockSize();
-    register uint32_t cmp, neg, pos;
-#pragma unroll
-    for (int i = tid; i < lvl0param::n; i += bdim) {
-        tlwe[i] = 0;  // part a
-        if (bar == 2 * lvl1param::n)
-            tlwe[i + lvl1param::n] = mu;
-        else {
-            cmp = (uint32_t)(i < (bar & (lvl1param::n - 1)));
-            neg = -(cmp ^ (bar >> lvl1param::nbit));
-            pos = -((1 - cmp) ^ (bar >> lvl1param::nbit));
-            tlwe[i + lvl1param::n] = (mu & pos) + ((-mu) & neg);  // part b
-        }
-    }
-    __syncthreads();
+    RotatedTestVector<lvl1param>(tlwe, bar, mu);
+
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
@@ -448,23 +434,9 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar = 2048 - ModSwitch2048(in[lvl0param::n]);
-    register uint32_t tid = ThisThreadRankInBlock();
-    register uint32_t bdim = ThisBlockSize();
-    register uint32_t cmp, neg, pos;
-#pragma unroll
-    for (int i = tid; i < lvl0param::n; i += bdim) {
-        tlwe[i] = 0;  // part a
-        if (bar == 2048)
-            tlwe[i + lvl1param::n] = mu;
-        else {
-            cmp = (uint32_t)(i < (bar & (lvl1param::n - 1)));
-            neg = -(cmp ^ (bar >> lvl1param::nbit));
-            pos = -((1 - cmp) ^ (bar >> lvl1param::nbit));
-            tlwe[i + lvl1param::n] = (mu & pos) + ((-mu) & neg);  // part b
-        }
-    }
-    __syncthreads();
+    register int32_t bar = 2 * lvl1param::n - ModSwitch2048(in[lvl0param::n]);
+    RotatedTestVector<lvl1param>(tlwe, bar, mu);
+
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
