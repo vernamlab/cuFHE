@@ -322,7 +322,7 @@ void Not(Ctxt& out, const Ctxt& in, Stream st)
     cudaSetDevice(st.device_id());
     CtxtCopyH2D(in, st);
     NotBootstrap(out.lwe_sample_devices_[st.device_id()],
-                 in.lwe_sample_devices_[st.device_id()], in.lwe_sample_->n(),
+                 in.lwe_sample_devices_[st.device_id()], 
                  st.st(), st.device_id());
     CtxtCopyD2H(out, st);
 }
@@ -331,7 +331,7 @@ void gNot(Ctxt& out, const Ctxt& in, Stream st)
 {
     cudaSetDevice(st.device_id());
     NotBootstrap(out.lwe_sample_devices_[st.device_id()],
-                 in.lwe_sample_devices_[st.device_id()], in.lwe_sample_->n(),
+                 in.lwe_sample_devices_[st.device_id()],
                  st.st(), st.device_id());
 }
 

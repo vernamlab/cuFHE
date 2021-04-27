@@ -543,18 +543,17 @@ __global__ void __OrYNBootstrap__(Torus* out, Torus* in0, Torus* in1, FFP* bk,
 
 __global__ void __CopyBootstrap__(Torus* out, Torus* in)
 {
-    uint32_t tid = ThisThreadRankInBlock();
+    const uint32_t tid = ThisThreadRankInBlock();
     out[tid] = in[tid];
     __syncthreads();
     __threadfence();
 }
 
-__global__ void __NotBootstrap__(Torus* out, Torus* in, int n)
+__global__ void __NotBootstrap__(Torus* out, Torus* in)
 {
 #pragma unroll
-    for (int i = 0; i <= n; i++) {
-        out[i] = -in[i];
-    }
+    const uint32_t tid = ThisThreadRankInBlock();
+    out[tid] = -in[tid];
     __syncthreads();
     __threadfence();
 }
@@ -748,11 +747,11 @@ void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
     CuCheckError();
 }
 
-void NotBootstrap(LWESample* out, LWESample* in, int n, cudaStream_t st,
+void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st,
                   int gpuNum)
 {
-    __NotBootstrap__<<<1, lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
-        (out->data(), in->data(), n);
+    __NotBootstrap__<<<1, lvl0param::n+1, 0, st>>>
+        (out->data(), in->data());
     CuCheckError();
 }
 
