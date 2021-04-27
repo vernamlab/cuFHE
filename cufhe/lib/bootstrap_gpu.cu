@@ -170,9 +170,9 @@ __device__ inline typename P::T modSwitchFromTorus(uint32_t phase)
 template <class P>
 __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
 {
-    constexpr Torus decomp_mask = (1u << P::basebit) - 1;
+    constexpr Torus decomp_mask = (1U << P::basebit) - 1;
     constexpr Torus decomp_offset =
-        1u << (std::numeric_limits<typename P::domainP::T>::digits - 1 -
+        1U << (std::numeric_limits<typename P::domainP::T>::digits - 1 -
                P::t * P::basebit);
     const uint32_t tid = ThisThreadRankInBlock();
     const uint32_t bdim = ThisBlockSize();
@@ -195,7 +195,8 @@ __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
                         (k + 1) * P::basebit)) &
                       decomp_mask;
                 if (val != 0)
-                    res -= ksk[(j << 14) | (k << 11) | (val << 9) | i];
+                    // 3 means P::t-1=7 can be represented by 3 bit
+                    res -= ksk[(j << (P::domainP::nbit-1+P::basebit+3)) | (k << (P::domainP::nbit-1+P::basebit)) | (val << (P::domainP::nbit-1)) | i];
             }
         }
         lwe[i] = res;
