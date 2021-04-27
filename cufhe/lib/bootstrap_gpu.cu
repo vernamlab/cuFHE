@@ -102,7 +102,7 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
         CuCheckError();
 
         dim3 grid(bk->k() + 1, (bk->k() + 1) * bk->l(), bk->t());
-        dim3 block(128);
+        dim3 block(lvl1param::n>> NTT_THRED_UNITBIT);
         __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntts[i], *d_bk,
                                                    *ntt_handlers[i]);
         cudaDeviceSynchronize();
@@ -159,9 +159,12 @@ void DeleteKeySwitchingKey(int gpuNum)
     ksk_devs.clear();
 }
 
-__device__ inline uint32_t ModSwitch2048(uint32_t a)
+template <class P>
+__device__ inline typename P::T modSwitchFromTorus(uint32_t phase)
 {
-    return (((uint64_t)a << 32) + (0x1UL << 52)) >> 53;
+    constexpr uint32_t Mbit = P::nbit + 1;
+    static_assert(32>=Mbit, "Undefined modSwitchFromTorus!");
+    return (phase + (1U << (31 - Mbit))) >> (32 - Mbit);
 }
 
 template <class P>
@@ -274,9 +277,9 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
 
     PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[0], a_bar, 0);
 
-    // 1 NTTs with 128 threads.
+    // 1 NTTs with lvl1param::n>> NTT_THRED_UNITBIT threads.
     // Input/output/buffer use the same shared memory location.
-    if (tid < 128) {
+    if (tid < lvl1param::n>> NTT_THRED_UNITBIT) {
         FFP* tar = &decpoly[0];
         ntt.NTT<FFP>(tar, tar, tar, 0);
     }
@@ -302,9 +305,9 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[0], a_bar,
                                                    digit);
 
-        // 1 NTTs with 128 threads.
+        // 1 NTTs with lvl1param::n>> NTT_THRED_UNITBIT threads.
         // Input/output/buffer use the same shared memory location.
-        if (tid < 128) {
+        if (tid < lvl1param::n>> NTT_THRED_UNITBIT) {
             FFP* tar = &decpoly[0];
             ntt.NTT<FFP>(tar, tar, tar, 0);
         }
@@ -331,9 +334,9 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[lvl1param::n],
                                                    a_bar, digit);
 
-        // 1 NTTs with 128 threads.
+        // 1 NTTs with lvl1param::n>> NTT_THRED_UNITBIT threads.
         // Input/output/buffer use the same shared memory location.
-        if (tid < 128) {
+        if (tid < lvl1param::n>> NTT_THRED_UNITBIT) {
             FFP* tar = &decpoly[0];
             ntt.NTT<FFP>(tar, tar, tar, 0);
         }
@@ -359,8 +362,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         }
     }
 
-    // 1 NTTInvs and add acc with 128 threads.
-    if (tid < 128) {
+    // 1 NTTInvs and add acc with lvl1param::n>> NTT_THRED_UNITBIT threads.
+    if (tid < lvl1param::n>> NTT_THRED_UNITBIT) {
         FFP* src = &sh_res_ntt[0];
         ntt.NTTInvAdd<Torus>(&tlwe[0], src, src, 0);
     }
@@ -371,8 +374,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         __syncthreads();
     }
     __syncthreads();  // must
-    // 1 NTTInvs and add acc with 128 threads.
-    if (tid < 128) {
+    // 1 NTTInvs and add acc with lvl1param::n>> NTT_THRED_UNITBIT threads.
+    if (tid < lvl1param::n>> NTT_THRED_UNITBIT) {
         FFP* src = &sh_res_ntt[lvl1param::n];
         ntt.NTTInvAdd<Torus>(&tlwe[lvl1param::n], src, src, 0);
     }
@@ -399,13 +402,13 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar = 2 * lvl1param::n - ModSwitch2048(in[lvl0param::n]);
+    register int32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, mu);
 
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
-        bar = ModSwitch2048(in[i]);
+        bar = modSwitchFromTorus<lvl1param>(in[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
@@ -434,13 +437,13 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar = 2 * lvl1param::n - ModSwitch2048(in[lvl0param::n]);
+    register int32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, mu);
 
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
-        bar = ModSwitch2048(in[i]);
+        bar = modSwitchFromTorus<lvl1param>(in[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
@@ -463,14 +466,14 @@ __device__ inline void __HomGate__(Torus* out, Torus* in0, Torus* in1, FFP* bk,
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
-        2 * lvl1param::n - ModSwitch2048(offset + casign * in0[lvl0param::n] +
+        2 * lvl1param::n - modSwitchFromTorus<lvl1param>(offset + casign * in0[lvl0param::n] +
                                          cbsign * in1[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, lvl1param::μ);
 
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl0param::n iterations
-        bar = ModSwitch2048(0 + casign * in0[i] + cbsign * in1[i]);
+        bar = modSwitchFromTorus<lvl1param>(0 + casign * in0[i] + cbsign * in1[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
@@ -571,25 +574,25 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register int32_t bar =
         2 * lvl1param::n -
-        ModSwitch2048(-lvl0param::μ + inc[lvl0param::n] + in1[lvl0param::n]);
+        modSwitchFromTorus<lvl1param>(-lvl0param::μ + inc[lvl0param::n] + in1[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe1, bar, lvl1param::μ);
 
 // accumulate
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 + inc[i] + in1[i]);
+        bar = modSwitchFromTorus<lvl1param>(0 + inc[i] + in1[i]);
         Accumulate(tlwe1, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
 
     bar = 2 * lvl1param::n -
-          ModSwitch2048(-lvl0param::μ - inc[lvl0param::n] + in0[lvl0param::n]);
+          modSwitchFromTorus<lvl1param>(-lvl0param::μ - inc[lvl0param::n] + in0[lvl0param::n]);
 
     RotatedTestVector<lvl1param>(tlwe0, bar, lvl1param::μ);
 
 #pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
-        bar = ModSwitch2048(0 - inc[i] + in0[i]);
+        bar = modSwitchFromTorus<lvl1param>(0 - inc[i] + in0[i]);
         Accumulate(tlwe0, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
