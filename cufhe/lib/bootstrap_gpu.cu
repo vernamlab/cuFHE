@@ -174,8 +174,8 @@ __device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
     constexpr Torus decomp_offset =
         1u << (std::numeric_limits<typename P::domainP::T>::digits - 1 -
                P::t * P::basebit);
-    uint32_t tid = ThisThreadRankInBlock();
-    uint32_t bdim = ThisBlockSize();
+    const uint32_t tid = ThisThreadRankInBlock();
+    const uint32_t bdim = ThisBlockSize();
 #pragma unroll 0
     for (int i = tid; i <= P::targetP::n; i += bdim) {
         Torus tmp;
@@ -209,18 +209,17 @@ __device__ inline void RotatedTestVector(Torus* tlwe, int32_t bar,
     // volatile is needed to make register usage of Mux to 128.
     // Reference
     // https://devtalk.nvidia.com/default/topic/466758/cuda-programming-and-performance/tricks-to-fight-register-pressure-or-how-i-got-down-from-29-to-15-registers-/
-    volatile uint32_t tid = ThisThreadRankInBlock();
-    volatile uint32_t bdim = ThisBlockSize();
-    uint32_t cmp, neg, pos;
+    volatile const uint32_t tid = ThisThreadRankInBlock();
+    volatile const uint32_t bdim = ThisBlockSize();
 #pragma unroll
     for (int i = tid; i < P::n; i += bdim) {
         tlwe[i] = 0;  // part a
         if (bar == 2 * P::n)
             tlwe[i + P::n] = μ;
         else {
-            cmp = (uint32_t)(i < (bar & (P::n - 1)));
-            neg = -(cmp ^ (bar >> P::nbit));
-            pos = -((1 - cmp) ^ (bar >> P::nbit));
+            const uint32_t cmp = (uint32_t)(i < (bar & (P::n - 1)));
+            const uint32_t neg = -(cmp ^ (bar >> P::nbit));
+            const uint32_t pos = -((1 - cmp) ^ (bar >> P::nbit));
             tlwe[i + P::n] = (μ & pos) + ((-μ) & neg);  // part b
         }
     }
@@ -245,17 +244,17 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
     // sh_acc_ntt[0, 1] = Decomp(temp[0])
     // sh_acc_ntt[2, 3] = Decomp(temp[1])
     // This algorithm is tested in cpp.
-    uint32_t tid = ThisThreadRankInBlock();
-    uint32_t bdim = ThisBlockSize();
+    const uint32_t tid = ThisThreadRankInBlock();
+    const uint32_t bdim = ThisBlockSize();
     constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
     constexpr int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
     constexpr uint32_t decomp_offset = offsetgen<lvl1param>();
     Torus temp;
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
-        uint32_t cmp = (uint32_t)(i < (a_bar & (lvl1param::n - 1)));
-        uint32_t neg = -(cmp ^ (a_bar >> lvl1param::nbit));
-        uint32_t pos = -((1 - cmp) ^ (a_bar >> lvl1param::nbit));
+        const uint32_t cmp = (uint32_t)(i < (a_bar & (lvl1param::n - 1)));
+        const uint32_t neg = -(cmp ^ (a_bar >> lvl1param::nbit));
+        const uint32_t pos = -((1 - cmp) ^ (a_bar >> lvl1param::nbit));
         temp = poly[(i - a_bar) & (lvl1param::n - 1)];
         temp = (temp & pos) + ((-temp) & neg);
         temp -= poly[i];
@@ -272,8 +271,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
                                   const uint32_t a_bar, const FFP* tgsw_ntt,
                                   const CuNTTHandler<> ntt)
 {
-    uint32_t tid = ThisThreadRankInBlock();
-    uint32_t bdim = ThisBlockSize();
+    const uint32_t tid = ThisThreadRankInBlock();
+    const uint32_t bdim = ThisBlockSize();
 
     PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[0], a_bar, 0);
 
@@ -402,7 +401,7 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
+    register uint32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, mu);
 
 // accumulate
@@ -437,7 +436,7 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
+    register uint32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, mu);
 
 // accumulate
@@ -465,7 +464,7 @@ __device__ inline void __HomGate__(Torus* out, Torus* in0, Torus* in1, FFP* bk,
     Torus* tlwe = (Torus*)&sh[(2 + 1) * lvl1param::n];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register int32_t bar =
+    register uint32_t bar =
         2 * lvl1param::n - modSwitchFromTorus<lvl1param>(offset + casign * in0[lvl0param::n] +
                                          cbsign * in1[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, lvl1param::μ);
@@ -597,8 +596,8 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
 
-    volatile uint32_t tid = ThisThreadRankInBlock();
-    volatile uint32_t bdim = ThisBlockSize();
+    volatile const uint32_t tid = ThisThreadRankInBlock();
+    volatile const uint32_t bdim = ThisBlockSize();
 #pragma unroll
     for (int i = tid; i <= lvl1param::n; i += bdim) {
         tlwe1[i] += tlwe0[i];
@@ -615,8 +614,8 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
 
 __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
 {
-    register uint32_t tid = ThisThreadRankInBlock();
-    register uint32_t bdim = ThisBlockSize();
+    register const uint32_t tid = ThisThreadRankInBlock();
+    register const uint32_t bdim = ThisBlockSize();
 #pragma unroll
     for (int i = tid; i <= lvl0param::n; i += bdim) {
         if (i == lvl0param::n)
