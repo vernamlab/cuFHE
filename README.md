@@ -1,36 +1,28 @@
 # cuFHE
-CUDA-accelerated Fully Homomorphic Encryption Library
+CUDA-accelerated Torus Fully Homomorphic Encryption Library. This fork is maintained as a sub project of Virtual Secure Platform.
 
-v1.0_beta -- release on Mar/14/2018
+v1.0_beta -- release on Mar/14/2018 original [cuFHE](https://github.com/vernamlab/cuFHE)
+v1 -- kvsp v29 compatible version.
+v2 -- refctored & reduced shared memory usage (depends on TFHEpp for parameter set select, runnable on old GPUs like GTX 1060Ti but slow)
 
 ## What is cuFHE?
-The cuFHE library is an open-source library for Fully Homomorphic Encryption (FHE) on CUDA-enabled GPUs. It implements the TFHE scheme [CGGI16][CGGI17] proposed by Chillotti et al. in CUDA C++. Compared to the [TFHE lib](https://github.com/tfhe/tfhe) which reports the fastest gate-by-gate bootstrapping performance on CPUs, the cuFHE library yields roughly 20 times of speedup on an NVIDIA Titan Xp graphics card. The cuFHE library benefits greatly from an improved CUDA implementation of the number-theoretic transform (NTT) proposed in the [cuHE library](https://github.com/vernamlab/cuHE) [Dai15] by Dai and Sunar.
+The cuFHE library is an open-source library for Fully Homomorphic Encryption (FHE) on CUDA-enabled GPUs. It implements the TFHE scheme [CGGI16][CGGI17] proposed by Chillotti et al. in CUDA C++. Compared to the [TFHE lib](https://github.com/tfhe/tfhe) which reports the fastest gate-by-gate bootstrapping performance on CPUs, the cuFHE library yields almost same performance per SM. Since GPU has a lot of SMs (128 in A100), cuFHE gives better performace if there are enough number of parallely evaluable tasks. The cuFHE library benefits greatly from an improved CUDA implementation of the number-theoretic transform (NTT) proposed in the [cuHE library](https://github.com/vernamlab/cuHE) [Dai15] by Dai and Sunar.
 
-| [TFHE lib](https://github.com/tfhe/tfhe) | cuFHE | Speedup |
-|---|---|---|
-| 13 ms | **0.5 ms** | 26 times |
+| [TFHE lib](https://github.com/tfhe/tfhe) | cuFHE |
+|---|---|
+| 10 ms | 13 ms |
 
 ### System Requirements
-**The library has been tested on Ubuntu Desktop 16.04 only.**
-This "Makefile" is created for Linux systems. Please create your own Makefile for MacOS and Windows. We are working on cross-platform support.
-
-GPU support requires NVIDIA Driver, NVIDIA CUDA Toolkit and a GPU with **Compute Capability no less than 6.0**.
-For devices with Compute Capability less than 6.0, there is [an issue](https://github.com/vernamlab/cuFHE/issues/2) that have not been solved yet. Any fix or suggestion is welcomed.
+**The library has been tested on Ubuntu Desktop 20.04 & NVIDIA A100 only.**
+GPU support requires NVIDIA Driver and NVIDIA CUDA Toolkit.
 
 ### Installation (Linux)
-- Run `make` from the directory `cufhe/` for default compilation. This will
-  1. create directories `build` and `bin`,
-  2. generate shared libraries `libcufhe_cpu.so` (CPU standalone),
-  3. `libcufhe_gpu.so` (GPU support) in `bin` directory, and 3) create test and benchmarking executables `test_api_cpu` and `test_api_gpu` in `bin`.
-
-- Alternatively, run `make cpu` or `make gpu` for individual library and executable.
-- Copy the library files and `include` folder to any desirable location. Remember to export your library directory with `export LD_LIBRARY_PATH=directory`. Run `test_api_gpu` to see the latency per gate.
-- We provide a Python wrapper which uses boost-python tool. To use the Python interface, you will need
-  1. a python interpreter, (probably in `/usr/bin/`)
-  2. boost-python library, (Run `sudo apt-get install libboost-python-dev`, if you don't have it installed.)
-  3. to change the Makefile if your python and boost include/lib paths are different than default,
-  4. to run `make python_cpu` for CPU library and `make python_gpu` for GPU library, and finally
-  5. to test the python scripts under `cufhe/python/`.
+Do the standard CMake compulation process.
+```
+cd cufhe
+mkdir build
+cmake .. -DENABLE_TEST=ON -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+```
 
 ### User Manual
 Use files in `cufhe/test/` as examples. To summarize, follow the following function calling procedures.
