@@ -192,8 +192,6 @@ int main()
     Stream* st = new Stream[kNumSMs];
     for (int i = 0; i < kNumSMs; i++) st[i].Create();
 
-    Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
@@ -204,6 +202,8 @@ int main()
     Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+    Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+    Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
          kNumSMs, pri_key);
     Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
