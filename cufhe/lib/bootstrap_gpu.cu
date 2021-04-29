@@ -160,7 +160,7 @@ void DeleteKeySwitchingKey(int gpuNum)
 }
 
 template <class P>
-__device__ inline typename P::T modSwitchFromTorus(uint32_t phase)
+__device__ inline typename P::T modSwitchFromTorus(const uint32_t phase)
 {
     constexpr uint32_t Mbit = P::nbit + 1;
     static_assert(32>=Mbit, "Undefined modSwitchFromTorus!");
@@ -168,7 +168,7 @@ __device__ inline typename P::T modSwitchFromTorus(uint32_t phase)
 }
 
 template <class P>
-__device__ inline void KeySwitch(Torus* lwe, Torus* tlwe, Torus* ksk)
+__device__ inline void KeySwitch(Torus* lwe, const Torus* const tlwe, const Torus* const ksk)
 {
     constexpr Torus decomp_mask = (1U << P::basebit) - 1;
     constexpr Torus decomp_offset =
@@ -345,8 +345,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
     __syncthreads();  // must
 }
 
-__global__ void __Bootstrap__(Torus* out, Torus* in, Torus mu, FFP* bk,
-                              Torus* ksk, CuNTTHandler<> ntt)
+__global__ void __Bootstrap__(Torus* out, Torus* in, const Torus mu, const FFP* const bk,
+                              const Torus* const ksk, const CuNTTHandler<> ntt)
 {
     //  Assert(bk.k() == 1);
     //  Assert(bk.l() == 2);
