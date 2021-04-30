@@ -218,10 +218,7 @@ __device__ inline void RotatedTestVector(Torus* tlwe, const int32_t bar,
         if (bar == 2 * P::n)
             tlwe[i + P::n] = μ;
         else {
-            const uint32_t cmp = (uint32_t)(i < (bar & (P::n - 1)));
-            const uint32_t neg = -(cmp ^ (bar >> P::nbit));
-            const uint32_t pos = -((1 - cmp) ^ (bar >> P::nbit));
-            tlwe[i + P::n] = (μ & pos) + ((-μ) & neg);  // part b
+            tlwe[i + P::n] = ((i < (bar & (P::n - 1))) ^ (bar >> P::nbit))?-μ:μ;  // part b
         }
     }
     __syncthreads();
@@ -250,14 +247,10 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
     constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
     constexpr int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
     constexpr uint32_t decomp_offset = offsetgen<lvl1param>();
-    Torus temp;
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
-        const uint32_t cmp = (uint32_t)(i < (a_bar & (lvl1param::n - 1)));
-        const uint32_t neg = -(cmp ^ (a_bar >> lvl1param::nbit));
-        const uint32_t pos = -((1 - cmp) ^ (a_bar >> lvl1param::nbit));
-        temp = poly[(i - a_bar) & (lvl1param::n - 1)];
-        temp = (temp & pos) + ((-temp) & neg);
+        Torus temp = poly[(i - a_bar) & (lvl1param::n - 1)];
+        temp = ((i < (a_bar & (lvl1param::n - 1)) ^ (a_bar >> lvl1param::nbit)))?-temp:temp;
         temp -= poly[i];
         // decomp temp
         temp += decomp_offset;
