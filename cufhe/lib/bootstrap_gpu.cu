@@ -257,7 +257,7 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
         #pragma unroll
         for(int digit = 0; digit<lvl1param::l;digit+=1)
             decpoly[digit*lvl1param::n+i] = FFP(Torus(
-                ((temp >> (32 - (digit + 1) * lvl1param::Bgbit)) & decomp_mask) -
+                ((temp >> (std::numeric_limits<typename lvl1param::T>::digits - (digit + 1) * lvl1param::Bgbit)) & decomp_mask) -
                 decomp_half));
     }
     __syncthreads();  // must
