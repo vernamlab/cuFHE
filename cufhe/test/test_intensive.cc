@@ -24,6 +24,7 @@ void runAndVerify(const char* name, Launcher&& launcher, Verifier&& verifier)
         }
         if (!cont) break;
     }
+    cudaDeviceSynchronize();
     size_t errcount = 0;
     for (size_t i = 0; i < N; i++)
         for (size_t j = 0; j < M; j++)

@@ -46,6 +46,7 @@ void NTT1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     //r[i] *= twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
     r[i] *= con_twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
+  __syncthreads();
   NTT8(r);
   NTT8x2Lsh(r, t3d.z); // if (t1d >= 64) NTT8x2<1>(r);
   ptr = &s[(t3d.y << 7) | (t3d.z << 6) | (t3d.x << 2)];
@@ -58,6 +59,7 @@ void NTT1024Core(FFP* r,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 6];
+  __syncthreads();
   NTT2(r);
   NTT2(r + 2);
   NTT2(r + 4);
@@ -72,6 +74,7 @@ void NTT1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     //r[i] = ptr[i << 7] * twd[(i << 7) | t1d]; // mult twiddle
     r[i] = ptr[i << 7] * con_twd[(i << 7) | t1d]; // mult twiddle
+  __syncthreads();
   NTT8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -82,6 +85,7 @@ void NTT1024Core(FFP* r,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 2];
+  __syncthreads();
   NTT8x8Lsh(r, t1d >> 4); // less divergence if put here!
   NTT8(r);
 }
@@ -107,6 +111,7 @@ void NTTInv1024Core(FFP* r,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 6];
+  __syncthreads();
   NTT2(r);
   NTT2(r + 2);
   NTT2(r + 4);
@@ -121,6 +126,7 @@ void NTTInv1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     //r[i] = ptr[i << 7] * twd_inv[(i << 7) | t1d]; // mult twiddle
     r[i] = ptr[i << 7] * con_twd_inv[(i << 7) | t1d]; // mult twiddle
+  __syncthreads();
   NTTInv8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -131,12 +137,14 @@ void NTTInv1024Core(FFP* r,
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 2];
+  __syncthreads();
   NTTInv8x8Lsh(r, t1d >> 4); // less divergence if put here!
   NTTInv8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     //r[i] *= twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
     r[i] *= con_twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
+  __syncthreads();
 }
 
 template <typename T>
