@@ -65,19 +65,6 @@ public:
 
   template <typename T>
   __device__ inline
-  void NTTDecomp(FFP* out,
-           T* in,
-           FFP* sh_temp,
-           uint32_t rsh_bits,
-           T mask,
-           T offset,
-           uint32_t leading_thread = 0) const {
-    NTT1024Decomp<T>(out, in, sh_temp, this->twd_, this->twd_sqrt_,
-                     rsh_bits, mask, offset, leading_thread);
-  }
-
-  template <typename T>
-  __device__ inline
   void NTTInv(T* out,
               FFP* in,
               FFP* sh_temp,

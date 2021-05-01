@@ -36,11 +36,6 @@ using namespace std;
 namespace cufhe {
 
 using BootstrappingKeyNTT = TGSWSampleArray_T<FFP>;
-// BootstrappingKeyNTT* bk_ntt = nullptr;
-// MemoryDeleter bk_ntt_deleter = nullptr;
-// KeySwitchingKey* ksk_dev = nullptr;
-// MemoryDeleter ksk_dev_deleter = nullptr;
-// CuNTTHandler<>* ntt_handler = nullptr;
 
 vector<BootstrappingKeyNTT*> bk_ntts;
 vector<MemoryDeleter> bk_ntt_deleters;

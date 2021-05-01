@@ -171,31 +171,6 @@ void NTT1024(FFP* out,
 
 template <typename T>
 __device__
-void NTT1024Decomp(FFP* out,
-                   T* in,
-                   FFP* temp_shared,
-                   FFP* twd,
-                   FFP* twd_sqrt,
-                   uint32_t rsh_bits,
-                   T mask,
-                   T offset,
-                   const uint32_t leading_thread) {
-  const uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
-  uint3 t3d;
-  Index3DFrom1D<8, 8, 2>(t3d, t1d);
-  register FFP r[8];
-  #pragma unroll
-  for (int i = 0; i < 8; i ++)
-    r[i] = FFP(((in[(i << 7) | t1d] >> rsh_bits) & mask) - offset);
-  __syncthreads();
-  NTT1024Core(r, temp_shared, twd, twd_sqrt, t1d, t3d);
-  #pragma unroll
-  for (int i = 0; i < 8; i ++)
-    out[(i << 7) | t1d] = r[i];
-}
-
-template <typename T>
-__device__
 void NTTInv1024(T* out,
                 FFP* in,
                 FFP* temp_shared,
