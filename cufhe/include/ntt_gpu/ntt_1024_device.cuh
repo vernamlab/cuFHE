@@ -46,6 +46,7 @@ void NTT1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     //r[i] *= twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
     r[i] *= con_twd_sqrt[(i << 7) | t1d]; // mult twiddle sqrt
+  __threadfence_block();
   NTT8(r);
   NTT8x2Lsh(r, t3d.z); // if (t1d >= 64) NTT8x2<1>(r);
   ptr = &s[(t3d.y << 7) | (t3d.z << 6) | (t3d.x << 2)];
@@ -53,11 +54,13 @@ void NTT1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     ptr[(i >> 2 << 5) | (i & 0x3)] = r[i];
   __syncthreads();
+  __threadfence_block();
 
   ptr = &s[(t3d.z << 9) | (t3d.y << 3) | t3d.x];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 6];
+  __threadfence_block();
   NTT2(r);
   NTT2(r + 2);
   NTT2(r + 4);
@@ -66,22 +69,26 @@ void NTT1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     ptr[i << 6] = r[i];
   __syncthreads();
+  __threadfence_block();
 
   ptr = &s[t1d];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     //r[i] = ptr[i << 7] * twd[(i << 7) | t1d]; // mult twiddle
     r[i] = ptr[i << 7] * con_twd[(i << 7) | t1d]; // mult twiddle
+  __threadfence_block();
   NTT8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     ptr[i << 7] = r[i];
   __syncthreads();
+  __threadfence_block();
 
   ptr = &s[(t1d >> 2 << 5) | (t3d.x & 0x3)];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 2];
+  __threadfence_block();
   NTT8x8Lsh(r, t1d >> 4); // less divergence if put here!
   NTT8(r);
 }
@@ -102,11 +109,13 @@ void NTTInv1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     ptr[(i >> 2 << 5) | (i & 0x3)] = r[i];
   __syncthreads();
+  __threadfence_block();
 
   ptr = &s[(t3d.z << 9) | (t3d.y << 3) | t3d.x];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 6];
+  __threadfence_block();
   NTT2(r);
   NTT2(r + 2);
   NTT2(r + 4);
@@ -115,6 +124,7 @@ void NTTInv1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     ptr[i << 6] = r[i];
   __syncthreads();
+  __threadfence_block();
 
   ptr = &s[t1d];
   #pragma unroll
@@ -126,17 +136,20 @@ void NTTInv1024Core(FFP* r,
   for (int i = 0; i < 8; i ++)
     ptr[i << 7] = r[i];
   __syncthreads();
+  __threadfence_block();
 
   ptr = &s[(t1d >> 2 << 5) | (t3d.x & 0x3)];
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     r[i] = ptr[i << 2];
+  __threadfence_block();
   NTTInv8x8Lsh(r, t1d >> 4); // less divergence if put here!
   NTTInv8(r);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     //r[i] *= twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
     r[i] *= con_twd_sqrt_inv[(i << 7) | t1d]; // mult twiddle sqrt
+  __threadfence_block();
 }
 
 template <typename T>
@@ -155,6 +168,7 @@ void NTT1024(FFP* out,
   for (int i = 0; i < 8; i ++)
     r[i] = FFP((T)in[(i << 7) | t1d]);
   __syncthreads();
+  __threadfence_block();
   NTT1024Core(r, temp_shared, twd, twd_sqrt, t1d, t3d);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -180,6 +194,7 @@ void NTT1024Decomp(FFP* out,
   for (int i = 0; i < 8; i ++)
     r[i] = FFP(((in[(i << 7) | t1d] >> rsh_bits) & mask) - offset);
   __syncthreads();
+  __threadfence_block();
   NTT1024Core(r, temp_shared, twd, twd_sqrt, t1d, t3d);
   #pragma unroll
   for (int i = 0; i < 8; i ++)
@@ -202,6 +217,7 @@ void NTTInv1024(T* out,
   for (int i = 0; i < 8; i ++)
     r[i] = in[(i << 7) | t1d];
   __syncthreads();
+  __threadfence_block();
   NTTInv1024Core(r, temp_shared, twd_inv, twd_sqrt_inv, t1d, t3d);
   // mod 2^32 specifically
   uint64_t med = FFP::kModulus() / 2;
@@ -226,6 +242,7 @@ void NTTInv1024Add(T* out,
   for (int i = 0; i < 8; i ++)
     r[i] = in[(i << 7) | t1d];
   __syncthreads();
+  __threadfence_block();
   NTTInv1024Core(r, temp_shared, twd_inv, twd_sqrt_inv, t1d, t3d);
   // mod 2^32 specifically
   uint64_t med = FFP::kModulus() / 2;

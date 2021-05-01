@@ -220,6 +220,7 @@ __device__ inline void RotatedTestVector(Torus* tlwe, const int32_t bar,
         }
     }
     __syncthreads();
+    __threadfence_block();
 }
 
 template <class P>
@@ -259,6 +260,7 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
                 decomp_half));
     }
     __syncthreads();  // must
+    __threadfence_block();
 }
 
 __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
@@ -283,6 +285,7 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         __syncthreads();
     }
     __syncthreads();
+    __threadfence_block();
 
 // Multiply with bootstrapping key in global memory.
 #pragma unroll
@@ -296,6 +299,7 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         }
     }
     __syncthreads();
+    __threadfence_block();
 
     PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[lvl1param::n], a_bar);
     // l NTTs
@@ -311,6 +315,7 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         __syncthreads();
     }
     __syncthreads();
+    __threadfence_block();
     // Multiply with bootstrapping key in global memory.
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
@@ -321,6 +326,7 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         }
     }
     __syncthreads();
+    __threadfence_block();
     
     // 2 NTTInvs and add acc
     if (tid < 2*(lvl1param::n>> NTT_THRED_UNITBIT)) {
@@ -334,6 +340,7 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         __syncthreads();
     }
     __syncthreads();  // must
+    __threadfence_block();
 }
 
 __global__ void __Bootstrap__(Torus* out, Torus* in, const Torus mu, const FFP* const bk,
