@@ -505,8 +505,7 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
                                  FFP* bk, Torus* ksk, CuNTTHandler<> ntt)
 {
     // To use over 48 KiB shared Memory, the dynamic allocation is required.
-    // extern __shared__ FFP sh[];
-    __shared__ FFP sh[(2 + lvl1param::l + 1 + 1) * lvl1param::n];
+    extern __shared__ FFP sh[];
     FFP* sh_acc_ntt = &sh[0];
     FFP* decpoly = &sh[2 * lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
@@ -700,12 +699,11 @@ void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st,
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, cudaStream_t st, int gpuNum)
 {
-    // constexpr int maxbytes = 98304;  // 96 KB
-    // cudaFuncSetAttribute(__MuxBootstrap__,
-    //                      cudaFuncAttributeMaxDynamicSharedMemorySize,
-    //                      (2 * lvl1param::l + 3) * lvl1param::n *
-    //                      sizeof(FFP));
-    __MuxBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    cudaFuncSetAttribute(__MuxBootstrap__,
+                         cudaFuncAttributeMaxDynamicSharedMemorySize,
+                         (2 + lvl1param::l + 1 + 1) * lvl1param::n *
+                         sizeof(FFP));
+    __MuxBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP), st>>>
         (out->data(), inc->data(), in1->data(), in0->data(),
          bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
          *ntt_handlers[gpuNum]);
