@@ -176,13 +176,11 @@ __device__ inline void KeySwitch(Torus* lwe, const Torus* const tlwe, const Toru
                P::t * P::basebit);
     const uint32_t tid = ThisThreadRankInBlock();
     const uint32_t bdim = ThisBlockSize();
-#pragma unroll 0
     for (int i = tid; i <= P::targetP::n; i += bdim) {
         Torus tmp;
         Torus res = 0;
         Torus val = 0;
         if (i == P::targetP::n) res = tlwe[P::domainP::n];
-#pragma unroll 0
         for (int j = 0; j < P::domainP::n; j++) {
             if (j == 0)
                 tmp = tlwe[0];
@@ -501,7 +499,6 @@ __global__ void __CopyBootstrap__(Torus* out, Torus* in)
 
 __global__ void __NotBootstrap__(Torus* out, Torus* in)
 {
-#pragma unroll
     const uint32_t tid = ThisThreadRankInBlock();
     out[tid] = -in[tid];
     __syncthreads();
