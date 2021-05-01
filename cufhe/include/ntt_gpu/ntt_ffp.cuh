@@ -40,10 +40,10 @@ class FFP {
 private:
 
   /** Field modulus P. */
-  static const uint64_t kModulus_ = 0xffffffff00000001UL;
+  static constexpr uint64_t kModulus_ = 0xffffffff00000001UL;
 
   /** A 2^32-th primitive root of unity mod P. */
-  static const uint64_t kRoot2e32_ = 0xa70dc47e4cbdf43fUL;
+  static constexpr uint64_t kRoot2e32_ = 0xa70dc47e4cbdf43fUL;
 
   /** An 64-bit unsigned integer within [0, P-1]. */
   uint64_t val_;
@@ -115,11 +115,11 @@ public:
 
   /** Return modulus P. */
   __host__ __device__ inline
-  static uint64_t kModulus() { return kModulus_; };
+  constexpr static uint64_t kModulus() { return kModulus_; };
 
   /** Return 2^32-th primitive root of unity mod P. */
   __host__ __device__ inline
-  static uint64_t kRoot2e32() { return kRoot2e32_; };
+  constexpr static uint64_t kRoot2e32() { return kRoot2e32_; };
 
   //////////////////////////////////////////////////////////////////////////////
   // Operators
