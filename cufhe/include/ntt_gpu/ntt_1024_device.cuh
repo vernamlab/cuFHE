@@ -37,8 +37,8 @@ __constant__ FFP con_twd_sqrt_inv[1024];
 __device__ inline
 void NTT1024Core(FFP* r,
                  FFP* s,
-                 const FFP* twd,
-                 const FFP* twd_sqrt,
+                 const FFP* const twd,
+                 const FFP* const twd_sqrt,
                  const uint32_t& t1d,
                  const uint3& t3d) {
   FFP *ptr = nullptr;
@@ -96,8 +96,8 @@ void NTT1024Core(FFP* r,
 __device__ inline
 void NTTInv1024Core(FFP* r,
                     FFP* s,
-                    const FFP* twd_inv,
-                    const FFP* twd_sqrt_inv,
+                    const FFP* const twd_inv,
+                    const FFP* const twd_sqrt_inv,
                     const uint32_t& t1d,
                     const uint3& t3d) {
 
@@ -157,10 +157,10 @@ __device__
 void NTT1024(FFP* out,
              T* in,
              FFP* temp_shared,
-             FFP* twd,
-             FFP* twd_sqrt,
-             uint32_t leading_thread) {
-  uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
+             const FFP* const twd,
+             const FFP* const twd_sqrt,
+             const uint32_t leading_thread) {
+  const uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
   uint3 t3d;
   Index3DFrom1D<8, 8, 2>(t3d, t1d);
   register FFP r[8];
@@ -185,8 +185,8 @@ void NTT1024Decomp(FFP* out,
                    uint32_t rsh_bits,
                    T mask,
                    T offset,
-                   uint32_t leading_thread) {
-  uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
+                   const uint32_t leading_thread) {
+  const uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
   uint3 t3d;
   Index3DFrom1D<8, 8, 2>(t3d, t1d);
   register FFP r[8];
@@ -206,10 +206,10 @@ __device__
 void NTTInv1024(T* out,
                 FFP* in,
                 FFP* temp_shared,
-                FFP* twd_inv,
-                FFP* twd_sqrt_inv,
-                uint32_t leading_thread) {
-  uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
+                const FFP* const twd_inv,
+                const FFP* const twd_sqrt_inv,
+                const uint32_t leading_thread) {
+  const uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
   uint3 t3d;
   Index3DFrom1D<8, 8, 2>(t3d, t1d);
   register FFP r[8];
@@ -220,7 +220,7 @@ void NTTInv1024(T* out,
   __threadfence_block();
   NTTInv1024Core(r, temp_shared, twd_inv, twd_sqrt_inv, t1d, t3d);
   // mod 2^32 specifically
-  uint64_t med = FFP::kModulus() / 2;
+  constexpr uint64_t med = FFP::kModulus() / 2;
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     out[(i << 7) | t1d] = (T)r[i].val() - (r[i].val() > med);
@@ -231,10 +231,10 @@ __device__
 void NTTInv1024Add(T* out,
                    FFP* in,
                    FFP* temp_shared,
-                   FFP* twd_inv,
-                   FFP* twd_sqrt_inv,
-                   uint32_t leading_thread) {
-  uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
+                   const FFP* const twd_inv,
+                   const FFP* const twd_sqrt_inv,
+                   const uint32_t leading_thread) {
+  const uint32_t t1d = ThisThreadRankInBlock() - leading_thread;
   uint3 t3d;
   Index3DFrom1D<8, 8, 2>(t3d, t1d);
   register FFP r[8];
@@ -245,7 +245,7 @@ void NTTInv1024Add(T* out,
   __threadfence_block();
   NTTInv1024Core(r, temp_shared, twd_inv, twd_sqrt_inv, t1d, t3d);
   // mod 2^32 specifically
-  uint64_t med = FFP::kModulus() / 2;
+  constexpr uint64_t med = FFP::kModulus() / 2;
   #pragma unroll
   for (int i = 0; i < 8; i ++)
     out[(i << 7) | t1d] += T(r[i].val() - (r[i].val() >= med));
