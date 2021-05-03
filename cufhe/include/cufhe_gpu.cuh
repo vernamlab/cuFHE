@@ -137,7 +137,7 @@ void CtxtCopyD2H(const Ctxt& c, Stream st);
 
 void gSampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st);
 void gGateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
-                                         Stream st);
+                                          Stream st);
 void gNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void gOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
 void gOrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);

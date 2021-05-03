@@ -33,15 +33,15 @@ namespace cufhe {
 std::default_random_engine generator;  // @todo Set Seed!
 
 Param kParam = {
-    lvl0param::n,        // n
-    lvl1param::n,        // N
-    1,        // k
-    lvl1param::Bgbit,    // Bgbit
-    lvl1param::l,        // l
+    lvl0param::n,         // n
+    lvl1param::n,         // N
+    1,                    // k
+    lvl1param::Bgbit,     // Bgbit
+    lvl1param::l,         // l
     lvl10param::basebit,  // basebit
     lvl10param::t,        // t
-    lvl0param::α,    // alpha
-    lvl1param::α   // bkalpha
+    lvl0param::α,         // alpha
+    lvl1param::α          // bkalpha
 };
 
 Param* GetDefaultParam() { return &kParam; }

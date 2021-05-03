@@ -97,7 +97,7 @@ void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum)
         CuCheckError();
 
         dim3 grid(bk->k() + 1, (bk->k() + 1) * bk->l(), bk->t());
-        dim3 block(lvl1param::n>> NTT_THRED_UNITBIT);
+        dim3 block(lvl1param::n >> NTT_THRED_UNITBIT);
         __BootstrappingKeyToNTT__<<<grid, block>>>(*bk_ntts[i], *d_bk,
                                                    *ntt_handlers[i]);
         cudaDeviceSynchronize();
@@ -158,12 +158,13 @@ template <class P>
 __device__ inline typename P::T modSwitchFromTorus(const uint32_t phase)
 {
     constexpr uint32_t Mbit = P::nbit + 1;
-    static_assert(32>=Mbit, "Undefined modSwitchFromTorus!");
+    static_assert(32 >= Mbit, "Undefined modSwitchFromTorus!");
     return (phase + (1U << (31 - Mbit))) >> (32 - Mbit);
 }
 
 template <class P>
-__device__ inline void KeySwitch(Torus* lwe, const Torus* const tlwe, const Torus* const ksk)
+__device__ inline void KeySwitch(Torus* lwe, const Torus* const tlwe,
+                                 const Torus* const ksk)
 {
     constexpr Torus decomp_mask = (1U << P::basebit) - 1;
     constexpr Torus decomp_offset =
@@ -182,13 +183,16 @@ __device__ inline void KeySwitch(Torus* lwe, const Torus* const tlwe, const Toru
                 tmp = -tlwe[P::domainP::n - j];
             tmp += decomp_offset;
             for (int k = 0; k < P::t; k++) {
-                Torus val = (tmp >>
-                       (std::numeric_limits<typename P::domainP::T>::digits -
-                        (k + 1) * P::basebit)) &
-                      decomp_mask;
+                Torus val =
+                    (tmp >>
+                     (std::numeric_limits<typename P::domainP::T>::digits -
+                      (k + 1) * P::basebit)) &
+                    decomp_mask;
                 if (val != 0)
                     // 3 means P::t-1=7 can be represented by 3 bit
-                    res -= ksk[(j << (P::domainP::nbit-1+P::basebit+3)) | (k << (P::domainP::nbit-1+P::basebit)) | (val << (P::domainP::nbit-1)) | i];
+                    res -= ksk[(j << (P::domainP::nbit - 1 + P::basebit + 3)) |
+                               (k << (P::domainP::nbit - 1 + P::basebit)) |
+                               (val << (P::domainP::nbit - 1)) | i];
             }
         }
         lwe[i] = res;
@@ -210,7 +214,9 @@ __device__ inline void RotatedTestVector(Torus* tlwe, const int32_t bar,
         if (bar == 2 * P::n)
             tlwe[i + P::n] = μ;
         else {
-            tlwe[i + P::n] = ((i < (bar & (P::n - 1))) ^ (bar >> P::nbit))?-μ:μ;  // part b
+            tlwe[i + P::n] = ((i < (bar & (P::n - 1))) ^ (bar >> P::nbit))
+                                 ? -μ
+                                 : μ;  // part b
         }
     }
     __syncthreads();
@@ -242,21 +248,26 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
         Torus temp = poly[(i - a_bar) & (lvl1param::n - 1)];
-        temp = ((i < (a_bar & (lvl1param::n - 1)) ^ (a_bar >> lvl1param::nbit)))?-temp:temp;
+        temp = ((i < (a_bar & (lvl1param::n - 1)) ^ (a_bar >> lvl1param::nbit)))
+                   ? -temp
+                   : temp;
         temp -= poly[i];
         // decomp temp
         temp += decomp_offset;
-        #pragma unroll
-        for(int digit = 0; digit<lvl1param::l;digit+=1)
-            decpoly[digit*lvl1param::n+i] = FFP(Torus(
-                ((temp >> (std::numeric_limits<typename lvl1param::T>::digits - (digit + 1) * lvl1param::Bgbit)) & decomp_mask) -
+#pragma unroll
+        for (int digit = 0; digit < lvl1param::l; digit += 1)
+            decpoly[digit * lvl1param::n + i] = FFP(Torus(
+                ((temp >> (std::numeric_limits<typename lvl1param::T>::digits -
+                           (digit + 1) * lvl1param::Bgbit)) &
+                 decomp_mask) -
                 decomp_half));
     }
     __syncthreads();  // must
 }
 
 __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
-                                  const uint32_t a_bar, const FFP* const tgsw_ntt,
+                                  const uint32_t a_bar,
+                                  const FFP* const tgsw_ntt,
                                   const CuNTTHandler<> ntt)
 {
     const uint32_t tid = ThisThreadRankInBlock();
@@ -266,9 +277,12 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
 
     // l NTTs
     // Input/output/buffer use the same shared memory location.
-    if (tid < lvl1param::l*(lvl1param::n>> NTT_THRED_UNITBIT)) {
-        FFP* tar = &decpoly[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit];
-        ntt.NTT<FFP>(tar, tar, tar, tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<(lvl1param::nbit - NTT_THRED_UNITBIT));
+    if (tid < lvl1param::l * (lvl1param::n >> NTT_THRED_UNITBIT)) {
+        FFP* tar = &decpoly[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                       << lvl1param::nbit];
+        ntt.NTT<FFP>(tar, tar, tar,
+                     tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                << (lvl1param::nbit - NTT_THRED_UNITBIT));
     }
     else {  // must meet 5 sync made by NTTInv
         __syncthreads();
@@ -282,22 +296,32 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
 // Multiply with bootstrapping key in global memory.
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
-        sh_res_ntt[i] = decpoly[0*lvl1param::n+i]*tgsw_ntt[((2 * 0 + 0) << lvl1param::nbit) + i];
-        sh_res_ntt[i+lvl1param::n] = decpoly[0*lvl1param::n+i]*tgsw_ntt[((2 * 0 + 1) << lvl1param::nbit) + i];
-        #pragma unroll
-        for(int digit = 1; digit<lvl1param::l; digit+=1){
-            sh_res_ntt[i] += decpoly[digit*lvl1param::n+i]*tgsw_ntt[((2 * digit + 0) << lvl1param::nbit) + i];
-            sh_res_ntt[i+lvl1param::n] += decpoly[digit*lvl1param::n+i]*tgsw_ntt[((2 * digit + 1) << lvl1param::nbit) + i];
+        sh_res_ntt[i] = decpoly[0 * lvl1param::n + i] *
+                        tgsw_ntt[((2 * 0 + 0) << lvl1param::nbit) + i];
+        sh_res_ntt[i + lvl1param::n] =
+            decpoly[0 * lvl1param::n + i] *
+            tgsw_ntt[((2 * 0 + 1) << lvl1param::nbit) + i];
+#pragma unroll
+        for (int digit = 1; digit < lvl1param::l; digit += 1) {
+            sh_res_ntt[i] += decpoly[digit * lvl1param::n + i] *
+                             tgsw_ntt[((2 * digit + 0) << lvl1param::nbit) + i];
+            sh_res_ntt[i + lvl1param::n] +=
+                decpoly[digit * lvl1param::n + i] *
+                tgsw_ntt[((2 * digit + 1) << lvl1param::nbit) + i];
         }
     }
     __syncthreads();
 
-    PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[lvl1param::n], a_bar);
+    PolynomialMulByXaiMinusOneAndDecomposition(decpoly, &tlwe[lvl1param::n],
+                                               a_bar);
     // l NTTs
     // Input/output/buffer use the same shared memory location.
-    if (tid < lvl1param::l*(lvl1param::n>> NTT_THRED_UNITBIT)) {
-        FFP* tar = &decpoly[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit];
-        ntt.NTT<FFP>(tar, tar, tar, tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<(lvl1param::nbit - NTT_THRED_UNITBIT));
+    if (tid < lvl1param::l * (lvl1param::n >> NTT_THRED_UNITBIT)) {
+        FFP* tar = &decpoly[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                       << lvl1param::nbit];
+        ntt.NTT<FFP>(tar, tar, tar,
+                     tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                << (lvl1param::nbit - NTT_THRED_UNITBIT));
     }
     else {  // must meet 5 sync made by NTTInv
         __syncthreads();
@@ -310,18 +334,30 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
     // Multiply with bootstrapping key in global memory.
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
-        #pragma unroll
-        for(int digit = 0; digit<lvl1param::l; digit+=1){
-            sh_res_ntt[i] += decpoly[digit*lvl1param::n+i]*tgsw_ntt[((2 * (digit+lvl1param::l) + 0) << lvl1param::nbit) + i];
-            sh_res_ntt[i + lvl1param::n] += decpoly[digit*lvl1param::n+i]*tgsw_ntt[((2 * (digit+lvl1param::l) + 1) << lvl1param::nbit) + i];
+#pragma unroll
+        for (int digit = 0; digit < lvl1param::l; digit += 1) {
+            sh_res_ntt[i] +=
+                decpoly[digit * lvl1param::n + i] *
+                tgsw_ntt[((2 * (digit + lvl1param::l) + 0) << lvl1param::nbit) +
+                         i];
+            sh_res_ntt[i + lvl1param::n] +=
+                decpoly[digit * lvl1param::n + i] *
+                tgsw_ntt[((2 * (digit + lvl1param::l) + 1) << lvl1param::nbit) +
+                         i];
         }
     }
     __syncthreads();
-    
+
     // 2 NTTInvs and add acc
-    if (tid < 2*(lvl1param::n>> NTT_THRED_UNITBIT)) {
-        FFP* src = &sh_res_ntt[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit];
-        ntt.NTTInvAdd<Torus>(&tlwe[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit], src, src, tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<(lvl1param::nbit - NTT_THRED_UNITBIT));
+    if (tid < 2 * (lvl1param::n >> NTT_THRED_UNITBIT)) {
+        FFP* src = &sh_res_ntt[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                          << lvl1param::nbit];
+        ntt.NTTInvAdd<Torus>(
+            &tlwe[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                             << lvl1param::nbit],
+            src, src,
+            tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                       << (lvl1param::nbit - NTT_THRED_UNITBIT));
     }
     else {  // must meet 5 sync made by NTTInv
         __syncthreads();
@@ -333,8 +369,9 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
     __syncthreads();  // must
 }
 
-__global__ void __Bootstrap__(Torus* out, Torus* in, const Torus mu, const FFP* const bk,
-                              const Torus* const ksk, const CuNTTHandler<> ntt)
+__global__ void __Bootstrap__(Torus* out, Torus* in, const Torus mu,
+                              const FFP* const bk, const Torus* const ksk,
+                              const CuNTTHandler<> ntt)
 {
     //  Assert(bk.k() == 1);
     //  Assert(bk.l() == 2);
@@ -348,11 +385,12 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, const Torus mu, const FFP* 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     {
-        const uint32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
+        const uint32_t bar =
+            2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
         RotatedTestVector<lvl1param>(tlwe, bar, mu);
     }
 
-// accumulate
+    // accumulate
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
         const uint32_t bar = modSwitchFromTorus<lvl1param>(in[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
@@ -383,10 +421,11 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register uint32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
+    register uint32_t bar =
+        2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe, bar, mu);
 
-// accumulate
+    // accumulate
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
         bar = modSwitchFromTorus<lvl1param>(in[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
@@ -412,14 +451,16 @@ __device__ inline void __HomGate__(Torus* out, Torus* in0, Torus* in1, FFP* bk,
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     {
         const uint32_t bar =
-            2 * lvl1param::n - modSwitchFromTorus<lvl1param>(offset + casign * in0[lvl0param::n] +
-                                            cbsign * in1[lvl0param::n]);
+            2 * lvl1param::n -
+            modSwitchFromTorus<lvl1param>(offset + casign * in0[lvl0param::n] +
+                                          cbsign * in1[lvl0param::n]);
         RotatedTestVector<lvl1param>(tlwe, bar, lvl1param::μ);
-        }
+    }
 
-// accumulate
+    // accumulate
     for (int i = 0; i < lvl0param::n; i++) {  // lvl0param::n iterations
-        const uint32_t bar = modSwitchFromTorus<lvl1param>(0 + casign * in0[i] + cbsign * in1[i]);
+        const uint32_t bar = modSwitchFromTorus<lvl1param>(0 + casign * in0[i] +
+                                                           cbsign * in1[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
@@ -517,10 +558,11 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register uint32_t bar =
         2 * lvl1param::n -
-        modSwitchFromTorus<lvl1param>(-lvl0param::μ + inc[lvl0param::n] + in1[lvl0param::n]);
+        modSwitchFromTorus<lvl1param>(-lvl0param::μ + inc[lvl0param::n] +
+                                      in1[lvl0param::n]);
     RotatedTestVector<lvl1param>(tlwe1, bar, lvl1param::μ);
 
-// accumulate
+    // accumulate
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
         bar = modSwitchFromTorus<lvl1param>(0 + inc[i] + in1[i]);
         Accumulate(tlwe1, sh_acc_ntt, decpoly, bar,
@@ -528,7 +570,8 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     }
 
     bar = 2 * lvl1param::n -
-          modSwitchFromTorus<lvl1param>(-lvl0param::μ - inc[lvl0param::n] + in0[lvl0param::n]);
+          modSwitchFromTorus<lvl1param>(-lvl0param::μ - inc[lvl0param::n] +
+                                        in0[lvl0param::n]);
 
     RotatedTestVector<lvl1param>(tlwe0, bar, lvl1param::μ);
 
@@ -571,15 +614,16 @@ __global__ void __NoiselessTrivial__(Torus* out, Torus pmu)
 void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
                int gpuNum)
 {
-    __Bootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>(
-        out->data(), in->data(), mu, bk_ntts[gpuNum]->data(),
-        ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
+    __Bootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                  st>>>
+        (out->data(), in->data(), mu, bk_ntts[gpuNum]->data(),
+         ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum)
 {
-    __SEandKS__<<<1, lvl0param::n+1, 0, st>>>(
+    __SEandKS__<<<1, lvl0param::n + 1, 0, st>>>(
         out->data(), in, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data());
     CuCheckError();
 }
@@ -587,16 +631,19 @@ void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum)
 void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
                          int gpuNum)
 {
-    __BootstrapTLWE2TRLWE__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>(
-        out, in->data(), mu, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
-        *ntt_handlers[gpuNum]);
+    __BootstrapTLWE2TRLWE__<<<1, lvl1param::l * lvl1param::n>>
+                                NTT_THRED_UNITBIT,
+                            0, st>>>
+        (out, in->data(), mu, bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
 void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __NandBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __NandBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                      st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -605,7 +652,8 @@ void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                  cudaStream_t st, int gpuNum)
 {
-    __OrBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __OrBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                    st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -614,7 +662,8 @@ void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __OrYNBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __OrYNBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                      st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -623,7 +672,8 @@ void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __OrNYBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __OrNYBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                      st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -632,7 +682,8 @@ void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                   cudaStream_t st, int gpuNum)
 {
-    __AndBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __AndBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                     st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -641,7 +692,8 @@ void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                     cudaStream_t st, int gpuNum)
 {
-    __AndYNBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __AndYNBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                       st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -650,7 +702,8 @@ void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                     cudaStream_t st, int gpuNum)
 {
-    __AndNYBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __AndNYBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                       st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -659,7 +712,8 @@ void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                   cudaStream_t st, int gpuNum)
 {
-    __NorBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __NorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                     st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -668,7 +722,8 @@ void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                   cudaStream_t st, int gpuNum)
 {
-    __XorBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __XorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                     st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -677,7 +732,8 @@ void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum)
 {
-    __XnorBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, 0, st>>>
+    __XnorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                      st>>>
         (out->data(), in0->data(), in1->data(), bk_ntts[gpuNum]->data(),
          ksk_devs[gpuNum]->data(), *ntt_handlers[gpuNum]);
     CuCheckError();
@@ -689,22 +745,21 @@ void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
     CuCheckError();
 }
 
-void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st,
-                  int gpuNum)
+void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum)
 {
-    __NotBootstrap__<<<1, lvl0param::n+1, 0, st>>>
-        (out->data(), in->data());
+    __NotBootstrap__<<<1, lvl0param::n + 1, 0, st>>>(out->data(), in->data());
     CuCheckError();
 }
 
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, cudaStream_t st, int gpuNum)
 {
-    cudaFuncSetAttribute(__MuxBootstrap__,
-                         cudaFuncAttributeMaxDynamicSharedMemorySize,
-                         (2 + lvl1param::l + 1 + 1) * lvl1param::n *
-                         sizeof(FFP));
-    __MuxBootstrap__<<<1, lvl1param::l*lvl1param::n>> NTT_THRED_UNITBIT, (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP), st>>>
+    cudaFuncSetAttribute(
+        __MuxBootstrap__, cudaFuncAttributeMaxDynamicSharedMemorySize,
+        (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP));
+    __MuxBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT,
+                     (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP),
+                     st>>>
         (out->data(), inc->data(), in1->data(), in0->data(),
          bk_ntts[gpuNum]->data(), ksk_devs[gpuNum]->data(),
          *ntt_handlers[gpuNum]);

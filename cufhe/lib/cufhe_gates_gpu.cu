@@ -77,7 +77,7 @@ void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
 }
 
 void gGateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
-                                         Stream st)
+                                          Stream st)
 {
     cudaSetDevice(st.device_id());
     static const Torus mu = ModSwitchToTorus(1, 8);
@@ -322,8 +322,8 @@ void Not(Ctxt& out, const Ctxt& in, Stream st)
     cudaSetDevice(st.device_id());
     CtxtCopyH2D(in, st);
     NotBootstrap(out.lwe_sample_devices_[st.device_id()],
-                 in.lwe_sample_devices_[st.device_id()], 
-                 st.st(), st.device_id());
+                 in.lwe_sample_devices_[st.device_id()], st.st(),
+                 st.device_id());
     CtxtCopyD2H(out, st);
 }
 
@@ -331,8 +331,8 @@ void gNot(Ctxt& out, const Ctxt& in, Stream st)
 {
     cudaSetDevice(st.device_id());
     NotBootstrap(out.lwe_sample_devices_[st.device_id()],
-                 in.lwe_sample_devices_[st.device_id()],
-                 st.st(), st.device_id());
+                 in.lwe_sample_devices_[st.device_id()], st.st(),
+                 st.device_id());
 }
 
 void Copy(Ctxt& out, const Ctxt& in, Stream st)

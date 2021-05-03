@@ -60,8 +60,7 @@ void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
 void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
                    cudaStream_t st, int gpuNum);
 void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
-void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st,
-                  int gpuNum);
+void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
 void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
                   LWESample* in0, cudaStream_t st, int gpuNum);
 }  // namespace cufhe
