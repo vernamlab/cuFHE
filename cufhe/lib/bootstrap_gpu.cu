@@ -347,13 +347,14 @@ __global__ void __Bootstrap__(Torus* out, Torus* in, const Torus mu, const FFP* 
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register uint32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
-    RotatedTestVector<lvl1param>(tlwe, bar, mu);
+    {
+        const uint32_t bar = 2 * lvl1param::n - modSwitchFromTorus<lvl1param>(in[lvl0param::n]);
+        RotatedTestVector<lvl1param>(tlwe, bar, mu);
+    }
 
 // accumulate
-#pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
-        bar = modSwitchFromTorus<lvl1param>(in[i]);
+        const uint32_t bar = modSwitchFromTorus<lvl1param>(in[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
@@ -386,7 +387,6 @@ __global__ void __BootstrapTLWE2TRLWE__(Torus* out, Torus* in, Torus mu,
     RotatedTestVector<lvl1param>(tlwe, bar, mu);
 
 // accumulate
-#pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // n iterations
         bar = modSwitchFromTorus<lvl1param>(in[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
@@ -410,15 +410,16 @@ __device__ inline void __HomGate__(Torus* out, Torus* in0, Torus* in1, FFP* bk,
     Torus* tlwe = (Torus*)&sh[(2 + lvl1param::l) * lvl1param::n];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
-    register uint32_t bar =
-        2 * lvl1param::n - modSwitchFromTorus<lvl1param>(offset + casign * in0[lvl0param::n] +
-                                         cbsign * in1[lvl0param::n]);
-    RotatedTestVector<lvl1param>(tlwe, bar, lvl1param::μ);
+    {
+        const uint32_t bar =
+            2 * lvl1param::n - modSwitchFromTorus<lvl1param>(offset + casign * in0[lvl0param::n] +
+                                            cbsign * in1[lvl0param::n]);
+        RotatedTestVector<lvl1param>(tlwe, bar, lvl1param::μ);
+        }
 
 // accumulate
-#pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl0param::n iterations
-        bar = modSwitchFromTorus<lvl1param>(0 + casign * in0[i] + cbsign * in1[i]);
+        const uint32_t bar = modSwitchFromTorus<lvl1param>(0 + casign * in0[i] + cbsign * in1[i]);
         Accumulate(tlwe, sh_acc_ntt, decpoly, bar,
                    bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
     }
@@ -520,7 +521,6 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
     RotatedTestVector<lvl1param>(tlwe1, bar, lvl1param::μ);
 
 // accumulate
-#pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
         bar = modSwitchFromTorus<lvl1param>(0 + inc[i] + in1[i]);
         Accumulate(tlwe1, sh_acc_ntt, decpoly, bar,
@@ -532,7 +532,6 @@ __global__ void __MuxBootstrap__(Torus* out, Torus* inc, Torus* in1, Torus* in0,
 
     RotatedTestVector<lvl1param>(tlwe0, bar, lvl1param::μ);
 
-#pragma unroll
     for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
         bar = modSwitchFromTorus<lvl1param>(0 - inc[i] + in0[i]);
         Accumulate(tlwe0, sh_acc_ntt, decpoly, bar,
