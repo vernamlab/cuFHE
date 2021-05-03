@@ -172,18 +172,17 @@ __device__ inline void KeySwitch(Torus* lwe, const Torus* const tlwe, const Toru
     const uint32_t tid = ThisThreadRankInBlock();
     const uint32_t bdim = ThisBlockSize();
     for (int i = tid; i <= P::targetP::n; i += bdim) {
-        Torus tmp;
         Torus res = 0;
-        Torus val = 0;
         if (i == P::targetP::n) res = tlwe[P::domainP::n];
         for (int j = 0; j < P::domainP::n; j++) {
+            Torus tmp;
             if (j == 0)
                 tmp = tlwe[0];
             else
                 tmp = -tlwe[P::domainP::n - j];
             tmp += decomp_offset;
             for (int k = 0; k < P::t; k++) {
-                val = (tmp >>
+                Torus val = (tmp >>
                        (std::numeric_limits<typename P::domainP::T>::digits -
                         (k + 1) * P::basebit)) &
                       decomp_mask;
@@ -271,7 +270,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         FFP* tar = &decpoly[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit];
         ntt.NTT<FFP>(tar, tar, tar, tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<(lvl1param::nbit - NTT_THRED_UNITBIT));
     }
-    else {  // must meet 4 sync made by NTTInv
+    else {  // must meet 5 sync made by NTTInv
+        __syncthreads();
         __syncthreads();
         __syncthreads();
         __syncthreads();
@@ -299,7 +299,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         FFP* tar = &decpoly[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit];
         ntt.NTT<FFP>(tar, tar, tar, tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<(lvl1param::nbit - NTT_THRED_UNITBIT));
     }
-    else {  // must meet 4 sync made by NTTInv
+    else {  // must meet 5 sync made by NTTInv
+        __syncthreads();
         __syncthreads();
         __syncthreads();
         __syncthreads();
@@ -322,7 +323,8 @@ __device__ inline void Accumulate(Torus* tlwe, FFP* sh_res_ntt, FFP* decpoly,
         FFP* src = &sh_res_ntt[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit];
         ntt.NTTInvAdd<Torus>(&tlwe[tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<lvl1param::nbit], src, src, tid>>(lvl1param::nbit - NTT_THRED_UNITBIT)<<(lvl1param::nbit - NTT_THRED_UNITBIT));
     }
-    else {  // must meet 4 sync made by NTTInv
+    else {  // must meet 5 sync made by NTTInv
+        __syncthreads();
         __syncthreads();
         __syncthreads();
         __syncthreads();

@@ -2,8 +2,8 @@
 #include <random>
 #include <cassert>
 // #include <boost/multiprecision/cpp_int.hpp>
-// #include <gmp.h>
-// #include <gmpxx.h>
+#include <gmp.h>
+#include <gmpxx.h>
 #include <include/ntt_gpu/ntt_ffp.cuh>
 
 using namespace std;
@@ -44,19 +44,19 @@ int main(){
                 cudaDeviceSynchronize();
                 
                 // mp::cpp_int a = temp;
-                // mpz_class a = temp;
-                __uint128_t a = temp;
+                mpz_class a = temp;
+                // __uint128_t a = temp;
                 // cout<<static_cast<uint64_t>(a)<<":";
                 // if((A<<l).value!=(static_cast<uint64_t>((a<<l)%P))){
                 if(h_res!=(a<<l)%P){
-                    // mpz_class res = (a<<l)%P;
-                    __uint128_t res = (a<<l)%P;
-                    // cout<<h_res<<":"<<res.get_str()<<endl;
-                    cout<<h_res - static_cast<uint64_t>((a<<l)%P)<<endl;
-                    cout<<h_res<<":"<<static_cast<uint64_t>((a<<l)%P)<<endl;
+                    mpz_class res = (a<<l)%P;
+                    // __uint128_t res = (a<<l)%P;
+                    cout<<h_res<<":"<<res.get_str()<<endl;
+                    // cout<<h_res - static_cast<uint64_t>((a<<l)%P)<<endl;
+                    // cout<<h_res<<":"<<static_cast<uint64_t>((a<<l)%P)<<endl;
                 }
-                assert(h_res==(static_cast<uint64_t>((a<<l)%P)));
-                // assert(h_res==(a<<l)%P);
+                // assert(h_res==(static_cast<uint64_t>((a<<l)%P)));
+                assert(h_res==(a<<l)%P);
             }
             // __uint128_t temp = ((1UL<<32)-1)<<32;
             // INTorus A(temp);

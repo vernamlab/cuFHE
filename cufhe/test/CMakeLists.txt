@@ -8,5 +8,5 @@ target_link_libraries(test_intensive cufhe_gpu ${CUDA_LIBRARIES})
 
 add_executable(test_FFP test_FFP.cu)
 target_include_directories(test_FFP PRIVATE ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
-# find_library(gmp NAMES gmp gmpxx)
-target_link_libraries(test_FFP cufhe_gpu ${CUDA_LIBRARIES})
+find_library(gmp NAMES gmp gmpxx)
+target_link_libraries(test_FFP cufhe_gpu gmp ${CUDA_LIBRARIES})

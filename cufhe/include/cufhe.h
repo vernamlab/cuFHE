@@ -74,15 +74,15 @@ struct Param {
     double tlwe_noise_;
 
     Param()
-        : lwe_n_(500),
-          tlwe_n_(1024),
+        : lwe_n_(lvl0param::n),
+          tlwe_n_(lvl1param::n),
           tlwe_k_(1),
-          tgsw_decomp_bits_(10),
-          tgsw_decomp_size_(2),
-          keyswitching_decomp_bits_(2),
-          keyswitching_decomp_size_(8),
-          lwe_noise_(pow(2.0, -15)),
-          tlwe_noise_(9.e-9){};
+          tgsw_decomp_bits_(lvl1param::Bg),
+          tgsw_decomp_size_(lvl1param::l),
+          keyswitching_decomp_bits_(lvl10param::basebit),
+          keyswitching_decomp_size_(lvl10param::t),
+          lwe_noise_(lvl0param::α),
+          tlwe_noise_(lvl1param::α){};
 
     Param(uint32_t lwe_n, uint32_t tlwe_n, uint32_t tlwe_k,
           uint32_t tgsw_decomp_bits, uint32_t tgsw_decomp_size,
