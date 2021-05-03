@@ -8,7 +8,7 @@ set(CMAKE_CUDA_FLAGS "-std=c++17 --ptxas-options=-v -arch=sm_80")
 
 add_compile_definitions(USE_80BIT_SECURITY)
 
-add_subdirectory(lib)
+add_subdirectory(src)
 
 if(ENABLE_TEST)
     add_subdirectory(test)
