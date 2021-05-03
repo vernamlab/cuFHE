@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/ntt_gpu/ntt_ffp.cuh
+stdint.h
+-
+
+/home/ubuntu/sources/cuFHE/test/test_FFP.cu
+cassert
+-
+iostream
+-
+random
+-
+gmp.h
+-
+gmpxx.h
+-
+include/ntt_gpu/ntt_ffp.cuh
+-
+
