@@ -1,2 +1,0 @@
-/usr/bin/ar qc libcufhe_gpu.a  CMakeFiles/cufhe_gpu.dir/bootstrap_gpu.cu.o CMakeFiles/cufhe_gpu.dir/cufhe_gates_gpu.cu.o CMakeFiles/cufhe_gpu.dir/cufhe_gpu.cu.o CMakeFiles/cufhe_gpu.dir/details/allocator_gpu.cu.o CMakeFiles/cufhe_gpu.dir/ntt_gpu/ntt_1024_twiddle.cu.o CMakeFiles/cufhe_gpu.dir/cufhe.cc.o CMakeFiles/cufhe_gpu.dir/cufhe_io.cc.o
-/usr/bin/ranlib libcufhe_gpu.a

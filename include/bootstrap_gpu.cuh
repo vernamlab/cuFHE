@@ -23,44 +23,43 @@
 #pragma once
 
 #include <include/details/allocator_gpu.cuh>
+#include "../thirdparties/TFHEpp/include/params.hpp"
 
-#include "cufhe_core.h"
 
 namespace cufhe {
 
-void BootstrappingKeyToNTT(const BootstrappingKey* bk, int gpuNum);
-void KeySwitchingKeyToDevice(const KeySwitchingKey* ksk, int gpuNum);
+void BootstrappingKeyToNTT(const TFHEpp::BootstrappingKey<TFHEpp::lvl01param>& bk, const int gpuNum);
+void KeySwitchingKeyToDevice(const TFHEpp::KeySwitchingKey<TFHEpp::lvl10param>& ksk, const int gpuNum);
 void DeleteBootstrappingKeyNTT(int gpuNum);
 void DeleteKeySwitchingKey(int gpuNum);
-void Bootstrap(LWESample* out, LWESample* in, Torus mu, cudaStream_t st,
+void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, TFHEpp::lvl1param::T mu, cudaStream_t st,
                int gpuNum);
-void BootstrapTLWE2TRLWE(Torus* out, LWESample* in, Torus mu, cudaStream_t st,
+void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in, TFHEpp::lvl1param::T mu, cudaStream_t st,
                          int gpuNum);
-void SEandKS(LWESample* out, Torus* in, cudaStream_t st, int gpuNum);
-void NoiselessTrivial(LWESample* out, int p, Torus mu, cudaStream_t st);
+void SEandKS(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in, cudaStream_t st, int gpuNum);
 
-void NandBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                    cudaStream_t st, int gpuNum);
-void OrBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                  cudaStream_t st, int gpuNum);
-void OrYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                    cudaStream_t st, int gpuNum);
-void OrNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                    cudaStream_t st, int gpuNum);
-void AndBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                   cudaStream_t st, int gpuNum);
-void AndYNBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                     cudaStream_t st, int gpuNum);
-void AndNYBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                     cudaStream_t st, int gpuNum);
-void NorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                   cudaStream_t st, int gpuNum);
-void XorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                   cudaStream_t st, int gpuNum);
-void XnorBootstrap(LWESample* out, LWESample* in0, LWESample* in1,
+void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
                    cudaStream_t st, int gpuNum);
-void CopyBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
-void NotBootstrap(LWESample* out, LWESample* in, cudaStream_t st, int gpuNum);
-void MuxBootstrap(LWESample* out, LWESample* inc, LWESample* in1,
-                  LWESample* in0, cudaStream_t st, int gpuNum);
+void CopyBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, cudaStream_t st, int gpuNum);
+void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, cudaStream_t st, int gpuNum);
+void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc, TFHEpp::lvl0param::T* in1,
+                  TFHEpp::lvl0param::T* in0, cudaStream_t st, int gpuNum);
 }  // namespace cufhe

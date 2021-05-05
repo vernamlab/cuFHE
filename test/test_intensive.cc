@@ -37,23 +37,17 @@ void runAndVerify(const char* name, Launcher&& launcher, Verifier&& verifier)
     for (size_t i = 0; i < M; i++) st[i].Destroy();
 }
 
-void testMux(cufhe::PriKey& sk, cufhe::PubKey& gk)
+void testMux(TFHEpp::SecretKey& sk)
 {
     cufhe::Ctxt ca, cb, cc, cres[N][M];
-    cufhe::Ptxt pa, pb, pc;
+    bool pa, pb, pc;
     pa = true;
     pb = false;
     pc = true;
-    uint32_t expected = pa.get() ? pb.get() : pc.get();
-    Encrypt(ca, pa, sk);
-    Encrypt(cb, pb, sk);
-    Encrypt(cc, pc, sk);
-    for (size_t i = 0; i < N; i++)
-        for (size_t j = 0; j < M; j++)
-            if (expected)
-                cufhe::ConstantZero(cres[i][j]);
-            else
-                cufhe::ConstantOne(cres[i][j]);
+    bool expected = pa ? pb : pc;
+    ca.tlwehost = TFHEpp::tlweSymEncrypt<TFHEpp::lvl0param>(pa?TFHEpp::lvl0param::μ : -TFHEpp::lvl0param::μ, TFHEpp::lvl0param::α, sk.key.lvl0);
+    cb.tlwehost = TFHEpp::tlweSymEncrypt<TFHEpp::lvl0param>(pb?TFHEpp::lvl0param::μ : -TFHEpp::lvl0param::μ, TFHEpp::lvl0param::α, sk.key.lvl0);
+    cc.tlwehost = TFHEpp::tlweSymEncrypt<TFHEpp::lvl0param>(pc?TFHEpp::lvl0param::μ : -TFHEpp::lvl0param::μ, TFHEpp::lvl0param::α, sk.key.lvl0);
 
     runAndVerify(
         "mux",
@@ -61,27 +55,21 @@ void testMux(cufhe::PriKey& sk, cufhe::PubKey& gk)
             cufhe::Mux(cres[i][j], ca, cb, cc, st);
         },
         [&](size_t i, size_t j) {
-            cufhe::Ptxt decres;
-            Decrypt(decres, cres[i][j], sk);
-            return expected == decres.get();
+            bool decres;
+            decres=TFHEpp::tlweSymDecrypt<TFHEpp::lvl0param>(cres[i][j].tlwehost, sk.key.lvl0);
+            return expected == decres;
         });
 }
 
-void testNand(cufhe::PriKey& sk, cufhe::PubKey& gk)
+void testNand(TFHEpp::SecretKey& sk)
 {
     cufhe::Ctxt ca, cb, cres[N][M];
-    cufhe::Ptxt pa, pb;
+    bool pa, pb;
     pa = true;
     pb = false;
-    uint32_t expected = !(pa.get() && pb.get());
-    Encrypt(ca, pa, sk);
-    Encrypt(cb, pb, sk);
-    for (size_t i = 0; i < N; i++)
-        for (size_t j = 0; j < M; j++)
-            if (expected)
-                cufhe::ConstantZero(cres[i][j]);
-            else
-                cufhe::ConstantOne(cres[i][j]);
+    bool expected = !(pa && pb);
+    ca.tlwehost = TFHEpp::tlweSymEncrypt<TFHEpp::lvl0param>(pa?TFHEpp::lvl0param::μ : -TFHEpp::lvl0param::μ, TFHEpp::lvl0param::α, sk.key.lvl0);
+    cb.tlwehost = TFHEpp::tlweSymEncrypt<TFHEpp::lvl0param>(pb?TFHEpp::lvl0param::μ : -TFHEpp::lvl0param::μ, TFHEpp::lvl0param::α, sk.key.lvl0);
 
     runAndVerify(
         "nand",
@@ -89,21 +77,20 @@ void testNand(cufhe::PriKey& sk, cufhe::PubKey& gk)
             cufhe::Nand(cres[i][j], ca, cb, st);
         },
         [&](size_t i, size_t j) {
-            cufhe::Ptxt decres;
-            Decrypt(decres, cres[i][j], sk);
-            return expected == decres.get();
+            bool decres;
+            decres=TFHEpp::tlweSymDecrypt<TFHEpp::lvl0param>(cres[i][j].tlwehost, sk.key.lvl0);
+            return expected == decres;
         });
 }
 
 int main()
 {
-    cufhe::PriKey sk;
-    cufhe::PubKey gk;
-    cufhe::KeyGen(gk, sk);
-    cufhe::Initialize(gk);
+    TFHEpp::SecretKey* sk = new TFHEpp::SecretKey();
+    TFHEpp::GateKeywoFFT* gk = new TFHEpp::GateKeywoFFT(*sk);
+    cufhe::Initialize(*gk);
 
-    testNand(sk, gk);
-    testMux(sk, gk);
+    testNand(*sk);
+    testMux(*sk);
 
     cufhe::CleanUp();
 }

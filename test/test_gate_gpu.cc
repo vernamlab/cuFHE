@@ -25,102 +25,102 @@
 using namespace cufhe;
 
 #include <iostream>
+#include <vector>
+#include <random>
 using namespace std;
 
-void ConstantZeroCheck(Ptxt& out) { out.message_ = 0; }
-
-void ConstantOneCheck(Ptxt& out) { out.message_ = 1; }
-
-void NotCheck(Ptxt& out, const Ptxt& in)
+void NotCheck(uint8_t& out, const uint8_t& in)
 {
-    out.message_ = (~in.message_) & 0x1;
+    out = (~in) & 0x1;
 }
 
-void CopyCheck(Ptxt& out, const Ptxt& in) { out.message_ = in.message_; }
+void CopyCheck(uint8_t& out, const uint8_t& in) { out = in; }
 
-void NandCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void NandCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = 1 - in0.message_ * in1.message_;
+    out = 1 - in0 * in1;
 }
 
-void OrCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void OrCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = (in0.message_ + in1.message_) > 0;
+    out = (in0 + in1) > 0;
 }
 
-void OrYNCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void OrYNCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = (in0.message_ + (1 - in1.message_)) > 0;
+    out = (in0 + (1 - in1)) > 0;
 }
 
-void OrNYCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void OrNYCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = ((1 - in0.message_) + in1.message_) > 0;
+    out = ((1 - in0) + in1) > 0;
 }
 
-void AndCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void AndCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = in0.message_ * in1.message_;
+    out = in0 * in1;
 }
 
-void AndYNCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void AndYNCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = in0.message_ * (1 - in1.message_);
+    out = in0 * (1 - in1);
 }
 
-void AndNYCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void AndNYCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = (1 - in0.message_) * in1.message_;
+    out = (1 - in0) * in1;
 }
 
-void XorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void XorCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = (in0.message_ + in1.message_) & 0x1;
+    out = (in0 + in1) & 0x1;
 }
 
-void XnorCheck(Ptxt& out, const Ptxt& in0, const Ptxt& in1)
+void XnorCheck(uint8_t& out, const uint8_t& in0, const uint8_t& in1)
 {
-    out.message_ = (~(in0.message_ ^ in1.message_)) & 0x1;
+    out = (~(in0 ^ in1)) & 0x1;
 }
 
-void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0)
+void MuxCheck(uint8_t& out, const uint8_t& inc, const uint8_t& in1, const uint8_t& in0)
 {
-    out.message_ = inc.message_ ? in1.message_ : in0.message_;
+    out = inc ? in1 : in0;
 }
 
 template <class Func, class Check>
-void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
-          int kNumTests, int kNumSMs, PriKey& pri_key)
+void Test(string type, Func func, Check check, vector<uint8_t>& pt, vector<Ctxt>& ct, Stream* st,
+          int kNumTests, int kNumSMs, TFHEpp::SecretKey& sk)
 {
     cout << "------ Test " << type << " Gate ------" << endl;
     cout << "Number of tests:\t" << kNumTests << endl;
     bool correct = true;
     int cnt_failures = 0;
 
-    for (int i = 0; i < 4 * kNumTests; i++) {
-        pt[i] = rand() % Ptxt::kPtxtSpace;
-        Encrypt(ct[i], pt[i], pri_key);
+    random_device seed_gen;
+    default_random_engine engine(seed_gen());
+    uniform_int_distribution<uint32_t> binary(0, 1);
+    for(int i = 0;i<4*kNumTests;i++){
+        pt[i] = binary(engine) > 0;
+        ct[i].tlwehost = TFHEpp::tlweSymEncrypt<TFHEpp::lvl0param>(pt[i]?TFHEpp::lvl0param::μ : -TFHEpp::lvl0param::μ, TFHEpp::lvl0param::α, sk.key.lvl0);
     }
-    Synchronize();
 
     for (int i = 0; i < kNumTests; i++) {
         if constexpr (std::is_invocable_v<Func, Ctxt&>) {
             func(ct[i]);
             check(pt[i]);
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
                                                Stream>) {
             func(ct[i], ct[i + kNumTests], st[i % kNumSMs]);
             check(pt[i], pt[i + kNumTests]);
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
-                                               const Ctxt&, Stream>) {
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Ctxt&, Stream>) {
             func(ct[i], ct[i + kNumTests], ct[i + kNumTests * 2],
                  st[i % kNumSMs]);
             check(pt[i], pt[i + kNumTests], pt[i + kNumTests * 2]);
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
-                                               const Ctxt&, const Ctxt&,
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Ctxt&, Ctxt&,
                                                Stream>) {
             func(ct[i], ct[i + kNumTests], ct[i + kNumTests * 2],
                  ct[i + kNumTests * 3], st[i % kNumSMs]);
@@ -133,9 +133,9 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
     }
     Synchronize();
     for (int i = 0; i < kNumTests; i++) {
-        Ptxt res;
-        Decrypt(res, ct[i], pri_key);
-        if (res.message_ != pt[i].message_) {
+        uint8_t res;
+        res=TFHEpp::tlweSymDecrypt<TFHEpp::lvl0param>(ct[i].tlwehost, sk.key.lvl0);
+        if (res != pt[i]) {
             correct = false;
             cnt_failures += 1;
             // std::cout << type << " Fail at iteration: " << i << std::endl;
@@ -154,67 +154,43 @@ int main()
     cudaGetDeviceProperties(&prop, 0);
     uint32_t kNumSMs = prop.multiProcessorCount;
     uint32_t kNumTests = kNumSMs * 32;  // * 8;
-    uint32_t kNumLevels = 10;           // Gate Types, Mux is counted as 2.
+    constexpr uint32_t kNumLevels = 10;           // Gate Types, Mux is counted as 2.
+ 
+    TFHEpp::SecretKey* sk = new TFHEpp::SecretKey();
+    TFHEpp::GateKeywoFFT* gk = new TFHEpp::GateKeywoFFT(*sk);
 
-    SetSeed();  // set random seed
-
-    PriKey pri_key;  // private key
-    PubKey pub_key;  // public key
     // MUX Need 3 input
-    Ptxt* pt = new Ptxt[4 * kNumTests];
-    Ctxt* ct = new Ctxt[4 * kNumTests];
+    vector<uint8_t> pt(4 * kNumTests);
+    vector<Ctxt> ct(4 * kNumTests);
     Synchronize();
     bool correct;
 
-    cout << "------ Key Generation ------" << endl;
-    KeyGen(pub_key, pri_key);
 
-    cout << "------ Test Encryption/Decryption ------" << endl;
     cout << "Number of tests:\t" << kNumTests << endl;
-    correct = true;
-    for (int i = 0; i < kNumTests; i++) {
-        pt[i].message_ = rand() % Ptxt::kPtxtSpace;
-        Encrypt(ct[i], pt[i], pri_key);
-        Decrypt(pt[kNumTests + i], ct[i], pri_key);
-        if (pt[kNumTests + i].message_ != pt[i].message_) {
-            correct = false;
-            break;
-        }
-    }
-    if (correct)
-        cout << "PASS" << endl;
-    else
-        cout << "FAIL" << endl;
 
     cout << "------ Initilizating Data on GPU(s) ------" << endl;
-    Initialize(pub_key);  // essential for GPU computing
+    Initialize(*gk);  // essential for GPU computing
 
     Stream* st = new Stream[kNumSMs];
     for (int i = 0; i < kNumSMs; i++) st[i].Create();
 
-    Test("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("ORNY", OrNY, OrNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("AND", And, AndCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("ANDYN", AndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("ANDNY", AndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
-         kNumSMs, pri_key);
-    Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
-         kNumSMs, pri_key);
+    Test("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("ORNY", OrNY, OrNYCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("AND", And, AndCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("ANDYN", AndYN, AndYNCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("ANDNY", AndNY, AndNYCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
 
     for (int i = 0; i < kNumSMs; i++) st[i].Destroy();
     delete[] st;
 
     cout << "------ Cleaning Data on GPU(s) ------" << endl;
     CleanUp();  // essential to clean and deallocate data
-    delete[] ct;
-    delete[] pt;
     return 0;
 }
