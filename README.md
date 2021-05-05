@@ -7,6 +7,8 @@ v1 -- kvsp v29 compatible version.
 
 v2 -- refctored & reduced shared memory usage (depends on [TFHEpp](https://github.com/virtualsecureplatform/TFHEpp) for parameter set select, runnable on old GPUs like GTX 1060Ti but slow)
 
+v3 -- l paralle NTT & fixed shared memory read before write bug by adding __syncthreads(). v3 API is same as v2.
+
 ## What is cuFHE?
 The cuFHE library is an open-source library for Fully Homomorphic Encryption (FHE) on CUDA-enabled GPUs. It implements the TFHE scheme [CGGI16][CGGI17] proposed by Chillotti et al. in CUDA C++. Compared to the [TFHE lib](https://github.com/tfhe/tfhe) which reports the fastest gate-by-gate bootstrapping performance on CPUs, the cuFHE library yields almost same performance per SM. Since GPU has a lot of SMs (128 in A100), cuFHE gives better performace if there are enough number of parallely evaluable tasks. The cuFHE library benefits greatly from an improved CUDA implementation of the number-theoretic transform (NTT) proposed in the [cuHE library](https://github.com/vernamlab/cuHE) [Dai15] by Dai and Sunar.
 
