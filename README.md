@@ -68,17 +68,13 @@ stream_gpu_1.Destory();
 CleanUp(); // for GPU library
 ```
 
-Currently implemented gates are `And, Or, Nand, Nor, Xor, Xnor, Not, Copy`.
-
-## Change Log
-- **version 1.0_beta** -- released on Mar/14/2018.
-  - Supports single-bit unpacked encryption / decryption / gates.
-  - C++ interface with CPU and GPU separate libraries.
+Currently implemented gates are `And, AndNY, AndYN, Or, OrNY, OrYN Nand, Nor, Xor, Xnor, Not, Mux, Copy`.
 
 ## Acknowledgement
 - We appreciate any bug reports or compiling issues.
 - Dai and Sunar’s work was in part provided by the US National Science Foundation CNS Award #1319130 and #1561536.
-- We gratefully acknowledge the support of NVIDIA Corporation with the donation of the Titan X Pascal GPU used for this research.
+- From the original authors: We gratefully acknowledge the support of NVIDIA Corporation with the donation of the Titan X Pascal GPU used for this research.
+- From VSP team :  We gratefully acknowledge the support of Sakura Internet Inc. for lending us their cloud computing service equipped with one V100 free of charge for most of the development period of v1.
 
 ## Reference
 [CGGI16]: Chillotti, I., Gama, N., Georgieva, M., & Izabachene, M. (2016, December). Faster fully homomorphic encryption: Bootstrapping in less than 0.1 seconds. In International Conference on the Theory and Application of Cryptology and Information Security (pp. 3-33). Springer, Berlin, Heidelberg.
