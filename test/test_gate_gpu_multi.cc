@@ -123,21 +123,19 @@ void Test(string type, Func func, Check check, vector<shared_ptr<Ptxt>> pt,
             func(*ct[i].get(), *st[i % kNumSMs].get());
             check(*pt[i].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
-                                               Stream>) {
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&, Stream>) {
             func(*ct[i].get(), *ct[i + kNumTests].get(),
                  *st[i % kNumSMs].get());
             check(*pt[i].get(), *pt[i + kNumTests].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
-                                               Ctxt&, Stream>) {
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&, Ctxt&,
+                                               Stream>) {
             func(*ct[i].get(), *ct[i + kNumTests].get(),
                  *ct[i + kNumTests * 2].get(), *st[i % kNumSMs].get());
             check(*pt[i].get(), *pt[i + kNumTests].get(),
                   *pt[i + kNumTests * 2].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
-                                               Ctxt&, Ctxt&,
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&, Ctxt&, Ctxt&,
                                                Stream>) {
             func(*ct[i].get(), *ct[i + kNumTests].get(),
                  *ct[i + kNumTests * 2].get(), *ct[i + kNumTests * 3].get(),
@@ -157,22 +155,20 @@ void Test(string type, Func func, Check check, vector<shared_ptr<Ptxt>> pt,
                  *st[kNumSMs - (i % kNumSMs) - 1].get());
             check(*pt[i + kNumTests * 3].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
-                                               Stream>) {
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&, Stream>) {
             func(*ct[i + kNumTests * 3].get(), *ct[i].get(),
                  *st[kNumSMs - (i % kNumSMs) - 1].get());
             check(*pt[i + kNumTests * 3].get(), *pt[i].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
-                                               Ctxt&, Stream>) {
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&, Ctxt&,
+                                               Stream>) {
             func(*ct[i + kNumTests * 3].get(), *ct[i].get(),
                  *ct[i + kNumTests].get(),
                  *st[kNumSMs - (i % kNumSMs) - 1].get());
             check(*pt[i + kNumTests * 3].get(), *pt[i].get(),
                   *pt[i + kNumTests].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
-                                               Ctxt&, Ctxt&,
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&, Ctxt&, Ctxt&,
                                                Stream>) {
             func(*ct[i + kNumTests * 3].get(), *ct[i + kNumTests * 2].get(),
                  *ct[i + kNumTests].get(), *ct[i].get(),

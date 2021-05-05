@@ -23,43 +23,49 @@
 #pragma once
 
 #include <include/details/allocator_gpu.cuh>
-#include "../thirdparties/TFHEpp/include/params.hpp"
 
+#include "../thirdparties/TFHEpp/include/params.hpp"
 
 namespace cufhe {
 
-void BootstrappingKeyToNTT(const TFHEpp::BootstrappingKey<TFHEpp::lvl01param>& bk, const int gpuNum);
-void KeySwitchingKeyToDevice(const TFHEpp::KeySwitchingKey<TFHEpp::lvl10param>& ksk, const int gpuNum);
+void BootstrappingKeyToNTT(
+    const TFHEpp::BootstrappingKey<TFHEpp::lvl01param>& bk, const int gpuNum);
+void KeySwitchingKeyToDevice(
+    const TFHEpp::KeySwitchingKey<TFHEpp::lvl10param>& ksk, const int gpuNum);
 void DeleteBootstrappingKeyNTT(int gpuNum);
 void DeleteKeySwitchingKey(int gpuNum);
-void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, TFHEpp::lvl1param::T mu, cudaStream_t st,
-               int gpuNum);
-void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in, TFHEpp::lvl1param::T mu, cudaStream_t st,
-                         int gpuNum);
-void SEandKS(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in, cudaStream_t st, int gpuNum);
+void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
+               TFHEpp::lvl1param::T mu, cudaStream_t st, int gpuNum);
+void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in,
+                         TFHEpp::lvl1param::T mu, cudaStream_t st, int gpuNum);
+void SEandKS(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in,
+             cudaStream_t st, int gpuNum);
 
-void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
+void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                 TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                    TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                    TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum);
+void CopyBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
                    cudaStream_t st, int gpuNum);
-void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                 cudaStream_t st, int gpuNum);
-void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum);
-void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum);
-void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
+void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
                   cudaStream_t st, int gpuNum);
-void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                    cudaStream_t st, int gpuNum);
-void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                    cudaStream_t st, int gpuNum);
-void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
+void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
+                  TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
                   cudaStream_t st, int gpuNum);
-void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                  cudaStream_t st, int gpuNum);
-void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum);
-void CopyBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, cudaStream_t st, int gpuNum);
-void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, cudaStream_t st, int gpuNum);
-void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc, TFHEpp::lvl0param::T* in1,
-                  TFHEpp::lvl0param::T* in0, cudaStream_t st, int gpuNum);
 }  // namespace cufhe

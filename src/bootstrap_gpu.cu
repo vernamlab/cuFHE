@@ -40,26 +40,28 @@ vector<FFP*> bk_ntts;
 vector<CuNTTHandler<>*> ntt_handlers;
 vector<lvl0param::T*> ksk_devs;
 
-__global__ void __BootstrappingKeyToNTT__(FFP* bk_ntt,
-                                          TFHEpp::lvl1param::T* bk,
+__global__ void __BootstrappingKeyToNTT__(FFP* bk_ntt, TFHEpp::lvl1param::T* bk,
                                           CuNTTHandler<> ntt)
 {
     __shared__ FFP sh_temp[lvl1param::n];
-    const int index  = blockIdx.z*(2*lvl1param::l*2*lvl1param::n)+blockIdx.y*2*lvl1param::n+blockIdx.x*lvl1param::n;
+    const int index = blockIdx.z * (2 * lvl1param::l * 2 * lvl1param::n) +
+                      blockIdx.y * 2 * lvl1param::n + blockIdx.x * lvl1param::n;
     ntt.NTT<lvl1param::T>(&bk_ntt[index], &bk[index], sh_temp, 0);
 }
 
-void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk, const int gpuNum)
+void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk,
+                           const int gpuNum)
 {
     bk_ntts.resize(gpuNum);
     for (int i = 0; i < gpuNum; i++) {
         cudaSetDevice(i);
 
-        cudaMalloc((void**)&bk_ntts[i], sizeof(FFP)*lvl0param::n*2*lvl1param::l*2*lvl1param::n);
+        cudaMalloc((void**)&bk_ntts[i], sizeof(FFP) * lvl0param::n * 2 *
+                                            lvl1param::l * 2 * lvl1param::n);
 
-         TFHEpp::lvl1param::T* d_bk;
+        TFHEpp::lvl1param::T* d_bk;
         cudaMalloc((void**)&d_bk, sizeof(bk));
-        cudaMemcpy(d_bk,bk.data(),sizeof(bk),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_bk, bk.data(), sizeof(bk), cudaMemcpyHostToDevice);
 
         ntt_handlers.push_back(new CuNTTHandler<>());
         ntt_handlers[i]->Create();
@@ -90,14 +92,15 @@ void DeleteBootstrappingKeyNTT(const int gpuNum)
     ntt_handlers.clear();
 }
 
-void KeySwitchingKeyToDevice(const KeySwitchingKey<lvl10param>& ksk, const int gpuNum)
+void KeySwitchingKeyToDevice(const KeySwitchingKey<lvl10param>& ksk,
+                             const int gpuNum)
 {
     ksk_devs.resize(gpuNum);
     for (int i = 0; i < gpuNum; i++) {
         cudaSetDevice(i);
         cudaMalloc((void**)&ksk_devs[i], sizeof(ksk));
-        CuSafeCall(cudaMemcpy(ksk_devs[i], ksk.data(),
-                              sizeof(ksk), cudaMemcpyHostToDevice));
+        CuSafeCall(cudaMemcpy(ksk_devs[i], ksk.data(), sizeof(ksk),
+                              cudaMemcpyHostToDevice));
     }
 }
 
@@ -118,7 +121,8 @@ __device__ inline typename P::T modSwitchFromTorus(const uint32_t phase)
 }
 
 template <class P>
-__device__ inline void KeySwitch(typename P::targetP::T* lwe, const typename P::domainP::T* const tlwe,
+__device__ inline void KeySwitch(typename P::targetP::T* lwe,
+                                 const typename P::domainP::T* const tlwe,
                                  const typename P::targetP::T* const ksk)
 {
     constexpr typename P::domainP::T decomp_mask = (1U << P::basebit) - 1;
@@ -143,9 +147,12 @@ __device__ inline void KeySwitch(typename P::targetP::T* lwe, const typename P::
                      (std::numeric_limits<typename P::domainP::T>::digits -
                       (k + 1) * P::basebit)) &
                     decomp_mask;
-                if (val != 0){
-                    constexpr int numbase = (1<<P::basebit)-1;
-                    res -= ksk[j*(lvl10param::t*numbase*(P::targetP::n+1))+k*(numbase*(P::targetP::n+1))+(val-1)*(P::targetP::n+1)+i];
+                if (val != 0) {
+                    constexpr int numbase = (1 << P::basebit) - 1;
+                    res -= ksk[j * (lvl10param::t * numbase *
+                                    (P::targetP::n + 1)) +
+                               k * (numbase * (P::targetP::n + 1)) +
+                               (val - 1) * (P::targetP::n + 1) + i];
                 }
             }
         }
@@ -154,7 +161,8 @@ __device__ inline void KeySwitch(typename P::targetP::T* lwe, const typename P::
 }
 
 template <class P>
-__device__ inline void RotatedTestVector(TFHEpp::lvl1param::T* tlwe, const int32_t bar,
+__device__ inline void RotatedTestVector(TFHEpp::lvl1param::T* tlwe,
+                                         const int32_t bar,
                                          const typename P::T μ)
 {
     // volatile is needed to make register usage of Mux to 128.
@@ -188,7 +196,8 @@ __device__ constexpr typename P::T offsetgen()
 }
 
 __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
-    FFP* decpoly, const TFHEpp::lvl1param::T* const poly, const uint32_t a_bar){
+    FFP* decpoly, const TFHEpp::lvl1param::T* const poly, const uint32_t a_bar)
+{
     const uint32_t tid = ThisThreadRankInBlock();
     const uint32_t bdim = ThisBlockSize();
     constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
@@ -214,8 +223,8 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
     __syncthreads();  // must
 }
 
-__device__ inline void Accumulate(TFHEpp::lvl1param::T* tlwe, FFP* sh_res_ntt, FFP* decpoly,
-                                  const uint32_t a_bar,
+__device__ inline void Accumulate(TFHEpp::lvl1param::T* tlwe, FFP* sh_res_ntt,
+                                  FFP* decpoly, const uint32_t a_bar,
                                   const FFP* const tgsw_ntt,
                                   const CuNTTHandler<> ntt)
 {
@@ -318,8 +327,11 @@ __device__ inline void Accumulate(TFHEpp::lvl1param::T* tlwe, FFP* sh_res_ntt, F
     __syncthreads();  // must
 }
 
-__global__ void __Bootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, const TFHEpp::lvl1param::T mu,
-                              const FFP* const bk, const TFHEpp::lvl0param::T* const ksk,
+__global__ void __Bootstrap__(TFHEpp::lvl0param::T* out,
+                              TFHEpp::lvl0param::T* in,
+                              const TFHEpp::lvl1param::T mu,
+                              const FFP* const bk,
+                              const TFHEpp::lvl0param::T* const ksk,
                               const CuNTTHandler<> ntt)
 {
     //  Assert(bk.k() == 1);
@@ -329,7 +341,8 @@ __global__ void __Bootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* i
     FFP* sh_acc_ntt = &sh[0];
     FFP* decpoly = &sh[2 * lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
-    TFHEpp::lvl1param::T* tlwe = (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
+    TFHEpp::lvl1param::T* tlwe =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
@@ -350,14 +363,18 @@ __global__ void __Bootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* i
     __threadfence();
 }
 
-__global__ void __SEandKS__(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in, FFP* bk, TFHEpp::lvl0param::T* ksk)
+__global__ void __SEandKS__(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in,
+                            FFP* bk, TFHEpp::lvl0param::T* ksk)
 {
     KeySwitch<lvl10param>(out, in, ksk);
     __threadfence();
 }
 
-__global__ void __BootstrapTLWE2TRLWE__(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in, TFHEpp::lvl1param::T mu,
-                                        FFP* bk, TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
+__global__ void __BootstrapTLWE2TRLWE__(TFHEpp::lvl1param::T* out,
+                                        TFHEpp::lvl0param::T* in,
+                                        TFHEpp::lvl1param::T mu, FFP* bk,
+                                        TFHEpp::lvl0param::T* ksk,
+                                        CuNTTHandler<> ntt)
 {
     //  Assert(bk.k() == 1);
     //  Assert(bk.l() == 2);
@@ -366,7 +383,8 @@ __global__ void __BootstrapTLWE2TRLWE__(TFHEpp::lvl1param::T* out, TFHEpp::lvl0p
     FFP* sh_acc_ntt = &sh[0];
     FFP* decpoly = &sh[2 * lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
-    TFHEpp::lvl1param::T* tlwe = (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
+    TFHEpp::lvl1param::T* tlwe =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
 
     // test vector
     // acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
@@ -388,14 +406,18 @@ __global__ void __BootstrapTLWE2TRLWE__(TFHEpp::lvl1param::T* out, TFHEpp::lvl0p
 }
 
 template <int casign, int cbsign, typename lvl0param::T offset>
-__device__ inline void __HomGate__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
-                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
+__device__ inline void __HomGate__(TFHEpp::lvl0param::T* out,
+                                   TFHEpp::lvl0param::T* in0,
+                                   TFHEpp::lvl0param::T* in1, FFP* bk,
+                                   TFHEpp::lvl0param::T* ksk,
+                                   CuNTTHandler<> ntt)
 {
     __shared__ FFP sh[(2 + lvl1param::l + 1) * lvl1param::n];
     FFP* sh_acc_ntt = &sh[0];
     FFP* decpoly = &sh[2 * lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
-    TFHEpp::lvl1param::T* tlwe = (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
+    TFHEpp::lvl1param::T* tlwe =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
 
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     {
@@ -417,67 +439,90 @@ __device__ inline void __HomGate__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param:
     __threadfence();
 }
 
-__global__ void __NandBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __NandBootstrap__(TFHEpp::lvl0param::T* out,
+                                  TFHEpp::lvl0param::T* in0,
+                                  TFHEpp::lvl0param::T* in1, FFP* bk,
                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<-1, -1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __NorBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __NorBootstrap__(TFHEpp::lvl0param::T* out,
+                                 TFHEpp::lvl0param::T* in0,
+                                 TFHEpp::lvl0param::T* in1, FFP* bk,
                                  TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<-1, -1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __XnorBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __XnorBootstrap__(TFHEpp::lvl0param::T* out,
+                                  TFHEpp::lvl0param::T* in0,
+                                  TFHEpp::lvl0param::T* in1, FFP* bk,
                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<-2, -2, -2 * lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __AndBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __AndBootstrap__(TFHEpp::lvl0param::T* out,
+                                 TFHEpp::lvl0param::T* in0,
+                                 TFHEpp::lvl0param::T* in1, FFP* bk,
                                  TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<1, 1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __OrBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __OrBootstrap__(TFHEpp::lvl0param::T* out,
+                                TFHEpp::lvl0param::T* in0,
+                                TFHEpp::lvl0param::T* in1, FFP* bk,
                                 TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<1, 1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __XorBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __XorBootstrap__(TFHEpp::lvl0param::T* out,
+                                 TFHEpp::lvl0param::T* in0,
+                                 TFHEpp::lvl0param::T* in1, FFP* bk,
                                  TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<2, 2, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __AndNYBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
-                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
+__global__ void __AndNYBootstrap__(TFHEpp::lvl0param::T* out,
+                                   TFHEpp::lvl0param::T* in0,
+                                   TFHEpp::lvl0param::T* in1, FFP* bk,
+                                   TFHEpp::lvl0param::T* ksk,
+                                   CuNTTHandler<> ntt)
 {
     __HomGate__<-1, 1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __AndYNBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
-                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
+__global__ void __AndYNBootstrap__(TFHEpp::lvl0param::T* out,
+                                   TFHEpp::lvl0param::T* in0,
+                                   TFHEpp::lvl0param::T* in1, FFP* bk,
+                                   TFHEpp::lvl0param::T* ksk,
+                                   CuNTTHandler<> ntt)
 {
     __HomGate__<1, -1, -lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __OrNYBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __OrNYBootstrap__(TFHEpp::lvl0param::T* out,
+                                  TFHEpp::lvl0param::T* in0,
+                                  TFHEpp::lvl0param::T* in1, FFP* bk,
                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<-1, 1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __OrYNBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1, FFP* bk,
+__global__ void __OrYNBootstrap__(TFHEpp::lvl0param::T* out,
+                                  TFHEpp::lvl0param::T* in0,
+                                  TFHEpp::lvl0param::T* in1, FFP* bk,
                                   TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     __HomGate__<1, -1, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
-__global__ void __CopyBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in)
+__global__ void __CopyBootstrap__(TFHEpp::lvl0param::T* out,
+                                  TFHEpp::lvl0param::T* in)
 {
     const uint32_t tid = ThisThreadRankInBlock();
     out[tid] = in[tid];
@@ -485,7 +530,8 @@ __global__ void __CopyBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::
     __threadfence();
 }
 
-__global__ void __NotBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in)
+__global__ void __NotBootstrap__(TFHEpp::lvl0param::T* out,
+                                 TFHEpp::lvl0param::T* in)
 {
     const uint32_t tid = ThisThreadRankInBlock();
     out[tid] = -in[tid];
@@ -494,16 +540,21 @@ __global__ void __NotBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T
 }
 
 // Mux(inc,in1,in0) = inc?in1:in0 = inc&in1 + (!inc)&in0
-__global__ void __MuxBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc, TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
-                                 FFP* bk, TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
+__global__ void __MuxBootstrap__(TFHEpp::lvl0param::T* out,
+                                 TFHEpp::lvl0param::T* inc,
+                                 TFHEpp::lvl0param::T* in1,
+                                 TFHEpp::lvl0param::T* in0, FFP* bk,
+                                 TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
     // To use over 48 KiB shared Memory, the dynamic allocation is required.
     extern __shared__ FFP sh[];
     FFP* sh_acc_ntt = &sh[0];
     FFP* decpoly = &sh[2 * lvl1param::n];
     // Use Last section to hold tlwe. This may to make these data in serial
-    TFHEpp::lvl1param::T* tlwe1 = (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
-    TFHEpp::lvl1param::T* tlwe0 = (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l + 1) * lvl1param::n];
+    TFHEpp::lvl1param::T* tlwe1 =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
+    TFHEpp::lvl1param::T* tlwe0 =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l + 1) * lvl1param::n];
     // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
     register uint32_t bar =
         2 * lvl1param::n -
@@ -546,148 +597,150 @@ __global__ void __MuxBootstrap__(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T
     __threadfence();
 }
 
-void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, lvl1param::T mu, cudaStream_t st,
-               int gpuNum)
+void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
+               lvl1param::T mu, cudaStream_t st, int gpuNum)
 {
     __Bootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                   st>>>
-        (out, in, mu, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in, mu, bk_ntts[gpuNum], ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void SEandKS(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in, cudaStream_t st, int gpuNum)
+void SEandKS(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in,
+             cudaStream_t st, int gpuNum)
 {
-    __SEandKS__<<<1, lvl0param::n + 1, 0, st>>>(
-        out, in, bk_ntts[gpuNum], ksk_devs[gpuNum]);
+    __SEandKS__<<<1, lvl0param::n + 1, 0, st>>>(out, in, bk_ntts[gpuNum],
+                                                ksk_devs[gpuNum]);
     CuCheckError();
 }
 
-void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in, lvl1param::T mu, cudaStream_t st,
-                         int gpuNum)
+void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in,
+                         lvl1param::T mu, cudaStream_t st, int gpuNum)
 {
     __BootstrapTLWE2TRLWE__<<<1, lvl1param::l * lvl1param::n>>
                                 NTT_THRED_UNITBIT,
                             0, st>>>
-        (out, in, mu, bk_ntts[gpuNum], ksk_devs[gpuNum],
+        (out, in, mu, bk_ntts[gpuNum], ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
+void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+{
+    __NandBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
+                      st>>>
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
          *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum)
-{
-    __NandBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
-                      st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
-    CuCheckError();
-}
-
-void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                 cudaStream_t st, int gpuNum)
+void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                 TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __OrBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                     st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum)
+void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __OrYNBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum)
+void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __OrNYBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                  cudaStream_t st, int gpuNum)
+void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __AndBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                      st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                    cudaStream_t st, int gpuNum)
+void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                    TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __AndYNBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                        st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                    cudaStream_t st, int gpuNum)
+void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                    TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __AndNYBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                        st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                  cudaStream_t st, int gpuNum)
+void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __NorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                      st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                  cudaStream_t st, int gpuNum)
+void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __XorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                      st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0, TFHEpp::lvl0param::T* in1,
-                   cudaStream_t st, int gpuNum)
+void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
 {
     __XnorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
-        (out, in0, in1, bk_ntts[gpuNum],
-         ksk_devs[gpuNum], *ntt_handlers[gpuNum]);
+        (out, in0, in1, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
     CuCheckError();
 }
 
-void CopyBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, cudaStream_t st, int gpuNum)
+void CopyBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
+                   cudaStream_t st, int gpuNum)
 {
     __CopyBootstrap__<<<1, lvl0param::n + 1, 0, st>>>(out, in);
     CuCheckError();
 }
 
-void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in, cudaStream_t st, int gpuNum)
+void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
+                  cudaStream_t st, int gpuNum)
 {
     __NotBootstrap__<<<1, lvl0param::n + 1, 0, st>>>(out, in);
     CuCheckError();
 }
 
-void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc, TFHEpp::lvl0param::T* in1,
-                  TFHEpp::lvl0param::T* in0, cudaStream_t st, int gpuNum)
+void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
+                  TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
+                  cudaStream_t st, int gpuNum)
 {
     cudaFuncSetAttribute(
         __MuxBootstrap__, cudaFuncAttributeMaxDynamicSharedMemorySize,
@@ -695,8 +748,7 @@ void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc, TFHEpp::
     __MuxBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT,
                      (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP),
                      st>>>
-        (out, inc, in1, in0,
-         bk_ntts[gpuNum], ksk_devs[gpuNum],
+        (out, inc, in1, in0, bk_ntts[gpuNum], ksk_devs[gpuNum],
          *ntt_handlers[gpuNum]);
     CuCheckError();
 }
