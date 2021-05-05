@@ -159,6 +159,8 @@ int main()
     TFHEpp::SecretKey* sk = new TFHEpp::SecretKey();
     TFHEpp::GateKeywoFFT* gk = new TFHEpp::GateKeywoFFT(*sk);
 
+    cout<< "n:" << sk->params.lvl0.n << endl;
+
     // MUX Need 3 input
     vector<uint8_t> pt(4 * kNumTests);
     vector<Ctxt> ct(4 * kNumTests);

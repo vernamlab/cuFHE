@@ -46,7 +46,7 @@ __global__ void __BootstrappingKeyToNTT__(FFP* bk_ntt,
 {
     __shared__ FFP sh_temp[lvl1param::n];
     const int index  = blockIdx.z*(2*lvl1param::l*2*lvl1param::n)+blockIdx.y*2*lvl1param::n+blockIdx.x*lvl1param::n;
-    ntt.NTT<lvl0param::T>(&bk_ntt[index], &bk[index], sh_temp, 0);
+    ntt.NTT<lvl1param::T>(&bk_ntt[index], &bk[index], sh_temp, 0);
 }
 
 void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk, const int gpuNum)
@@ -55,11 +55,11 @@ void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk, const int gpu
     for (int i = 0; i < gpuNum; i++) {
         cudaSetDevice(i);
 
-        cudaMalloc((void**)&bk_ntts[i], sizeof(FFP[lvl0param::n][2*lvl1param::l][2][lvl1param::n]));
+        cudaMalloc((void**)&bk_ntts[i], sizeof(FFP)*lvl0param::n*2*lvl1param::l*2*lvl1param::n);
 
          TFHEpp::lvl1param::T* d_bk;
         cudaMalloc((void**)&d_bk, sizeof(bk));
-        cudaMemcpy((void*)d_bk,bk.data(),sizeof(bk),cudaMemcpyHostToDevice);
+        cudaMemcpy(d_bk,bk.data(),sizeof(bk),cudaMemcpyHostToDevice);
 
         ntt_handlers.push_back(new CuNTTHandler<>());
         ntt_handlers[i]->Create();
@@ -118,8 +118,8 @@ __device__ inline typename P::T modSwitchFromTorus(const uint32_t phase)
 }
 
 template <class P>
-__device__ inline void KeySwitch(TFHEpp::lvl0param::T* lwe, const TFHEpp::lvl1param::T* const tlwe,
-                                 const typename P::targetP::T* ksk)
+__device__ inline void KeySwitch(typename P::targetP::T* lwe, const typename P::domainP::T* const tlwe,
+                                 const typename P::targetP::T* const ksk)
 {
     constexpr typename P::domainP::T decomp_mask = (1U << P::basebit) - 1;
     constexpr typename P::domainP::T decomp_offset =
@@ -144,8 +144,8 @@ __device__ inline void KeySwitch(TFHEpp::lvl0param::T* lwe, const TFHEpp::lvl1pa
                       (k + 1) * P::basebit)) &
                     decomp_mask;
                 if (val != 0){
-                    constexpr int numbase = (1<<P::basebit)-2;
-                    res -= ksk[j*(lvl10param::t*numbase*P::targetP::n)+k*(numbase*P::targetP::n)+(val-1)*P::targetP::n+i];
+                    constexpr int numbase = (1<<P::basebit)-1;
+                    res -= ksk[j*(lvl10param::t*numbase*(P::targetP::n+1))+k*(numbase*(P::targetP::n+1))+(val-1)*(P::targetP::n+1)+i];
                 }
             }
         }

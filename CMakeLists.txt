@@ -12,10 +12,11 @@ if(OpenMP_FOUND)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-add_compile_definitions(USE_80BIT_SECURITY)
+OPTION(USE_80BIT_SECURITY "Use 80bit security parameter(faster)" OFF)
+OPTION(ENABLE_TEST "Build tests" OFF)
+OPTION(ENABLE_TUTORIAL "Build tutorial" OFF)
 
 add_subdirectory(src)
-option(USE_80BIT_SECURITY ON)
 add_subdirectory(thirdparties/TFHEpp)
 
 if(ENABLE_TEST)
