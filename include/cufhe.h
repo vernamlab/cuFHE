@@ -37,10 +37,11 @@
 #include <iostream>
 #include <vector>
 
-#include "cufhe_core.h"
 #include "details/allocator.h"
+#include "../thirdparties/TFHEpp/include/tfhe++.hpp"
 
 namespace cufhe {
+using namespace TFHEpp;
 
 /*****************************
  * Parameters *
@@ -49,14 +50,6 @@ namespace cufhe {
 // Implementation dependent parameter
 constexpr uint32_t NTT_THRED_UNITBIT =
     3;  // How many threads works as one group in NTT algorithm.
-
-#ifdef USE_80BIT_SECURITY
-#include "../thirdparties/TFHEpp/include/params/CGGI16.hpp"
-#elif defined(USE_CGGI19)
-#include "../thirdparties/TFHEpp/include/params/CGGI19.hpp"
-#else
-#include "../thirdparties/TFHEpp/include/params/128bit.hpp"
-#endif
 
 /*****************************
  * Essential Data Structures *
@@ -101,52 +94,22 @@ struct Param {
 
 Param* GetDefaultParam();
 
-/**
- * Private Key.
- * Necessary for encryption/decryption and public key generation.
- */
-struct PriKey {
-    PriKey(bool is_alias = false);
-    ~PriKey();
-    LWEKey* lwe_key_;
-    TLWEKey* tlwe_key_;
-    MemoryDeleter lwe_key_deleter_;
-    MemoryDeleter tlwe_key_deleter_;
-};
-
-/**
- * Public Key.
- * Necessary for a server to perform homomorphic evaluation.
- */
-struct PubKey {
-    PubKey(bool is_alias = false);
-    ~PubKey();
-    BootstrappingKey* bk_;
-    KeySwitchingKey* ksk_;
-    MemoryDeleter bk_deleter_;
-    MemoryDeleter ksk_deleter_;
-};
-
 /** Ciphertext. */
 struct Ctxt {
     Ctxt();
     ~Ctxt();
     Ctxt(const Ctxt& that) = delete;
     Ctxt& operator=(const Ctxt& that) = delete;
-    void assign(void* host_ptr, void* device_ptr);
-    LWESample* lwe_sample_;
-    MemoryDeleter lwe_sample_deleter_;
-    LWESample* lwe_sample_device_;
-    MemoryDeleter lwe_sample_device_deleter_;
 
-    std::vector<LWESample*> lwe_sample_devices_;
-    std::vector<MemoryDeleter> lwe_sample_devices_deleter_;
+    TFHEpp::TLWE<TFHEpp::lvl0param> tlwehost;
+
+    std::vector<TFHEpp::lvl0param::T*> tlwedevices;
 };
 
 /** TRLWE holder */
 struct cuFHETRLWElvl1 {
-    std::array<std::array<uint32_t, lvl1param::n>, 2> trlwehost;
-    std::vector<Torus*> trlwedevices;
+    TFHEpp::TRLWE<TFHEpp::lvl1param> trlwehost;
+    std::vector<TFHEpp::lvl1param::T*> trlwedevices;
     cuFHETRLWElvl1();
     ~cuFHETRLWElvl1();
 
@@ -155,41 +118,5 @@ struct cuFHETRLWElvl1 {
     cuFHETRLWElvl1(const cuFHETRLWElvl1&);
     cuFHETRLWElvl1& operator=(const cuFHETRLWElvl1&);
 };
-
-/** Plaintext is in {0, 1}. */
-struct Ptxt {
-    inline Ptxt& operator=(uint32_t message)
-    {
-        this->message_ = message % kPtxtSpace;
-        return *this;
-    }
-    uint32_t message_;
-    static const uint32_t kPtxtSpace = 2;
-
-    void set(uint32_t message) { message_ = message % kPtxtSpace; };
-    uint32_t get() { return message_; }
-};
-
-/******************
- * Client Methods *
- ******************/
-void SetSeed(uint32_t seed = time(nullptr));
-void PriKeyGen(PriKey& pri_key);
-void PubKeyGen(PubKey& pub_key, const PriKey& pri_key);
-void KeyGen(PubKey& pub_key, PriKey& pri_key);
-void Encrypt(Ctxt& ctxt, const Ptxt& ptxt, const PriKey& pri_key);
-void Decrypt(Ptxt& ptxt, const Ctxt& ctxt, const PriKey& pri_key);
-
-/******************
- * I/O Methods *
- ******************/
-// not ready
-typedef std::string FileName;
-void WritePriKeyToFile(const PriKey& pri_key, FileName file);
-void ReadPriKeyFromFile(PriKey& pri_key, FileName file);
-void WritePubKeyToFile(const PubKey& pub_key, FileName file);
-void ReadPubKeyFromFile(PubKey& pub_key, FileName file);
-void WriteCtxtToFile(const Ctxt& ct, FileName file);
-void ReadCtxtFromFile(Ctxt& ct, FileName file);
 
 }  // namespace cufhe

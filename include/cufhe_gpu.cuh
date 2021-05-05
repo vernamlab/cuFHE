@@ -35,6 +35,7 @@
 #include <array>
 
 #include "cufhe.h"
+#include "../thirdparties/TFHEpp/include/cloudkey.hpp"
 
 namespace cufhe {
 
@@ -50,7 +51,7 @@ extern int streamCount;
  */
 void SetGPUNum(int gpuNum);
 
-void Initialize(const PubKey& pub_key);
+void Initialize(const TFHEpp::GateKeywoFFT& gk);
 
 /** Remove everything created in Initialize(). */
 void CleanUp();
@@ -110,47 +111,45 @@ class Stream {
     int _device_id;
 };  // class Stream
 
-void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
+void GateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, Ctxt& in,
                                          Stream st);
 void SampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st);
-void And(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void AndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void AndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void Or(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void OrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void OrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void Nand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void Nor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void Xor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void Xnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void Not(Ctxt& out, const Ctxt& in, Stream st);
-void Copy(Ctxt& out, const Ctxt& in, Stream st);
-void CopyOnHost(Ctxt& out, const Ctxt&);
-void Mux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
+void And(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void AndYN(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void AndNY(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void Or(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void OrYN(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void OrNY(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void Nand(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void Nor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void Xor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void Xnor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void Not(Ctxt& out, Ctxt& in, Stream st);
+void Copy(Ctxt& out, Ctxt& in, Stream st);
+void CopyOnHost(Ctxt& out, Ctxt&);
+void Mux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0,
          Stream st);
-void ConstantZero(Ctxt& out);
-void ConstantOne(Ctxt& out);
 
 bool StreamQuery(Stream st);
-void CtxtCopyH2D(const Ctxt& c, Stream st);
-void CtxtCopyD2H(const Ctxt& c, Stream st);
+void CtxtCopyH2D(Ctxt& c, Stream st);
+void CtxtCopyD2H(Ctxt& c, Stream st);
 
 void gSampleExtractAndKeySwitch(Ctxt& out, const cuFHETRLWElvl1& in, Stream st);
-void gGateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, const Ctxt& in,
+void gGateBootstrappingTLWE2TRLWElvl01NTT(cuFHETRLWElvl1& out, Ctxt& in,
                                           Stream st);
-void gNand(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gOr(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gOrYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gOrNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gAnd(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gAndYN(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gAndNY(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gNor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gXor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gXnor(Ctxt& out, const Ctxt& in0, const Ctxt& in1, Stream st);
-void gNot(Ctxt& out, const Ctxt& in, Stream st);
-void gMux(Ctxt& out, const Ctxt& inc, const Ctxt& in1, const Ctxt& in0,
+void gNand(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gOr(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gOrYN(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gOrNY(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gAnd(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gAndYN(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gAndNY(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gNor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gXor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gXnor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
+void gNot(Ctxt& out, Ctxt& in, Stream st);
+void gMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0,
           Stream st);
-void gCopy(Ctxt& out, const Ctxt& in, Stream st);
+void gCopy(Ctxt& out, Ctxt& in, Stream st);
 
 }  // namespace cufhe

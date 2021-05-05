@@ -1,6 +1,0 @@
-## ignore
-build/**
-bin/**
-data/**
-cmake-build-debug
-.idea

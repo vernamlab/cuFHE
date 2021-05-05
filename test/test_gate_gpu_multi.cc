@@ -25,7 +25,11 @@
 using namespace cufhe;
 
 #include <iostream>
+#include <memory>
+#include <vector>
 using namespace std;
+
+const int gpuNum = 2;
 
 void ConstantZeroCheck(Ptxt& out) { out.message_ = 0; }
 
@@ -88,8 +92,19 @@ void MuxCheck(Ptxt& out, const Ptxt& inc, const Ptxt& in1, const Ptxt& in0)
     out.message_ = inc.message_ ? in1.message_ : in0.message_;
 }
 
+bool checkFinish(vector<shared_ptr<Stream>> sts)
+{
+    for (auto st : sts) {
+        if (!StreamQuery(*st.get())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 template <class Func, class Check>
-void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
+void Test(string type, Func func, Check check, vector<shared_ptr<Ptxt>> pt,
+          vector<shared_ptr<Ctxt>> ct, vector<shared_ptr<Stream>> st,
           int kNumTests, int kNumSMs, PriKey& pri_key)
 {
     cout << "------ Test " << type << " Gate ------" << endl;
@@ -98,47 +113,86 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
     int cnt_failures = 0;
 
     for (int i = 0; i < 4 * kNumTests; i++) {
-        pt[i] = rand() % Ptxt::kPtxtSpace;
-        Encrypt(ct[i], pt[i], pri_key);
+        *pt[i].get() = rand() % Ptxt::kPtxtSpace;
+        Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
     }
     Synchronize();
 
     for (int i = 0; i < kNumTests; i++) {
-        if constexpr (std::is_invocable_v<Func, Ctxt&>) {
-            func(ct[i]);
-            check(pt[i]);
+        if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>) {
+            func(*ct[i].get(), *st[i % kNumSMs].get());
+            check(*pt[i].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
                                                Stream>) {
-            func(ct[i], ct[i + kNumTests], st[i % kNumSMs]);
-            check(pt[i], pt[i + kNumTests]);
+            func(*ct[i].get(), *ct[i + kNumTests].get(),
+                 *st[i % kNumSMs].get());
+            check(*pt[i].get(), *pt[i + kNumTests].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
-                                               const Ctxt&, Stream>) {
-            func(ct[i], ct[i + kNumTests], ct[i + kNumTests * 2],
-                 st[i % kNumSMs]);
-            check(pt[i], pt[i + kNumTests], pt[i + kNumTests * 2]);
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Ctxt&, Stream>) {
+            func(*ct[i].get(), *ct[i + kNumTests].get(),
+                 *ct[i + kNumTests * 2].get(), *st[i % kNumSMs].get());
+            check(*pt[i].get(), *pt[i + kNumTests].get(),
+                  *pt[i + kNumTests * 2].get());
         }
-        else if constexpr (std::is_invocable_v<Func, Ctxt&, const Ctxt&,
-                                               const Ctxt&, const Ctxt&,
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Ctxt&, Ctxt&,
                                                Stream>) {
-            func(ct[i], ct[i + kNumTests], ct[i + kNumTests * 2],
-                 ct[i + kNumTests * 3], st[i % kNumSMs]);
-            check(pt[i], pt[i + kNumTests], pt[i + kNumTests * 2],
-                  pt[i + kNumTests * 3]);
+            func(*ct[i].get(), *ct[i + kNumTests].get(),
+                 *ct[i + kNumTests * 2].get(), *ct[i + kNumTests * 3].get(),
+                 *st[i % kNumSMs].get());
+            check(*pt[i].get(), *pt[i + kNumTests].get(),
+                  *pt[i + kNumTests * 2].get(), *pt[i + kNumTests * 3].get());
         }
         else {
             std::cout << "Invalid Function" << std::endl;
         }
     }
     Synchronize();
+
+    for (int i = 0; i < kNumTests; i++) {
+        if constexpr (std::is_invocable_v<Func, Ctxt&, Stream>) {
+            func(*ct[i + kNumTests * 3].get(),
+                 *st[kNumSMs - (i % kNumSMs) - 1].get());
+            check(*pt[i + kNumTests * 3].get());
+        }
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Stream>) {
+            func(*ct[i + kNumTests * 3].get(), *ct[i].get(),
+                 *st[kNumSMs - (i % kNumSMs) - 1].get());
+            check(*pt[i + kNumTests * 3].get(), *pt[i].get());
+        }
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Ctxt&, Stream>) {
+            func(*ct[i + kNumTests * 3].get(), *ct[i].get(),
+                 *ct[i + kNumTests].get(),
+                 *st[kNumSMs - (i % kNumSMs) - 1].get());
+            check(*pt[i + kNumTests * 3].get(), *pt[i].get(),
+                  *pt[i + kNumTests].get());
+        }
+        else if constexpr (std::is_invocable_v<Func, Ctxt&, Ctxt&,
+                                               Ctxt&, Ctxt&,
+                                               Stream>) {
+            func(*ct[i + kNumTests * 3].get(), *ct[i + kNumTests * 2].get(),
+                 *ct[i + kNumTests].get(), *ct[i].get(),
+                 *st[kNumSMs - (i % kNumSMs) - 1].get());
+            check(*pt[i + kNumTests * 3].get(), *pt[i + kNumTests * 2].get(),
+                  *pt[i + kNumTests].get(), *pt[i].get());
+        }
+        else {
+            std::cout << "Invalid Function" << std::endl;
+        }
+    }
+    Synchronize();
+
     for (int i = 0; i < kNumTests; i++) {
         Ptxt res;
-        Decrypt(res, ct[i], pri_key);
-        if (res.message_ != pt[i].message_) {
+        Decrypt(res, *ct[i + kNumTests * 3].get(), pri_key);
+        if (res.message_ != pt[i + kNumTests * 3].get()->message_) {
             correct = false;
             cnt_failures += 1;
-            // std::cout << type << " Fail at iteration: " << i << std::endl;
+            std::cout << type << " Fail at iteration: " << i << std::endl;
         }
     }
     if (correct)
@@ -149,6 +203,7 @@ void Test(string type, Func func, Check check, Ptxt* pt, Ctxt* ct, Stream* st,
 
 int main()
 {
+    SetGPUNum(gpuNum);
     cudaSetDevice(0);
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
@@ -161,8 +216,12 @@ int main()
     PriKey pri_key;  // private key
     PubKey pub_key;  // public key
     // MUX Need 3 input
-    Ptxt* pt = new Ptxt[4 * kNumTests];
-    Ctxt* ct = new Ctxt[4 * kNumTests];
+    vector<shared_ptr<Ctxt>> ct;
+    vector<shared_ptr<Ptxt>> pt;
+    for (int i = 0; i < 4 * kNumTests; i++) {
+        ct.push_back(make_shared<Ctxt>());
+        pt.push_back(make_shared<Ptxt>());
+    }
     Synchronize();
     bool correct;
 
@@ -173,10 +232,10 @@ int main()
     cout << "Number of tests:\t" << kNumTests << endl;
     correct = true;
     for (int i = 0; i < kNumTests; i++) {
-        pt[i].message_ = rand() % Ptxt::kPtxtSpace;
-        Encrypt(ct[i], pt[i], pri_key);
-        Decrypt(pt[kNumTests + i], ct[i], pri_key);
-        if (pt[kNumTests + i].message_ != pt[i].message_) {
+        pt[i].get()->message_ = rand() % Ptxt::kPtxtSpace;
+        Encrypt(*ct[i].get(), *pt[i].get(), pri_key);
+        Decrypt(*pt[kNumTests + i].get(), *ct[i].get(), pri_key);
+        if (pt[kNumTests + i].get()->message_ != pt[i].get()->message_) {
             correct = false;
             break;
         }
@@ -189,9 +248,14 @@ int main()
     cout << "------ Initilizating Data on GPU(s) ------" << endl;
     Initialize(pub_key);  // essential for GPU computing
 
-    Stream* st = new Stream[kNumSMs];
-    for (int i = 0; i < kNumSMs; i++) st[i].Create();
+    vector<shared_ptr<Stream>> st;
+    for (int i = 0; i < kNumSMs * gpuNum; i++) {
+        st.push_back(make_shared<Stream>(i % gpuNum));
+        st[i].get()->Create();
+    }
 
+    Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
+    Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("NAND", Nand, NandCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("OR", Or, OrCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("ORYN", OrYN, OrYNCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
@@ -202,19 +266,18 @@ int main()
     Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
-    Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, pri_key);
     Test("ConstantZero", ConstantZero, ConstantZeroCheck, pt, ct, st, kNumTests,
          kNumSMs, pri_key);
     Test("ConstantOne", ConstantOne, ConstantOneCheck, pt, ct, st, kNumTests,
          kNumSMs, pri_key);
 
-    for (int i = 0; i < kNumSMs; i++) st[i].Destroy();
-    delete[] st;
+    for (int i = 0; i < kNumSMs * gpuNum; i++) st[i].get()->Destroy();
+
+    st.clear();
 
     cout << "------ Cleaning Data on GPU(s) ------" << endl;
     CleanUp();  // essential to clean and deallocate data
-    delete[] ct;
-    delete[] pt;
+    ct.clear();
+    pt.clear();
     return 0;
 }

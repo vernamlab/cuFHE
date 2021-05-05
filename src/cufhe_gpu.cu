@@ -20,46 +20,55 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <cuda.h>
+#include <cuda_device_runtime_api.h>
+#include <cuda_runtime.h>
 #include <include/cufhe.h>
-#include <include/details/allocator_cpu.h>
+
+#include <include/cufhe_gpu.cuh>
+#include <include/details/allocator_gpu.cuh>
 
 namespace cufhe {
 
+uint32_t cnt = 0;
+
 Ctxt::Ctxt()
 {
-    Param* param = GetDefaultParam();
-    lwe_sample_ = new LWESample(param->lwe_n_);
-    lwe_sample_deleter_ = nullptr;
-    std::pair<void*, MemoryDeleter> pair;
-    pair = AllocatorCPU::New(lwe_sample_->SizeMalloc());
-    lwe_sample_->set_data((LWESample::PointerType)pair.first);
-    lwe_sample_deleter_ = pair.second;
-    lwe_sample_device_ = nullptr;
-    lwe_sample_device_deleter_ = nullptr;
+    cudaHostRegister(tlwehost.data(), sizeof(tlwehost),
+                     cudaHostRegisterDefault);
+    tlwedevices.resize(_gpuNum);
+    for (int i = 0; i < _gpuNum; i++) {
+        cudaSetDevice(i);
+        cudaMalloc((void**)&tlwedevices[i], sizeof(tlwehost));
+    }
 }
 
 Ctxt::~Ctxt()
 {
-    if (lwe_sample_ != nullptr) {
-        if (lwe_sample_deleter_ != nullptr) {
-            lwe_sample_deleter_(lwe_sample_->data());
-            lwe_sample_deleter_ = nullptr;
-        }
-
-        lwe_sample_->set_data(nullptr);
-        delete lwe_sample_;
-        lwe_sample_ = nullptr;
+    cudaHostUnregister(tlwehost.data());
+    for (int i = 0; i < _gpuNum; i++) {
+        cudaSetDevice(i);
+        cudaFree(tlwedevices[i]);
     }
+}
 
-    if (lwe_sample_device_ != nullptr) {
-        if (lwe_sample_device_deleter_ != nullptr) {
-            lwe_sample_device_deleter_(lwe_sample_device_->data());
-            lwe_sample_device_deleter_ = nullptr;
-        }
+cuFHETRLWElvl1::cuFHETRLWElvl1()
+{
+    cudaHostRegister(trlwehost.data(), sizeof(trlwehost),
+                     cudaHostRegisterDefault);
+    trlwedevices.resize(_gpuNum);
+    for (int i = 0; i < _gpuNum; i++) {
+        cudaSetDevice(i);
+        cudaMalloc((void**)&trlwedevices[i], sizeof(trlwehost));
+    }
+}
 
-        lwe_sample_device_->set_data(nullptr);
-        delete lwe_sample_device_;
-        lwe_sample_device_ = nullptr;
+cuFHETRLWElvl1::~cuFHETRLWElvl1()
+{
+    cudaHostUnregister(trlwehost.data());
+    for (int i = 0; i < _gpuNum; i++) {
+        cudaSetDevice(i);
+        cudaFree(trlwedevices[i]);
     }
 }
 
