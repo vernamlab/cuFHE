@@ -203,6 +203,7 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
     constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
     constexpr int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
     constexpr uint32_t decomp_offset = offsetgen<lvl1param>();
+    constexpr typename lvl1param::T roundoffset = 1ULL<<(std::numeric_limits<typename lvl1param::T>::digits-lvl1param::l*lvl1param::Bgbit-1);
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
         lvl1param::T temp = poly[(i - a_bar) & (lvl1param::n - 1)];
@@ -211,7 +212,7 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
                    : temp;
         temp -= poly[i];
         // decomp temp
-        temp += decomp_offset;
+        temp += decomp_offset + roundoffset;
 #pragma unroll
         for (int digit = 0; digit < lvl1param::l; digit += 1)
             decpoly[digit * lvl1param::n + i] = FFP(lvl1param::T(
