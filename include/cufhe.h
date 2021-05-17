@@ -119,16 +119,16 @@ struct cuFHETRLWElvl1 {
     cuFHETRLWElvl1& operator=(const cuFHETRLWElvl1&);
 };
 
-struct cuFHETRGSWlvl2{
-    TFHEpp::TRGSW<TFHEpp::lvl2param> trgswhost;
-    std::vector<TFHEpp::lvl2param::T*> trgswdevices;
-    cuFHETRGSWlvl2();
-    ~cuFHETRGSWlvl2();
+struct cuFHETRGSWNTTlvl2{
+    TFHEpp::TRGSWNTT<TFHEpp::lvl2param> trgswhost;
+    std::vector<uint64_t*> trgswdevices;
+    cuFHETRGSWNTTlvl2();
+    ~cuFHETRGSWNTTlvl2();
 
    private:
     // Don't allow users to copy this struct.
-    cuFHETRGSWlvl2(const cuFHETRGSWlvl2&);
-    cuFHETRGSWlvl2& operator=(const cuFHETRGSWlvl2&);
+    cuFHETRGSWNTTlvl2(const cuFHETRGSWNTTlvl2&);
+    cuFHETRGSWNTTlvl2& operator=(const cuFHETRGSWNTTlvl2&);
 };
 
 }  // namespace cufhe

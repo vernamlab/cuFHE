@@ -72,12 +72,12 @@ cuFHETRLWElvl1::~cuFHETRLWElvl1()
     ctxtDelete<TFHEpp::lvl1param,TFHEpp::TRLWE<TFHEpp::lvl1param>>(trlwehost,trlwedevices);
 }
 
-cuFHETRGSWlvl2::cuFHETRGSWlvl2()
+cuFHETRGSWNTTlvl2::cuFHETRGSWNTTlvl2()
 {
     ctxtInitialize<TFHEpp::lvl2param,TFHEpp::TRGSW<TFHEpp::lvl2param>>(trgswhost,trgswdevices);
 }
 
-cuFHETRGSWlvl2::~cuFHETRGSWlvl2()
+cuFHETRGSWNTTlvl2::~cuFHETRGSWNTTlvl2()
 {
     ctxtDelete<TFHEpp::lvl2param,TFHEpp::TRGSW<TFHEpp::lvl2param>>(trgswhost,trgswdevices);
 }

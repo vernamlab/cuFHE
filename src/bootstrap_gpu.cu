@@ -161,6 +161,152 @@ __device__ inline void KeySwitch(typename P::targetP::T* lwe,
 }
 
 template <class P>
+__device__ constexpr typename P::T offsetgen()
+{
+    typename P::T offset = 0;
+    for (int i = 1; i <= P::l; i++)
+        offset +=
+            P::Bg / 2 *
+            (1ULL << (numeric_limits<typename P::T>::digits - i * P::Bgbit));
+    return offset;
+}
+
+__device__ inline void PolynomialSubAndDecomposition(
+    FFP* decpoly, const TFHEpp::lvl1param::T* const poly1, const TFHEpp::lvl1param::T* const poly0)
+{
+    const uint32_t tid = ThisThreadRankInBlock();
+    const uint32_t bdim = ThisBlockSize();
+    constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
+    constexpr int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
+    constexpr uint32_t decomp_offset = offsetgen<lvl1param>();
+#pragma unroll
+    for (int i = tid; i < lvl1param::n; i += bdim) {
+        // decomp temp
+        lvl1param::T temp = poly1[i]-poly0[i]+decomp_offset;
+#pragma unroll
+        for (int digit = 0; digit < lvl1param::l; digit += 1)
+            decpoly[digit * lvl1param::n + i] = FFP(lvl1param::T(
+                ((temp >> (std::numeric_limits<typename lvl1param::T>::digits -
+                           (digit + 1) * lvl1param::Bgbit)) &
+                 decomp_mask) -
+                decomp_half));
+    }
+    __syncthreads();  // must
+}
+
+__global__ void __CMUXNTT__(TFHEpp::lvl1param::T* out, TFHEpp::lvl1param::T* tlwe1,
+                                  TFHEpp::lvl1param::T* tlwe0,
+                                  const FFP* const tgsw_ntt,
+                                  const CuNTTHandler<> ntt)
+{
+    const uint32_t tid = ThisThreadRankInBlock();
+    const uint32_t bdim = ThisBlockSize();
+
+    __shared__ FFP sh[(2 + lvl1param::l + 1) * lvl1param::n];
+    FFP* sh_res_ntt = &sh[0];
+    FFP* decpoly = &sh[2 * lvl1param::n];
+    // Use Last section to hold tlwe. This may to make these data in serial
+    TFHEpp::lvl1param::T* outtemp =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
+
+    PolynomialSubAndDecomposition(decpoly, &tlwe1[0], &tlwe0[0]);
+
+    // l NTTs
+    // Input/output/buffer use the same shared memory location.
+    if (tid < lvl1param::l * (lvl1param::n >> NTT_THRED_UNITBIT)) {
+        FFP* tar = &decpoly[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                       << lvl1param::nbit];
+        ntt.NTT<FFP>(tar, tar, tar,
+                     tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                << (lvl1param::nbit - NTT_THRED_UNITBIT));
+    }
+    else {  // must meet 5 sync made by NTTInv
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+    }
+    __syncthreads();
+
+// Multiply with bootstrapping key in global memory.
+#pragma unroll
+    for (int i = tid; i < lvl1param::n; i += bdim) {
+        sh_res_ntt[i] = decpoly[0 * lvl1param::n + i] *
+                        tgsw_ntt[((2 * 0 + 0) << lvl1param::nbit) + i];
+        sh_res_ntt[i + lvl1param::n] =
+            decpoly[0 * lvl1param::n + i] *
+            tgsw_ntt[((2 * 0 + 1) << lvl1param::nbit) + i];
+#pragma unroll
+        for (int digit = 1; digit < lvl1param::l; digit += 1) {
+            sh_res_ntt[i] += decpoly[digit * lvl1param::n + i] *
+                             tgsw_ntt[((2 * digit + 0) << lvl1param::nbit) + i];
+            sh_res_ntt[i + lvl1param::n] +=
+                decpoly[digit * lvl1param::n + i] *
+                tgsw_ntt[((2 * digit + 1) << lvl1param::nbit) + i];
+        }
+    }
+    __syncthreads();
+
+    PolynomialSubAndDecomposition(decpoly, &tlwe1[lvl1param::n], &tlwe0[lvl1param::n]);
+    // l NTTs
+    // Input/output/buffer use the same shared memory location.
+    if (tid < lvl1param::l * (lvl1param::n >> NTT_THRED_UNITBIT)) {
+        FFP* tar = &decpoly[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                       << lvl1param::nbit];
+        ntt.NTT<FFP>(tar, tar, tar,
+                     tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                << (lvl1param::nbit - NTT_THRED_UNITBIT));
+    }
+    else {  // must meet 5 sync made by NTTInv
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+    }
+    __syncthreads();
+    // Multiply with bootstrapping key in global memory.
+#pragma unroll
+    for (int i = tid; i < lvl1param::n; i += bdim) {
+#pragma unroll
+        for (int digit = 0; digit < lvl1param::l; digit += 1) {
+            sh_res_ntt[i] +=
+                decpoly[digit * lvl1param::n + i] *
+                tgsw_ntt[((2 * (digit + lvl1param::l) + 0) << lvl1param::nbit) +
+                         i];
+            sh_res_ntt[i + lvl1param::n] +=
+                decpoly[digit * lvl1param::n + i] *
+                tgsw_ntt[((2 * (digit + lvl1param::l) + 1) << lvl1param::nbit) +
+                         i];
+        }
+    }
+    __syncthreads();
+
+    // 2 NTTInvs and add acc
+    if (tid < 2 * (lvl1param::n >> NTT_THRED_UNITBIT)) {
+        FFP* src = &sh_res_ntt[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                                          << lvl1param::nbit];
+        ntt.NTTInv<typename lvl1param::T>(
+            &outtemp[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                             << lvl1param::nbit],
+            src, src,
+            tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
+                       << (lvl1param::nbit - NTT_THRED_UNITBIT));
+    }
+    else {  // must meet 5 sync made by NTTInv
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+        __syncthreads();
+    }
+    __syncthreads();  // must
+    for(int i = 0; i<2*lvl1param::n;i++) out[i] = outtemp[i] + tlwe0[i];
+    __syncthreads();
+}
+
+template <class P>
 __device__ inline void RotatedTestVector(TFHEpp::lvl1param::T* tlwe,
                                          const int32_t bar,
                                          const typename P::T μ)
@@ -184,17 +330,6 @@ __device__ inline void RotatedTestVector(TFHEpp::lvl1param::T* tlwe,
     __syncthreads();
 }
 
-template <class P>
-__device__ constexpr typename P::T offsetgen()
-{
-    typename P::T offset = 0;
-    for (int i = 1; i <= P::l; i++)
-        offset +=
-            P::Bg / 2 *
-            (1ULL << (numeric_limits<typename P::T>::digits - i * P::Bgbit));
-    return offset;
-}
-
 __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
     FFP* decpoly, const TFHEpp::lvl1param::T* const poly, const uint32_t a_bar)
 {
@@ -206,6 +341,7 @@ __device__ inline void PolynomialMulByXaiMinusOneAndDecomposition(
     constexpr typename lvl1param::T roundoffset = 1ULL<<(std::numeric_limits<typename lvl1param::T>::digits-lvl1param::l*lvl1param::Bgbit-1);
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
+        //PolynomialMulByXaiMinus
         lvl1param::T temp = poly[(i - a_bar) & (lvl1param::n - 1)];
         temp = ((i < (a_bar & (lvl1param::n - 1)) ^ (a_bar >> lvl1param::nbit)))
                    ? -temp
