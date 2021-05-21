@@ -269,7 +269,7 @@ public:
   /** Subtraction in FF(P): val_ = a + b mod P. */
   __device__ inline
   void Sub(const FFP& a, const FFP& b) {
-    register uint64_t r = 0;
+    uint64_t r = 0;
     asm("{\n\t"
         ".reg .u32          m;\n\t"
         ".reg .u64          t;\n\t"

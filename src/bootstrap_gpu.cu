@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <include/cufhe_gpu.cuh>
 #include <include/bootstrap_gpu.cuh>
 #include <include/details/error_gpu.cuh>
 #include <include/ntt_gpu/ntt.cuh>
@@ -40,13 +41,29 @@ vector<FFP*> bk_ntts;
 vector<CuNTTHandler<>*> ntt_handlers;
 vector<lvl0param::T*> ksk_devs;
 
-__global__ void __BootstrappingKeyToNTT__(FFP* bk_ntt, TFHEpp::lvl1param::T* bk,
+__global__ void __TRGSW2NTT__(FFP* bk_ntt, TFHEpp::lvl1param::T* bk,
                                           CuNTTHandler<> ntt)
 {
     __shared__ FFP sh_temp[lvl1param::n];
     const int index = blockIdx.z * (2 * lvl1param::l * 2 * lvl1param::n) +
                       blockIdx.y * 2 * lvl1param::n + blockIdx.x * lvl1param::n;
     ntt.NTT<lvl1param::T>(&bk_ntt[index], &bk[index], sh_temp, 0);
+}
+
+void TRGSW2NTT(cuFHETRGSWNTTlvl1& trgswntt, const TFHEpp::TRGSW<TFHEpp::lvl1param>& trgsw, Stream st){
+    cudaSetDevice(st.device_id());
+    TFHEpp::lvl1param::T* d_trgsw;
+    cudaMalloc((void**)&d_trgsw, sizeof(trgsw));
+    cudaMemcpyAsync(d_trgsw, trgsw.data(), sizeof(trgsw), cudaMemcpyHostToDevice,st.st());
+
+    dim3 grid(2, 2 * lvl1param::l, 1);
+    dim3 block(lvl1param::n >> NTT_THRED_UNITBIT);
+    __TRGSW2NTT__<<<grid, block, 0, st.st()>>>(trgswntt.trgswdevices[st.device_id()], d_trgsw,
+                                                *ntt_handlers[st.device_id()]);
+    CuCheckError();
+    cudaMemcpyAsync(trgswntt.trgswhost.data(), trgswntt.trgswdevices[st.device_id()],
+                    sizeof(trgswntt.trgswhost), cudaMemcpyDeviceToHost, st.st());
+    cudaFree(d_trgsw);
 }
 
 void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk,
@@ -71,7 +88,7 @@ void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk,
 
         dim3 grid(2, 2 * lvl1param::l, lvl0param::n);
         dim3 block(lvl1param::n >> NTT_THRED_UNITBIT);
-        __BootstrappingKeyToNTT__<<<grid, block>>>(bk_ntts[i], d_bk,
+        __TRGSW2NTT__<<<grid, block>>>(bk_ntts[i], d_bk,
                                                    *ntt_handlers[i]);
         cudaDeviceSynchronize();
         CuCheckError();
@@ -104,7 +121,7 @@ void KeySwitchingKeyToDevice(const KeySwitchingKey<lvl10param>& ksk,
     }
 }
 
-void DeleteKeySwitchingKey(int gpuNum)
+void DeleteKeySwitchingKey(const int gpuNum)
 {
     for (int i = 0; i < ksk_devs.size(); i++) {
         cudaSetDevice(i);
@@ -179,10 +196,11 @@ __device__ inline void PolynomialSubAndDecomposition(
     constexpr uint32_t decomp_mask = (1 << lvl1param::Bgbit) - 1;
     constexpr int32_t decomp_half = 1 << (lvl1param::Bgbit - 1);
     constexpr uint32_t decomp_offset = offsetgen<lvl1param>();
+    constexpr typename lvl1param::T roundoffset = 1ULL<<(std::numeric_limits<typename lvl1param::T>::digits-lvl1param::l*lvl1param::Bgbit-1);
 #pragma unroll
     for (int i = tid; i < lvl1param::n; i += bdim) {
         // decomp temp
-        lvl1param::T temp = poly1[i]-poly0[i]+decomp_offset;
+        lvl1param::T temp = poly1[i]-poly0[i]+decomp_offset+roundoffset;
 #pragma unroll
         for (int digit = 0; digit < lvl1param::l; digit += 1)
             decpoly[digit * lvl1param::n + i] = FFP(lvl1param::T(
@@ -194,9 +212,9 @@ __device__ inline void PolynomialSubAndDecomposition(
     __syncthreads();  // must
 }
 
-__global__ void __CMUXNTT__(TFHEpp::lvl1param::T* out, TFHEpp::lvl1param::T* tlwe1,
-                                  TFHEpp::lvl1param::T* tlwe0,
-                                  const FFP* const tgsw_ntt,
+__global__ void __CMUXNTT__(TFHEpp::lvl1param::T* out, const FFP* const tgsw_ntt,
+                                  const TFHEpp::lvl1param::T* const tlwe1,
+                                  const TFHEpp::lvl1param::T* const tlwe0,
                                   const CuNTTHandler<> ntt)
 {
     const uint32_t tid = ThisThreadRankInBlock();
@@ -283,11 +301,14 @@ __global__ void __CMUXNTT__(TFHEpp::lvl1param::T* out, TFHEpp::lvl1param::T* tlw
     }
     __syncthreads();
 
+    #pragma unroll
+    for (int i = tid; i < 2*lvl1param::n; i += bdim) outtemp[i] = tlwe0[i];
+
     // 2 NTTInvs and add acc
     if (tid < 2 * (lvl1param::n >> NTT_THRED_UNITBIT)) {
         FFP* src = &sh_res_ntt[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
                                           << lvl1param::nbit];
-        ntt.NTTInv<typename lvl1param::T>(
+        ntt.NTTInvAdd<typename lvl1param::T>(
             &outtemp[tid >> (lvl1param::nbit - NTT_THRED_UNITBIT)
                              << lvl1param::nbit],
             src, src,
@@ -302,7 +323,7 @@ __global__ void __CMUXNTT__(TFHEpp::lvl1param::T* out, TFHEpp::lvl1param::T* tlw
         __syncthreads();
     }
     __syncthreads();  // must
-    for(int i = 0; i<2*lvl1param::n;i++) out[i] = outtemp[i] + tlwe0[i];
+    for(int i = 0; i<2*lvl1param::n;i++) out[i] = outtemp[i];
     __syncthreads();
 }
 
@@ -735,7 +756,7 @@ __global__ void __MuxBootstrap__(TFHEpp::lvl0param::T* out,
 }
 
 void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
-               lvl1param::T mu, cudaStream_t st, int gpuNum)
+               lvl1param::T mu, cudaStream_t st, const int gpuNum)
 {
     __Bootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                   st>>>
@@ -744,15 +765,25 @@ void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
 }
 
 void SEandKS(TFHEpp::lvl0param::T* out, TFHEpp::lvl1param::T* in,
-             cudaStream_t st, int gpuNum)
+             cudaStream_t st, const int gpuNum)
 {
     __SEandKS__<<<1, lvl0param::n + 1, 0, st>>>(out, in, bk_ntts[gpuNum],
                                                 ksk_devs[gpuNum]);
     CuCheckError();
 }
 
+void CMUXNTTkernel(TFHEpp::lvl1param::T* res, const FFP* const cs, TFHEpp::lvl1param::T* const c1, TFHEpp::lvl1param::T* const c0,
+                         cudaStream_t st, const int gpuNum)
+{
+    __CMUXNTT__<<<1, lvl1param::l * lvl1param::n>>
+                                NTT_THRED_UNITBIT,
+                            0, st>>>
+        (res, cs, c1, c0, *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
 void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in,
-                         lvl1param::T mu, cudaStream_t st, int gpuNum)
+                         lvl1param::T mu, cudaStream_t st, const int gpuNum)
 {
     __BootstrapTLWE2TRLWE__<<<1, lvl1param::l * lvl1param::n>>
                                 NTT_THRED_UNITBIT,
@@ -762,7 +793,7 @@ void BootstrapTLWE2TRLWE(TFHEpp::lvl1param::T* out, TFHEpp::lvl0param::T* in,
 }
 
 void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __NandBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
@@ -772,7 +803,7 @@ void NandBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                 TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                 TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __OrBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                     st>>>
@@ -782,7 +813,7 @@ void OrBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __OrYNBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
@@ -792,7 +823,7 @@ void OrYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __OrNYBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
@@ -802,7 +833,7 @@ void OrNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __AndBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                      st>>>
@@ -812,7 +843,7 @@ void AndBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                    TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                    TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __AndYNBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                        st>>>
@@ -822,7 +853,7 @@ void AndYNBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                    TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                    TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __AndNYBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                        st>>>
@@ -832,7 +863,7 @@ void AndNYBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __NorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                      st>>>
@@ -842,7 +873,7 @@ void NorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                  TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                  TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __XorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                      st>>>
@@ -852,7 +883,7 @@ void XorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
-                   TFHEpp::lvl0param::T* in1, cudaStream_t st, int gpuNum)
+                   TFHEpp::lvl0param::T* in1, cudaStream_t st, const int gpuNum)
 {
     __XnorBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT, 0,
                       st>>>
@@ -862,14 +893,14 @@ void XnorBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in0,
 }
 
 void CopyBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
-                   cudaStream_t st, int gpuNum)
+                   cudaStream_t st, const int gpuNum)
 {
     __CopyBootstrap__<<<1, lvl0param::n + 1, 0, st>>>(out, in);
     CuCheckError();
 }
 
 void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
-                  cudaStream_t st, int gpuNum)
+                  cudaStream_t st, const int gpuNum)
 {
     __NotBootstrap__<<<1, lvl0param::n + 1, 0, st>>>(out, in);
     CuCheckError();
@@ -877,7 +908,7 @@ void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
 
 void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
                   TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
-                  cudaStream_t st, int gpuNum)
+                  cudaStream_t st, const int gpuNum)
 {
     cudaFuncSetAttribute(
         __MuxBootstrap__, cudaFuncAttributeMaxDynamicSharedMemorySize,

@@ -152,8 +152,8 @@ int main()
     cudaSetDevice(0);
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
-    uint32_t kNumSMs = prop.multiProcessorCount;
-    uint32_t kNumTests = kNumSMs * 32;   // * 8;
+    const uint32_t kNumSMs = prop.multiProcessorCount;
+    const uint32_t kNumTests = kNumSMs * 32;   // * 8;
     constexpr uint32_t kNumLevels = 10;  // Gate Types, Mux is counted as 2.
 
     TFHEpp::SecretKey* sk = new TFHEpp::SecretKey();

@@ -39,6 +39,7 @@
 
 #include "../thirdparties/TFHEpp/include/tfhe++.hpp"
 #include "details/allocator.h"
+#include "ntt_gpu/ntt_ffp.cuh"
 
 namespace cufhe {
 using namespace TFHEpp;
@@ -119,16 +120,16 @@ struct cuFHETRLWElvl1 {
     cuFHETRLWElvl1& operator=(const cuFHETRLWElvl1&);
 };
 
-struct cuFHETRGSWNTTlvl2{
-    TFHEpp::TRGSWNTT<TFHEpp::lvl2param> trgswhost;
-    std::vector<uint64_t*> trgswdevices;
-    cuFHETRGSWNTTlvl2();
-    ~cuFHETRGSWNTTlvl2();
+struct cuFHETRGSWNTTlvl1{
+    TFHEpp::TRGSWNTT<TFHEpp::lvl1param> trgswhost;
+    std::vector<FFP*> trgswdevices;
+    cuFHETRGSWNTTlvl1();
+    ~cuFHETRGSWNTTlvl1();
 
    private:
     // Don't allow users to copy this struct.
-    cuFHETRGSWNTTlvl2(const cuFHETRGSWNTTlvl2&);
-    cuFHETRGSWNTTlvl2& operator=(const cuFHETRGSWNTTlvl2&);
+    cuFHETRGSWNTTlvl1(const cuFHETRGSWNTTlvl1&);
+    cuFHETRGSWNTTlvl1& operator=(const cuFHETRGSWNTTlvl1&);
 };
 
 }  // namespace cufhe

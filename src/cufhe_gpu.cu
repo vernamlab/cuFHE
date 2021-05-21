@@ -32,8 +32,8 @@ namespace cufhe {
 
 uint32_t cnt = 0;
 
-template<class P,typename cT>
-void ctxtInitialize(cT &host, std::vector<typename P::T*>&devices){
+template<typename dT,typename hT>
+void ctxtInitialize(hT &host, std::vector<dT*>&devices){
     cudaHostRegister(host.data(), sizeof(host),
                      cudaHostRegisterDefault);
     devices.resize(_gpuNum);
@@ -43,8 +43,8 @@ void ctxtInitialize(cT &host, std::vector<typename P::T*>&devices){
     }
 }
 
-template<class P,typename cT>
-void ctxtDelete(cT &host, std::vector<typename P::T*>&devices){
+template<typename dT,typename hT>
+void ctxtDelete(hT &host, std::vector<dT*>&devices){
     cudaHostUnregister(host.data());
     for (int i = 0; i < _gpuNum; i++) {
         cudaSetDevice(i);
@@ -54,32 +54,32 @@ void ctxtDelete(cT &host, std::vector<typename P::T*>&devices){
 
 Ctxt::Ctxt()
 {
-    ctxtInitialize<TFHEpp::lvl0param,TFHEpp::TLWE<TFHEpp::lvl0param>>(tlwehost,tlwedevices);
+    ctxtInitialize<TFHEpp::lvl0param::T,TFHEpp::TLWE<TFHEpp::lvl0param>>(tlwehost,tlwedevices);
 }
 
 Ctxt::~Ctxt()
 {
-    ctxtDelete<TFHEpp::lvl0param,TFHEpp::TLWE<TFHEpp::lvl0param>>(tlwehost,tlwedevices);
+    ctxtDelete<TFHEpp::lvl0param::T,TFHEpp::TLWE<TFHEpp::lvl0param>>(tlwehost,tlwedevices);
 }
 
 cuFHETRLWElvl1::cuFHETRLWElvl1()
 {
-    ctxtInitialize<TFHEpp::lvl1param,TFHEpp::TRLWE<TFHEpp::lvl1param>>(trlwehost,trlwedevices);
+    ctxtInitialize<TFHEpp::lvl1param::T,TFHEpp::TRLWE<TFHEpp::lvl1param>>(trlwehost,trlwedevices);
 }
 
 cuFHETRLWElvl1::~cuFHETRLWElvl1()
 {
-    ctxtDelete<TFHEpp::lvl1param,TFHEpp::TRLWE<TFHEpp::lvl1param>>(trlwehost,trlwedevices);
+    ctxtDelete<TFHEpp::lvl1param::T,TFHEpp::TRLWE<TFHEpp::lvl1param>>(trlwehost,trlwedevices);
 }
 
-cuFHETRGSWNTTlvl2::cuFHETRGSWNTTlvl2()
+cuFHETRGSWNTTlvl1::cuFHETRGSWNTTlvl1()
 {
-    ctxtInitialize<TFHEpp::lvl2param,TFHEpp::TRGSW<TFHEpp::lvl2param>>(trgswhost,trgswdevices);
+    ctxtInitialize<FFP,TFHEpp::TRGSWNTT<TFHEpp::lvl1param>>(trgswhost,trgswdevices);
 }
 
-cuFHETRGSWNTTlvl2::~cuFHETRGSWNTTlvl2()
+cuFHETRGSWNTTlvl1::~cuFHETRGSWNTTlvl1()
 {
-    ctxtDelete<TFHEpp::lvl2param,TFHEpp::TRGSW<TFHEpp::lvl2param>>(trgswhost,trgswdevices);
+    ctxtDelete<FFP,TFHEpp::TRGSWNTT<TFHEpp::lvl1param>>(trgswhost,trgswdevices);
 }
 
 }  // namespace cufhe
