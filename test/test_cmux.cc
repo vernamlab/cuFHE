@@ -22,6 +22,7 @@
 
 // Include these two files for GPU computing.
 #include <include/cufhe_gpu.cuh>
+#include <include/ntt_gpu/ntt_ffp.cuh>
 using namespace cufhe;
 
 #include <iostream>

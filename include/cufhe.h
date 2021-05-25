@@ -39,9 +39,10 @@
 
 #include "../thirdparties/TFHEpp/include/tfhe++.hpp"
 #include "details/allocator.h"
-#include "ntt_gpu/ntt_ffp.cuh"
 
 namespace cufhe {
+class FFP;
+
 using namespace TFHEpp;
 
 /*****************************
