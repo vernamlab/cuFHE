@@ -642,7 +642,7 @@ __global__ void __XorBootstrap__(TFHEpp::lvl0param::T* out,
                                  TFHEpp::lvl0param::T* in1, FFP* bk,
                                  TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
 {
-    __HomGate__<2, 2, lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
+    __HomGate__<2, 2, 2*lvl0param::μ>(out, in0, in1, bk, ksk, ntt);
 }
 
 __global__ void __AndNYBootstrap__(TFHEpp::lvl0param::T* out,
