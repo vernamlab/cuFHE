@@ -66,6 +66,18 @@ void TRGSW2NTT(cuFHETRGSWNTTlvl1& trgswntt, const TFHEpp::TRGSW<TFHEpp::lvl1para
     cudaFree(d_trgsw);
 }
 
+void InitializeNTThandlers(const int gpuNum){
+    for (int i = 0; i < gpuNum; i++) {
+        cudaSetDevice(i);
+
+        ntt_handlers.push_back(new CuNTTHandler<>());
+        ntt_handlers[i]->Create();
+        ntt_handlers[i]->CreateConstant();
+        cudaDeviceSynchronize();
+        CuCheckError();
+    }
+}
+
 void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk,
                            const int gpuNum)
 {
@@ -80,9 +92,6 @@ void BootstrappingKeyToNTT(const BootstrappingKey<lvl01param>& bk,
         cudaMalloc((void**)&d_bk, sizeof(bk));
         cudaMemcpy(d_bk, bk.data(), sizeof(bk), cudaMemcpyHostToDevice);
 
-        ntt_handlers.push_back(new CuNTTHandler<>());
-        ntt_handlers[i]->Create();
-        ntt_handlers[i]->CreateConstant();
         cudaDeviceSynchronize();
         CuCheckError();
 

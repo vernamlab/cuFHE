@@ -51,6 +51,9 @@ extern int streamCount;
  */
 void SetGPUNum(int gpuNum);
 
+// Initialize NTThandlers only.
+void Initialize();
+
 void Initialize(const TFHEpp::GateKeywoFFT& gk);
 
 /** Remove everything created in Initialize(). */

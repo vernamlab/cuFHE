@@ -38,8 +38,14 @@ int streamCount = 0;
 
 void SetGPUNum(int gpuNum) { _gpuNum = gpuNum; }
 
+void Initialize()
+{
+    InitializeNTThandlers(_gpuNum);
+}
+
 void Initialize(const TFHEpp::GateKeywoFFT& gk)
 {
+    InitializeNTThandlers(_gpuNum);
     BootstrappingKeyToNTT(gk.bklvl01, _gpuNum);
     KeySwitchingKeyToDevice(gk.ksk, _gpuNum);
 }

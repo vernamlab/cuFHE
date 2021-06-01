@@ -28,6 +28,7 @@
 #include "../thirdparties/TFHEpp/include/params.hpp"
 
 namespace cufhe {
+void InitializeNTThandlers(const int gpuNum);
 void BootstrappingKeyToNTT(
     const TFHEpp::BootstrappingKey<TFHEpp::lvl01param>& bk, const int gpuNum);
 void KeySwitchingKeyToDevice(

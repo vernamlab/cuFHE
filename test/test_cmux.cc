@@ -39,7 +39,6 @@ int main()
     const uint32_t kNumTests = kNumSMs * 32;   // * 8;
 
     TFHEpp::SecretKey* sk = new TFHEpp::SecretKey();
-    TFHEpp::GateKeywoFFT* gk = new TFHEpp::GateKeywoFFT(*sk);
 
     std::vector<int32_t> ps(kNumTests);
     std::vector<std::array<uint8_t, TFHEpp::lvl1param::n>> p1(kNumTests);
@@ -85,7 +84,7 @@ int main()
     cout << "Number of tests:\t" << kNumTests << endl;
 
     cout << "------ Initilizating Data on GPU(s) ------" << endl;
-    Initialize(*gk);  // essential for GPU computing
+    Initialize();  // essential for GPU computing
 
     Stream* st = new Stream[kNumSMs];
     for (int i = 0; i < kNumSMs; i++) st[i].Create();
