@@ -91,8 +91,7 @@ int main()
     for (int i = 0; i < kNumSMs; i++) st[i].Create();
     Synchronize();
 
-    for (int i = 0; i < kNumTests; i++) TRGSW2NTT(csd[i],cs[i],st[i%kNumSMs]);
-    Synchronize();
+    for (int i = 0; i < kNumTests; i++) csd[i].trgswhost = TFHEpp::TRGSW2NTT<TFHEpp::lvl1param>(cs[i]);
 
     for (int i = 0; i < kNumTests; i++) CMUXNTT(cres[i],csd[i],c1[i],c0[i],st[i%kNumSMs]);
     Synchronize();
