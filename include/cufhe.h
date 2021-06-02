@@ -57,45 +57,6 @@ constexpr uint32_t NTT_THRED_UNITBIT =
  * Essential Data Structures *
  *****************************/
 
-struct Param {
-    uint32_t lwe_n_;
-    uint32_t tlwe_n_;
-    uint32_t tlwe_k_;
-    uint32_t tgsw_decomp_bits_;
-    uint32_t tgsw_decomp_size_;
-    uint32_t keyswitching_decomp_bits_;
-    uint32_t keyswitching_decomp_size_;
-    double lwe_noise_;
-    double tlwe_noise_;
-
-    Param()
-        : lwe_n_(lvl0param::n),
-          tlwe_n_(lvl1param::n),
-          tlwe_k_(1),
-          tgsw_decomp_bits_(lvl1param::Bg),
-          tgsw_decomp_size_(lvl1param::l),
-          keyswitching_decomp_bits_(lvl10param::basebit),
-          keyswitching_decomp_size_(lvl10param::t),
-          lwe_noise_(lvl0param::α),
-          tlwe_noise_(lvl1param::α){};
-
-    Param(uint32_t lwe_n, uint32_t tlwe_n, uint32_t tlwe_k,
-          uint32_t tgsw_decomp_bits, uint32_t tgsw_decomp_size,
-          uint32_t keyswitching_decomp_bits, uint32_t keyswitching_decomp_size,
-          double lwe_noise, double tlwe_noise)
-        : lwe_n_(lwe_n),
-          tlwe_n_(tlwe_n),
-          tlwe_k_(tlwe_k),
-          tgsw_decomp_bits_(tgsw_decomp_bits),
-          tgsw_decomp_size_(tgsw_decomp_size),
-          keyswitching_decomp_bits_(keyswitching_decomp_bits),
-          keyswitching_decomp_size_(keyswitching_decomp_size),
-          lwe_noise_(lwe_noise),
-          tlwe_noise_(tlwe_noise){};
-};
-
-Param* GetDefaultParam();
-
 /** Ciphertext. */
 struct Ctxt {
     Ctxt();
