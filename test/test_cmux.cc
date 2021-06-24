@@ -35,9 +35,10 @@ int main()
     cudaSetDevice(0);
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, 0);
-    const uint32_t kNumSMs = prop.multiProcessorCount;
+    const uint32_t kNumSMs = prop.multiProcessorCount*10;
     const uint32_t kNumTests = kNumSMs * 32;   // * 8;
 
+    cout << "------ Key Generation ------" << endl;
     TFHEpp::SecretKey* sk = new TFHEpp::SecretKey();
 
     std::vector<int32_t> ps(kNumTests);
@@ -52,6 +53,7 @@ int main()
     std::default_random_engine engine(seed_gen());
     std::uniform_int_distribution<uint32_t> binary(0, 1);
 
+    cout << "------ Test Encryption/Decryption ------" << endl;
     for (int32_t &p : ps) p = binary(engine);
     for (std::array<uint8_t, TFHEpp::lvl1param::n> &i : p1)
         for (uint8_t &p : i) p = binary(engine);
@@ -90,10 +92,27 @@ int main()
     for (int i = 0; i < kNumSMs; i++) st[i].Create();
     Synchronize();
 
+    cout << "Number of streams:\t" << kNumSMs << endl;
+    cout << "Number of tests:\t" << kNumTests << endl;
+    cout << "Number of tests per stream:\t" << kNumTests/kNumSMs << endl;
+    float et;
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start, 0);
+
     for (int i = 0; i < kNumTests; i++) csd[i].trgswhost = TFHEpp::TRGSW2NTT<TFHEpp::lvl1param>(cs[i]);
 
     for (int i = 0; i < kNumTests; i++) CMUXNTT(cres[i],csd[i],c1[i],c0[i],st[i%kNumSMs]);
     Synchronize();
+    
+    cudaEventRecord(stop, 0);
+    cudaEventSynchronize(stop);
+    cudaEventElapsedTime(&et, start, stop);
+    cout << et / kNumTests << " ms / gate" << endl;
+    cout << et / kNumSMs << " ms / stream" << endl;
+    cudaEventDestroy(start);
+    cudaEventDestroy(stop);
 
     int count = 0;
     for (int test = 0; test < kNumTests; test++) {
