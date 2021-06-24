@@ -95,13 +95,14 @@ int main()
     cout << "Number of streams:\t" << kNumSMs << endl;
     cout << "Number of tests:\t" << kNumTests << endl;
     cout << "Number of tests per stream:\t" << kNumTests/kNumSMs << endl;
+
+    for (int i = 0; i < kNumTests; i++) csd[i].trgswhost = TFHEpp::TRGSW2NTT<TFHEpp::lvl1param>(cs[i]);
+
     float et;
     cudaEvent_t start, stop;
     cudaEventCreate(&start);
     cudaEventCreate(&stop);
     cudaEventRecord(start, 0);
-
-    for (int i = 0; i < kNumTests; i++) csd[i].trgswhost = TFHEpp::TRGSW2NTT<TFHEpp::lvl1param>(cs[i]);
 
     for (int i = 0; i < kNumTests; i++) CMUXNTT(cres[i],csd[i],c1[i],c0[i],st[i%kNumSMs]);
     Synchronize();
