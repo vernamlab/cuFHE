@@ -34,7 +34,7 @@
 
 #include <array>
 
-#include "../thirdparties/TFHEpp/include/cloudkey.hpp"
+#include <cloudkey.hpp>
 #include "cufhe.h"
 
 namespace cufhe {

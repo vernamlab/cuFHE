@@ -37,7 +37,7 @@
 #include <iostream>
 #include <vector>
 
-#include "../thirdparties/TFHEpp/include/tfhe++.hpp"
+#include <params.hpp>
 #include "details/allocator.h"
 
 namespace cufhe {

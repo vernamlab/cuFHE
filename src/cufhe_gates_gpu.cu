@@ -27,8 +27,8 @@
 #include <include/bootstrap_gpu.cuh>
 #include <include/cufhe_gpu.cuh>
 
-#include "../thirdparties/TFHEpp/include/cloudkey.hpp"
-#include "../thirdparties/TFHEpp/include/params.hpp"
+#include <cloudkey.hpp>
+#include <params.hpp>
 
 namespace cufhe {
 

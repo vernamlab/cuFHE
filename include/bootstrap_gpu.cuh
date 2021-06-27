@@ -25,7 +25,7 @@
 #include "details/allocator_gpu.cuh"
 #include "cufhe_gpu.cuh"
 
-#include "../thirdparties/TFHEpp/include/params.hpp"
+#include <params.hpp>
 
 namespace cufhe {
 void InitializeNTThandlers(const int gpuNum);

@@ -7,6 +7,9 @@ add_library(cufhe_gpu
     )
 target_link_libraries(cufhe_gpu INTERFACE tfhe++)
 target_include_directories(cufhe_gpu
-    PUBLIC ../ ../include
+    PUBLIC ${PROJECT_SOURCE_DIR}
+    ${PROJECT_SOURCE_DIR}/thirdparties/TFHEpp/include
     ${PROJECT_SOURCE_DIR}/thirdparties/TFHEpp/thirdparties/cereal/include
+    ${PROJECT_SOURCE_DIR}/thirdparties/TFHEpp/thirdparties/randen
+    ${PROJECT_SOURCE_DIR}/thirdparties/TFHEpp/thirdparties/spqlios
     )
