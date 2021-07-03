@@ -1,3 +1,3 @@
-[submodule "cufhe/thirdparties/TFHEpp"]
+[submodule "thirdparties/TFHEpp"]
 	path = thirdparties/TFHEpp
-	url = https://github.com/virtualsecureplatform/TFHEpp.git
+	url = https://github.com/virtualsecureplatform/TFHEpp
