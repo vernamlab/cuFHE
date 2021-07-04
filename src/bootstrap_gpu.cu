@@ -764,6 +764,64 @@ __global__ void __MuxBootstrap__(TFHEpp::lvl0param::T* out,
     __threadfence();
 }
 
+// NMux(inc,in1,in0) = !(inc?in1:in0) = !(inc&in1 + (!inc)&in0)
+__global__ void __NMuxBootstrap__(TFHEpp::lvl0param::T* out,
+                                 TFHEpp::lvl0param::T* inc,
+                                 TFHEpp::lvl0param::T* in1,
+                                 TFHEpp::lvl0param::T* in0, FFP* bk,
+                                 TFHEpp::lvl0param::T* ksk, CuNTTHandler<> ntt)
+{
+    // To use over 48 KiB shared Memory, the dynamic allocation is required.
+    extern __shared__ FFP sh[];
+    FFP* sh_acc_ntt = &sh[0];
+    FFP* decpoly = &sh[2 * lvl1param::n];
+    // Use Last section to hold tlwe. This may to make these data in serial
+    TFHEpp::lvl1param::T* tlwe1 =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l) * lvl1param::n];
+    TFHEpp::lvl1param::T* tlwe0 =
+        (TFHEpp::lvl1param::T*)&sh[(2 + lvl1param::l + 1) * lvl1param::n];
+    // test vector: acc.a = 0; acc.b = vec(mu) * x ^ (in.b()/2048)
+    register uint32_t bar =
+        2 * lvl1param::n -
+        modSwitchFromTorus<lvl1param>(-lvl0param::μ + inc[lvl0param::n] +
+                                      in1[lvl0param::n]);
+    RotatedTestVector<lvl1param>(tlwe1, bar, lvl1param::μ);
+
+    // accumulate
+    for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
+        bar = modSwitchFromTorus<lvl1param>(0 + inc[i] + in1[i]);
+        Accumulate(tlwe1, sh_acc_ntt, decpoly, bar,
+                   bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
+    }
+
+    bar = 2 * lvl1param::n -
+          modSwitchFromTorus<lvl1param>(-lvl0param::μ - inc[lvl0param::n] +
+                                        in0[lvl0param::n]);
+
+    RotatedTestVector<lvl1param>(tlwe0, bar, lvl1param::μ);
+
+    for (int i = 0; i < lvl0param::n; i++) {  // lvl1param::n iterations
+        bar = modSwitchFromTorus<lvl1param>(0 - inc[i] + in0[i]);
+        Accumulate(tlwe0, sh_acc_ntt, decpoly, bar,
+                   bk + (i << lvl1param::nbit) * 2 * 2 * lvl1param::l, ntt);
+    }
+
+    volatile const uint32_t tid = ThisThreadRankInBlock();
+    volatile const uint32_t bdim = ThisBlockSize();
+#pragma unroll
+    for (int i = tid; i <= lvl1param::n; i += bdim) {
+        tlwe1[i] = -tlwe1[i]-tlwe0[i];
+        if (i == lvl1param::n) {
+            tlwe1[lvl1param::n] -= lvl1param::μ;
+        }
+    }
+
+    __syncthreads();
+
+    KeySwitch<lvl10param>(out, tlwe1, ksk);
+    __threadfence();
+}
+
 void Bootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
                lvl1param::T mu, cudaStream_t st, const int gpuNum)
 {
@@ -923,6 +981,21 @@ void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
         __MuxBootstrap__, cudaFuncAttributeMaxDynamicSharedMemorySize,
         (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP));
     __MuxBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT,
+                     (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP),
+                     st>>>
+        (out, inc, in1, in0, bk_ntts[gpuNum], ksk_devs[gpuNum],
+         *ntt_handlers[gpuNum]);
+    CuCheckError();
+}
+
+void NMuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
+                  TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
+                  cudaStream_t st, const int gpuNum)
+{
+    cudaFuncSetAttribute(
+        __NMuxBootstrap__, cudaFuncAttributeMaxDynamicSharedMemorySize,
+        (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP));
+    __NMuxBootstrap__<<<1, lvl1param::l * lvl1param::n>> NTT_THRED_UNITBIT,
                      (2 + lvl1param::l + 1 + 1) * lvl1param::n * sizeof(FFP),
                      st>>>
         (out, inc, in1, in0, bk_ntts[gpuNum], ksk_devs[gpuNum],

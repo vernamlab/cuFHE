@@ -22,7 +22,7 @@
 
 // Include these two files for GPU computing.
 #include <include/cufhe_gpu.cuh>
-#include <include/plain.h>
+#include "plain.h"
 #include <test/test_util.h>
 using namespace cufhe;
 
@@ -69,6 +69,7 @@ int main()
     Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("MUX", NMux, NMuxCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
 

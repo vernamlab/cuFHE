@@ -22,7 +22,7 @@
 
 // Include these two files for GPU computing.
 #include <include/cufhe_gpu.cuh>
-#include <include/plain.h>
+#include "plain.h"
 #include <test/test_util.h>
 using namespace cufhe;
 

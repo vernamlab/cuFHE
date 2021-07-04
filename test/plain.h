@@ -61,4 +61,10 @@ void MuxCheck(uint8_t& out, const uint8_t& inc, const uint8_t& in1,
 {
     out = inc ? in1 : in0;
 }
+
+void NMuxCheck(uint8_t& out, const uint8_t& inc, const uint8_t& in1,
+              const uint8_t& in0)
+{
+    out = ~(inc ? in1 : in0) & 0x1;
+}
 }

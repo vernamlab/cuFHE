@@ -133,6 +133,7 @@ void Not(Ctxt& out, Ctxt& in, Stream st);
 void Copy(Ctxt& out, Ctxt& in, Stream st);
 void CopyOnHost(Ctxt& out, Ctxt&);
 void Mux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st);
+void NMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st);
 
 bool StreamQuery(Stream st);
 void CtxtCopyH2D(Ctxt& c, Stream st);
@@ -153,6 +154,7 @@ void gXor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
 void gXnor(Ctxt& out, Ctxt& in0, Ctxt& in1, Stream st);
 void gNot(Ctxt& out, Ctxt& in, Stream st);
 void gMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st);
+void gNMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st);
 void gCopy(Ctxt& out, Ctxt& in, Stream st);
 
 }  // namespace cufhe

@@ -376,17 +376,27 @@ void gMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st)
                  in0.tlwedevices[st.device_id()], st.st(), st.device_id());
 }
 
-// void SetToGPU(Ctxt& in)
-// {
-//     cudaMemcpy(in.lwe_sample_device_->data(), in.lwe_sample_->data(),
-//                in.lwe_sample_->SizeData(), cudaMemcpyHostToDevice);
-// }
+void NMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st)
+{
+    cudaSetDevice(st.device_id());
+    CtxtCopyH2D(inc, st);
+    CtxtCopyH2D(in1, st);
+    CtxtCopyH2D(in0, st);
+    NMuxBootstrap(out.tlwedevices[st.device_id()],
+                 inc.tlwedevices[st.device_id()],
+                 in1.tlwedevices[st.device_id()],
+                 in0.tlwedevices[st.device_id()], st.st(), st.device_id());
+    CtxtCopyD2H(out, st);
+}
 
-// void GetFromGPU(Ctxt& out)
-// {
-//     cudaMemcpy(out.lwe_sample_->data(), out.lwe_sample_device_->data(),
-//                out.lwe_sample_->SizeData(), cudaMemcpyDeviceToHost);
-// }
+void gNMux(Ctxt& out, Ctxt& inc, Ctxt& in1, Ctxt& in0, Stream st)
+{
+    cudaSetDevice(st.device_id());
+    NMuxBootstrap(out.tlwedevices[st.device_id()],
+                 inc.tlwedevices[st.device_id()],
+                 in1.tlwedevices[st.device_id()],
+                 in0.tlwedevices[st.device_id()], st.st(), st.device_id());
+}
 
 bool StreamQuery(Stream st)
 {

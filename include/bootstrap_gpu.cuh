@@ -71,4 +71,7 @@ void NotBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* in,
 void MuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
                   TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
                   cudaStream_t st, const int gpuNum);
+void NMuxBootstrap(TFHEpp::lvl0param::T* out, TFHEpp::lvl0param::T* inc,
+                  TFHEpp::lvl0param::T* in1, TFHEpp::lvl0param::T* in0,
+                  cudaStream_t st, const int gpuNum);
 }  // namespace cufhe
