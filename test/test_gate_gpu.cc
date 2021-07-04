@@ -69,7 +69,7 @@ int main()
     Test("XOR", Xor, XorCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("XNOR", Xnor, XnorCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("MUX", Mux, MuxCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
-    Test("MUX", NMux, NMuxCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
+    Test("NMUX", NMux, NMuxCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("NOT", Not, NotCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
     Test("COPY", Copy, CopyCheck, pt, ct, st, kNumTests, kNumSMs, *sk);
 
