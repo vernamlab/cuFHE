@@ -65,6 +65,7 @@ void Test(string type, Func func, Check check, vector<uint8_t>& pt,
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(&et, start, stop);
+    cout << "Total:" << et << "ms" << endl;
     cout << et / kNumTests << " ms / gate" << endl;
     cout << et / kNumSMs << " ms / stream" << endl;
     cudaEventDestroy(start);
